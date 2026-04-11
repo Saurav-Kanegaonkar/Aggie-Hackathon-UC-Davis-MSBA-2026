@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/task.schema.json",
+  "title": "Agent Collaboration Task Detail",
+  "type": "object",
+  "required": [
+    "id",
+    "description",
+    "intent",
+    "mode",
+    "status",
+    "acceptance_checks"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^task-[0-9]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "split",
+        "compete",
+        "collab"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "submitted",
+        "blocked",
+        "done"
+      ]
+    },
+    "acceptance_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "assigned_to": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "arbitration": {
+      "type": "object",
+      "required": [
+        "method",
+        "criteria"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "weights": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "submissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "author",
+          "status"
+        ],
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1
+          },
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "submitted",
+              "blocked",
+              "done"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commit_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_result": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "benchmark_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "benchmark_result": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rubric_scores": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "winner": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "winner_selected_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "comparison_notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "compete"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "arbitration",
+          "submissions",
+          "winner",
+          "winner_selected_by",
+          "comparison_notes"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": true
+}
