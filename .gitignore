@@ -27,6 +27,13 @@ Thumbs.db
 .env.local
 *.pem
 
+# Raw data (large XML corpus and GivingTuesday CSVs, not committed)
+raw_data/
+data/raw/
+
+# Processed data (too large for git; regenerate with parsing/build_panel.py)
+data/processed/
+
 # Orchestrator
 state/index.json.lock
 state/watch.cursor
