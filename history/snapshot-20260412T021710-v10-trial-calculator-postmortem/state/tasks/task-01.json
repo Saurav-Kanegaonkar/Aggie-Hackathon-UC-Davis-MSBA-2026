@@ -3,8 +3,8 @@
   "description": "Complete vanilla JS calculator with session history",
   "intent": "Build a complete calculator as a single-page web app: HTML layout, CSS styling, JS arithmetic engine with operator precedence, button-driven UI, and a session history panel. Each teammate builds their own version independently on their own branch. Best overall implementation wins.",
   "mode": "compete",
-  "status": "not_started",
-  "notes": null,
+  "status": "done",
+  "notes": "Each person builds in trial-calculator/ on their own branch (feat/task-01-a, feat/task-01-b, feat/task-01-c). Target files: index.html, css/styles.css, js/calculator.js, js/ui.js, js/history.js",
   "acceptance_checks": [
     "Basic arithmetic works: 2+3=5, 2+3*4=14 (operator precedence), (2+3)*4=20 (parentheses)",
     "Handles edge cases: -5+3=-2 (unary minus), 10/3 returns decimal, 1/0 doesn't crash",
@@ -30,8 +30,31 @@
       "usability": 0.25
     }
   },
-  "submissions": [],
-  "winner": null,
-  "winner_selected_by": null,
-  "comparison_notes": null
+  "submissions": [
+    {
+      "author": "Saurav",
+      "branch": "feat/task-01-a",
+      "status": "submitted",
+      "notes": null,
+      "commit_sha": "7e09a0f654b63c0bd87f1c670222ac0dd6f9ca5e",
+      "test_command": "manual browser test",
+      "test_result": "pass",
+      "benchmark_command": null,
+      "benchmark_result": null
+    },
+    {
+      "author": "Amal",
+      "branch": "feat/task-01-c",
+      "status": "submitted",
+      "notes": "Vanilla JS calculator with parser-based evaluation, session history, and polished local-file UI.",
+      "commit_sha": "08eb1c613d3a52b0f398b368f1952f3ab9679bdf",
+      "test_command": "node calculator engine smoke checks",
+      "test_result": "pass",
+      "benchmark_command": null,
+      "benchmark_result": null
+    }
+  ],
+  "winner": "Amal",
+  "winner_selected_by": "team consensus",
+  "comparison_notes": "Amal's calculator selected as the winner during dress rehearsal review."
 }

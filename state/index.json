@@ -1,16 +1,16 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 10,
-  "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T01:53:52Z",
-  "updated_by": "team consensus",
-  "updated_from_commit": "9583315dc3def216c0ca6f3562be513bf5d564d6",
+  "context_version": 1,
+  "created": "2026-04-12T02:17:10Z",
+  "last_updated": "2026-04-12T02:17:10Z",
+  "updated_by": "person_a",
+  "updated_from_commit": "563c4dea4f51ecf75aa25a43fa7ce3e538396d9a",
   "tasks": [
     {
       "id": "task-01",
       "path": "state/tasks/task-01.json",
       "mode": "compete",
-      "status": "done"
+      "status": "not_started"
     }
   ],
   "decisions": [
@@ -24,56 +24,5 @@
     }
   ],
   "open_questions": [],
-  "recent_changes": [
-    {
-      "timestamp": "2026-04-12T00:38:26Z",
-      "author": "orchestrator-init",
-      "summary": "Initialized trial calculator project: 3 tasks (split, compete, collab), placeholder files created"
-    },
-    {
-      "timestamp": "2026-04-12T00:41:13Z",
-      "author": "orchestrator-init",
-      "summary": "Updated acceptance checks: unary minus (task-01), flexible viewport (task-02), error handling (task-03)"
-    },
-    {
-      "timestamp": "2026-04-12T00:48:10Z",
-      "author": "Saurav",
-      "summary": "task-01 done: calculator engine merged to main, all 6 acceptance checks pass"
-    },
-    {
-      "timestamp": "2026-04-12T00:56:15Z",
-      "author": "Saurav",
-      "summary": "Simplified trial to single compete task: all 3 build complete calculators independently"
-    },
-    {
-      "timestamp": "2026-04-12T01:05:46Z",
-      "author": "Saurav",
-      "summary": "Removed compare-compete-task command and all heuristic scoring helpers; simplified to human review via set-winner only"
-    },
-    {
-      "timestamp": "2026-04-12T01:09:16Z",
-      "author": "Saurav",
-      "summary": "Collapsed README to pure signpost, removed duplication with onboarding"
-    },
-    {
-      "timestamp": "2026-04-12T01:19:17Z",
-      "author": "Saurav",
-      "summary": "Recorded submission for task-01 by Saurav on feat/task-01-a"
-    },
-    {
-      "timestamp": "2026-04-12T01:34:09Z",
-      "author": "Amal",
-      "summary": "Recorded submission for task-01 by Amal on feat/task-01-c"
-    },
-    {
-      "timestamp": "2026-04-12T01:43:38Z",
-      "author": "Saurav",
-      "summary": "Bug fix: record-submission no longer auto-flips task status to submitted (caused premature 'submitted' state during trial)"
-    },
-    {
-      "timestamp": "2026-04-12T01:53:52Z",
-      "author": "team consensus",
-      "summary": "Winner recorded for task-01: Amal (by team consensus)"
-    }
-  ]
+  "recent_changes": []
 }
