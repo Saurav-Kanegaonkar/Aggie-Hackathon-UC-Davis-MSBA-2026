@@ -1,10 +1,10 @@
 {
-  "project": "Trial: Vanilla JS Calculator",
-  "context_version": 2,
-  "created": "2026-04-12T02:17:10Z",
-  "last_updated": "2026-04-12T02:18:01Z",
-  "updated_by": "person_a",
-  "updated_from_commit": "af346af85da5684353451d115b4494b7d49af3db",
+  "project": "UC Davis MSBA Hackathon",
+  "context_version": 1,
+  "created": "2026-04-11T23:00:00Z",
+  "last_updated": "2026-04-12T02:30:00Z",
+  "updated_by": "team consensus",
+  "updated_from_commit": null,
   "tasks": [
     {
       "id": "task-01",
@@ -24,11 +24,5 @@
     }
   ],
   "open_questions": [],
-  "recent_changes": [
-    {
-      "timestamp": "2026-04-12T02:18:01Z",
-      "author": "person_a",
-      "summary": "Bug fix: set-winner now requires at least 2 submissions before allowing a winner"
-    }
-  ]
+  "recent_changes": []
 }

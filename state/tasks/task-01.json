@@ -1,21 +1,12 @@
 {
   "id": "task-01",
-  "description": "Complete vanilla JS calculator with session history",
-  "intent": "Build a complete calculator as a single-page web app: HTML layout, CSS styling, JS arithmetic engine with operator precedence, button-driven UI, and a session history panel. Each teammate builds their own version independently on their own branch. Best overall implementation wins.",
+  "description": "TBD - hackathon problem statement drops Sunday 12pm",
+  "intent": "TBD - hackathon problem statement drops Sunday 12pm",
   "mode": "compete",
   "status": "not_started",
-  "notes": null,
+  "notes": "Placeholder task entry for tomorrow's live hackathon. Replace after the problem statement is released.",
   "acceptance_checks": [
-    "Basic arithmetic works: 2+3=5, 2+3*4=14 (operator precedence), (2+3)*4=20 (parentheses)",
-    "Handles edge cases: -5+3=-2 (unary minus), 10/3 returns decimal, 1/0 doesn't crash",
-    "Calculator is centered and looks intentional on a typical laptop screen (>=1280px wide)",
-    "Buttons have visible hover and active states",
-    "Display has clear visual separation from the button grid",
-    "Clicking buttons updates the display; pressing = evaluates and shows the result",
-    "A Clear button resets the display",
-    "Each evaluation appends to a visible history panel (expression + result, in-memory only)",
-    "Invalid expressions (e.g. 2++3) show an error without crashing the page",
-    "Opens in a browser by double-clicking index.html, no local server needed (no ES modules, no fetch calls)"
+    "TBD - acceptance checks will be filled in after the hackathon problem statement drops Sunday 12pm"
   ],
   "arbitration": {
     "method": "human_review",

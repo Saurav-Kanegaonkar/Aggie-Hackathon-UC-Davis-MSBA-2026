@@ -103,13 +103,13 @@ If you see `OK`, you're good.
 
 ### Author convention
 
-Each teammate uses their real first name in orchestrator commands:
+Each teammate has an author identifier used in orchestrator commands:
 
 | Person | Author ID |
 |--------|-----------|
-| Saurav | Saurav |
-| Vedant | Vedant |
-| Amal   | Amal   |
+| Saurav | person_a  |
+| Vedant | person_b  |
+| Amal   | person_c  |
 
 ### Branch naming
 
@@ -145,41 +145,79 @@ For `collab` mode tasks, all teammates share one branch (e.g. `feat/task-03-coll
 
 4. Build your solution.
 
-5. When done, record your submission:
-   ```bash
-   python orchestrator/orchestrator.py record-submission \
-     --task-id task-XX \
-     --author Saurav \
-     --branch feat/task-XX-a \
-     --notes "Brief description of what this submission does" \
-     --commit
-   ```
-
-   *`--test-command` and `--test-result` are optional flags -- use them only if your task has automated tests.*
-
-6. Push your branch:
+5. Push your feature branch first:
    ```bash
    git push -u origin feat/task-XX-a
    ```
 
-### After all submissions are in (compete tasks)
+6. Record your submission from `main`, not from your feature branch:
+   ```bash
+   git checkout main
+   git pull
+   python orchestrator/orchestrator.py record-submission \
+     --task-id task-XX \
+     --author person_a \
+     --branch feat/task-XX-a \
+     --notes "Brief description of what this submission does" \
+     --commit
+   git push
+   git checkout feat/task-XX-a
+   ```
 
-The team reviews all branches and decides a winner together. Then:
+   Only record your own submission. Do not run `record-submission` for someone else.
+
+   *`--test-command` and `--test-result` are optional flags -- use them only if your task has automated tests.*
+
+### Important: state files live on `main`
+
+The state files are the shared audit trail for the team:
+
+- `state/index.json`
+- `state/tasks/*.json`
+
+These files are only ever updated on `main`, never on feature branches.
+Whenever you need to run an orchestrator command (`add-change`,
+`record-submission`, `set-winner`, or `archive-project`), use this pattern:
 
 ```bash
-python orchestrator/orchestrator.py set-winner \
-  --task-id task-XX \
-  --winner Vedant \
-  --selected-by "team consensus" \
-  --notes "Reason for picking this submission" \
-  --commit
+git checkout main
+git pull
+python orchestrator/orchestrator.py <command> ... --commit
+git push
+git checkout <your-feature-branch>
 ```
 
-Then merge the winning branch to main.
+Do not run orchestrator commands while checked out to your feature branch.
+
+### After all submissions are in (compete tasks)
+
+The team reviews all branches and decides a winner together. `set-winner` is a
+team action, not an individual one. Only run it after the team has explicitly
+agreed on the winner.
+
+Example:
+   ```bash
+   git checkout main
+   git pull
+   python orchestrator/orchestrator.py set-winner \
+     --task-id task-XX \
+     --winner person_b \
+     --selected-by "team consensus" \
+     --notes "Reason for picking this submission" \
+     --commit
+   git push
+   git checkout feat/task-XX-a
+   ```
+
+If fewer than 2 submissions have been recorded, `set-winner` will fail. That
+usually means another teammate has not recorded their submission yet.
 
 ### Key rules
 
 - State files (`state/index.json`, `state/tasks/*.json`) are only modified via orchestrator commands, never hand-edited.
 - Always pull main before starting a new task.
+- Push your feature branch before recording your submission.
+- Run orchestrator commands only from `main`, then push, then switch back to your branch.
+- `set-winner` only happens after explicit team agreement.
 - Always validate before pushing state changes: `python orchestrator/validate_state.py`
 - See `docs/merge_checklist.md` before merging any branch to main.
