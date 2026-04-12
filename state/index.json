@@ -9,31 +9,13 @@
     {
       "id": "task-01",
       "path": "state/tasks/task-01.json",
-      "mode": "split",
-      "status": "not_started"
-    },
-    {
-      "id": "task-02",
-      "path": "state/tasks/task-02.json",
       "mode": "compete",
-      "status": "not_started"
-    },
-    {
-      "id": "task-03",
-      "path": "state/tasks/task-03.json",
-      "mode": "collab",
       "status": "not_started"
     }
   ],
   "decisions": [
-    {
-      "text": "Pure HTML/CSS/vanilla JS, no build tools",
-      "scope": "global"
-    },
-    {
-      "text": "All state changes via orchestrator commands, never hand-edited",
-      "scope": "global"
-    }
+    { "text": "Pure HTML/CSS/vanilla JS, no build tools", "scope": "global" },
+    { "text": "All state changes via orchestrator commands, never hand-edited", "scope": "global" }
   ],
   "open_questions": [],
   "recent_changes": [

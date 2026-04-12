@@ -1,18 +1,40 @@
 {
   "id": "task-01",
-  "description": "Calculator core arithmetic engine",
-  "intent": "Implement a calculator engine that evaluates arithmetic expressions with correct operator precedence. The module should expose a single evaluate(expression) function that takes a string and returns a number.",
-  "mode": "split",
+  "description": "Complete vanilla JS calculator with session history",
+  "intent": "Build a complete calculator as a single-page web app: HTML layout, CSS styling, JS arithmetic engine with operator precedence, button-driven UI, and a session history panel. Each teammate builds their own version independently on their own branch. Best overall implementation wins.",
+  "mode": "compete",
   "status": "not_started",
-  "assigned_to": null,
-  "branch": null,
-  "notes": "Target file: trial-calculator/js/calculator.js",
+  "notes": "Each person builds in trial-calculator/ on their own branch (feat/task-01-a, feat/task-01-b, feat/task-01-c). Target files: index.html, css/styles.css, js/calculator.js, js/ui.js, js/history.js",
   "acceptance_checks": [
     "evaluate('2+3') returns 5",
     "evaluate('2+3*4') returns 14 (multiplication before addition)",
     "evaluate('(2+3)*4') returns 20 (parentheses respected)",
     "evaluate('10/3') returns a decimal, not an integer",
     "evaluate('1/0') returns Infinity or throws a clear error, does not crash",
-    "evaluate('-5+3') returns -2 (unary minus handled correctly)"
-  ]
+    "evaluate('-5+3') returns -2 (unary minus handled correctly)",
+    "Calculator is centered on the page and looks intentional on a typical laptop screen (>=1280px wide)",
+    "Buttons have visible hover and active states (color change, shadow, or scale)",
+    "Display area has clear visual separation from the button grid",
+    "History panel is visually distinct and scrollable if content overflows",
+    "No horizontal scrollbar at any viewport >=1024px wide",
+    "Clicking digit and operator buttons updates the display in real time",
+    "Pressing = evaluates the current expression and shows the result",
+    "A Clear button resets the display to empty",
+    "Each completed evaluation appears in the history panel (expression and result)",
+    "History is in-memory only (clears on page refresh, no localStorage)",
+    "Invalid expressions display an error in the result area without crashing the page or breaking the history panel"
+  ],
+  "arbitration": {
+    "method": "human_review",
+    "criteria": ["correctness", "design_quality", "usability"],
+    "weights": {
+      "correctness": 0.4,
+      "design_quality": 0.35,
+      "usability": 0.25
+    }
+  },
+  "submissions": [],
+  "winner": null,
+  "winner_selected_by": null,
+  "comparison_notes": null
 }
