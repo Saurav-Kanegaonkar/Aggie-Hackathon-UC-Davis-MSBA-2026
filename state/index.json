@@ -1,16 +1,16 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 9,
+  "context_version": 10,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T01:34:09Z",
-  "updated_by": "person_c",
-  "updated_from_commit": "08eb1c613d3a52b0f398b368f1952f3ab9679bdf",
+  "last_updated": "2026-04-12T01:53:52Z",
+  "updated_by": "team consensus",
+  "updated_from_commit": "9583315dc3def216c0ca6f3562be513bf5d564d6",
   "tasks": [
     {
       "id": "task-01",
       "path": "state/tasks/task-01.json",
       "mode": "compete",
-      "status": "submitted"
+      "status": "done"
     }
   ],
   "decisions": [
@@ -64,6 +64,11 @@
       "timestamp": "2026-04-12T01:34:09Z",
       "author": "person_c",
       "summary": "Recorded submission for task-01 by person_c on feat/task-01-c"
+    },
+    {
+      "timestamp": "2026-04-12T01:53:52Z",
+      "author": "team consensus",
+      "summary": "Winner recorded for task-01: person_c (by team consensus)"
     }
   ]
 }
