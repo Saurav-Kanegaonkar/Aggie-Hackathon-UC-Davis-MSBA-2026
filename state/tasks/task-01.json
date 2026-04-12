@@ -3,7 +3,7 @@
   "description": "Complete vanilla JS calculator with session history",
   "intent": "Build a complete calculator as a single-page web app: HTML layout, CSS styling, JS arithmetic engine with operator precedence, button-driven UI, and a session history panel. Each teammate builds their own version independently on their own branch. Best overall implementation wins.",
   "mode": "compete",
-  "status": "not_started",
+  "status": "submitted",
   "notes": "Each person builds in trial-calculator/ on their own branch (feat/task-01-a, feat/task-01-b, feat/task-01-c). Target files: index.html, css/styles.css, js/calculator.js, js/ui.js, js/history.js",
   "acceptance_checks": [
     "Basic arithmetic works: 2+3=5, 2+3*4=14 (operator precedence), (2+3)*4=20 (parentheses)",
@@ -19,14 +19,30 @@
   ],
   "arbitration": {
     "method": "human_review",
-    "criteria": ["correctness", "design_quality", "usability"],
+    "criteria": [
+      "correctness",
+      "design_quality",
+      "usability"
+    ],
     "weights": {
       "correctness": 0.4,
       "design_quality": 0.35,
       "usability": 0.25
     }
   },
-  "submissions": [],
+  "submissions": [
+    {
+      "author": "person_a",
+      "branch": "feat/task-01-a",
+      "status": "submitted",
+      "notes": null,
+      "commit_sha": "7e09a0f654b63c0bd87f1c670222ac0dd6f9ca5e",
+      "test_command": "manual browser test",
+      "test_result": "pass",
+      "benchmark_command": null,
+      "benchmark_result": null
+    }
+  ],
   "winner": null,
   "winner_selected_by": null,
   "comparison_notes": null

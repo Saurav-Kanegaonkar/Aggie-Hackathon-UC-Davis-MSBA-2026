@@ -1,16 +1,16 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 7,
+  "context_version": 8,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T01:09:16Z",
+  "last_updated": "2026-04-12T01:19:17Z",
   "updated_by": "person_a",
-  "updated_from_commit": "5245e504b1b62cdde98ff46c5ccb33978cab2d99",
+  "updated_from_commit": "7e09a0f654b63c0bd87f1c670222ac0dd6f9ca5e",
   "tasks": [
     {
       "id": "task-01",
       "path": "state/tasks/task-01.json",
       "mode": "compete",
-      "status": "not_started"
+      "status": "submitted"
     }
   ],
   "decisions": [
@@ -54,6 +54,11 @@
       "timestamp": "2026-04-12T01:09:16Z",
       "author": "person_a",
       "summary": "Collapsed README to pure signpost, removed duplication with onboarding"
+    },
+    {
+      "timestamp": "2026-04-12T01:19:17Z",
+      "author": "person_a",
+      "summary": "Recorded submission for task-01 by person_a on feat/task-01-a"
     }
   ]
 }
