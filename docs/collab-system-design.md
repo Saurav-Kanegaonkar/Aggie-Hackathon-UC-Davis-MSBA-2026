@@ -1,17 +1,18 @@
 # Collaborative AI Orchestration System — Design Doc
 
 ## Team
-- **Person A**: Working with Claude (claude.ai / Claude API)
-- **Person B (Amal)**: Working with Codex / Antigravity
+- **Person A (Saurav)**: Working with Claude (claude.ai / Claude Code)
+- **Person B (Vedant)**: Working with Codex / Antigravity
+- **Person C (Amal)**: Working with Cursor
 
 ---
 
 ## Problem
-Two people working on the same codebase, each using different AI assistants. We need a way for both AIs to:
-1. Know what the other person is working on
+Three people working on the same codebase, each using different AI assistants. We need a way for all AIs to:
+1. Know what the other people are working on
 2. Understand the current state of the project
 3. Avoid conflicts and duplicated work (when working on separate tasks)
-4. Support both people working on the same task independently (competitive mode)
+4. Support multiple people working on the same task independently (competitive mode)
 5. Contribute to a single clean codebase
 
 ---
@@ -19,18 +20,21 @@ Two people working on the same codebase, each using different AI assistants. We 
 ## Architecture Overview
 
 ```
-┌─────────────┐         ┌──────────────────┐         ┌─────────────┐
-│  Person A   │         │   Orchestrator   │         │  Person B   │
-│  + Claude   │◄───────►│  (Python script)  │◄───────►│  + Codex    │
-└─────────────┘         └────────┬─────────┘         └─────────────┘
-                                 │
-                        ┌────────▼─────────┐
-                        │   Shared Repo    │
-                        │  (GitHub/GitLab) │
-                        │                  │
-                        │  - state/        │
+┌─────────────┐
+│  Person A   │
+│  + Claude   │◄──┐
+└─────────────┘   │
+                  │     ┌──────────────────┐
+┌─────────────┐   ├────►│   Orchestrator   │
+│  Person B   │   │     │  (Python script)  │
+│  + Codex    │◄──┤     └────────┬─────────┘
+└─────────────┘   │              │
+                  │     ┌────────▼─────────┐
+┌─────────────┐   │     │   Shared Repo    │
+│  Person C   │   │     │     (GitHub)     │
+│  + Cursor   │◄──┘     │                  │
+└─────────────┘         │  - state/        │
                         │  - history/      │
-                        │  - hw1/, hw2/... │
                         │  - docs/         │
                         └──────────────────┘
 ```
@@ -169,7 +173,7 @@ To reduce merge conflicts and improve reliability, state is split:
 }
 ```
 
-### `compete` — Both attempt it, best wins
+### `compete` — All attempt it, best wins
 
 ```json
 {
@@ -202,6 +206,14 @@ To reduce merge conflicts and improve reliability, state is split:
       "commit_sha": "...",
       "test_command": "pytest -q",
       "test_result": "pass"
+    },
+    {
+      "author": "person_c",
+      "branch": "feat/reservoir-sampling-c",
+      "status": "submitted",
+      "commit_sha": "...",
+      "test_command": "pytest -q",
+      "test_result": "pass"
     }
   ],
   "winner": null,
@@ -214,17 +226,17 @@ To reduce merge conflicts and improve reliability, state is split:
 - `human_review` — humans review and pick (default)
 - `synthesis` — merge best parts into a combined branch and re-validate
 
-### `collab` — Both work on the same branch together
+### `collab` — All work on the same branch together
 
 ```json
 {
   "id": "task-03",
   "intent": "Full test coverage including edge cases",
   "mode": "collab",
-  "assigned_to": ["person_a", "person_b"],
+  "assigned_to": ["person_a", "person_b", "person_c"],
   "status": "in_progress",
   "branch": "feat/integration-tests",
-  "notes": "A does setup, B writes cases"
+  "notes": "A does setup, B writes cases, C handles edge cases"
 }
 ```
 
@@ -300,12 +312,21 @@ A lightweight local script. It can run on-demand or via watch mode.
 - validates schemas
 
 3. `compare-compete-task`
-- compares exactly 2 compete submissions
+- compares 2 or 3 compete submissions via pairwise round-robin scoring
 - applies arbitration criteria and normalized weights
 - prints criterion-by-criterion scoring and recommendation
 - supports `--tie-threshold`
+- note: mixed explicit/heuristic scoring is unsupported — for a given criterion, either all submissions must provide `rubric_scores` or none do
 
-4. `archive-project`
+4. `set-winner`
+- records the winner of a compete task after team review
+- sets `winner`, `winner_selected_by`, `comparison_notes` on the task
+- marks task status as `done` and syncs back to `state/index.json`
+- validates all schemas before writing (no disk writes on failure)
+- supports `--commit` for atomic git commit of both files
+- required args: `--task-id`, `--winner`, `--selected-by`, `--notes`
+
+5. `archive-project`
 - archives current `state/` snapshot to `history/snapshot-...`
 - resets assignment state:
   - `context_version = 1`
@@ -313,7 +334,7 @@ A lightweight local script. It can run on-demand or via watch mode.
   - preserves `decisions` where `scope == global`
   - resets task statuses and assignment-specific task fields
 
-5. `watch`
+6. `watch`
 - polls git history for new commits
 - appends summarized entries into `recent_changes`
 - can optionally commit state updates
@@ -351,6 +372,14 @@ python orchestrator/orchestrator.py record-submission \
 python orchestrator/orchestrator.py compare-compete-task \
   --task-id task-02 \
   --tie-threshold 0.05
+```
+
+```bash
+python orchestrator/orchestrator.py set-winner \
+  --task-id task-02 \
+  --winner person_b \
+  --selected-by "team consensus on call" \
+  --notes "Generator approach was more memory efficient"
 ```
 
 ```bash
@@ -393,12 +422,13 @@ python orchestrator/orchestrator.py watch --once
 ### Flow
 ```text
 1. State setup committed to main (task definitions, submission slots)
-2. Person A creates feat/task-X-a from main → builds their version
-3. Person B creates feat/task-X-b from main → builds their version
-4. Both read state from main at session start
-5. Submission records go on feature branches (orchestrator updates)
-6. After winner is picked → winning branch merged to main
-7. State updated on main with winner info
+2. Person A creates feat/task-X-a from main
+3. Person B creates feat/task-X-b from main
+4. Person C creates feat/task-X-c from main
+5. All read state from main at session start
+6. Submission records go on feature branches (orchestrator updates)
+7. After winner is picked via set-winner → winning branch merged to main
+8. State updated on main with winner info
 ```
 
 ### Start session
@@ -450,10 +480,10 @@ Current implemented flows do not require API usage to function.
 Use `docs/merge_checklist.md` before selecting a winner for compete tasks.
 
 Minimum requirements:
-- both submissions include `commit_sha`
+- all submissions include `commit_sha`
 - test command and results present
-- winner rationale recorded in `comparison_notes`
-- `winner` and `winner_selected_by` set
+- winner recorded via `set-winner` command (not hand-edited)
+- `winner`, `winner_selected_by`, and `comparison_notes` set
 
 ---
 
