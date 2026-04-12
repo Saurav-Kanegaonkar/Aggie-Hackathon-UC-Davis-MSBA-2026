@@ -27,12 +27,14 @@ Thumbs.db
 .env.local
 *.pem
 
-# Raw data (large XML corpus and GivingTuesday CSVs, not committed)
+# Data (large files, not committed — regenerate with scripts in parsing/)
+*.parquet
 raw_data/
 data/raw/
-
-# Processed data (too large for git; regenerate with parsing/build_panel.py)
 data/processed/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Orchestrator
 state/index.json.lock
