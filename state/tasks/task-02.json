@@ -6,11 +6,11 @@
   "status": "not_started",
   "notes": "Target file: trial-calculator/css/styles.css",
   "acceptance_checks": [
-    "Calculator is centered on the page and looks intentional at 1280x800 viewport",
+    "Calculator is centered on the page and looks intentional on a typical laptop screen (>=1280px wide)",
     "Buttons have visible hover and active states (color change, shadow, or scale)",
     "Display area has clear visual separation from the button grid",
     "History panel is visually distinct and scrollable if content overflows",
-    "No horizontal scrollbar at 1280x800 viewport"
+    "No horizontal scrollbar at any viewport >=1024px wide"
   ],
   "arbitration": {
     "method": "human_review",

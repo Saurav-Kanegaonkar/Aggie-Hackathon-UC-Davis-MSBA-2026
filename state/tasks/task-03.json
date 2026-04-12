@@ -12,6 +12,7 @@
     "Pressing = evaluates the current expression and shows the result",
     "A Clear button resets the display to empty",
     "Each completed evaluation appears in the history panel (expression and result)",
-    "History is in-memory only (clears on page refresh, no localStorage)"
+    "History is in-memory only (clears on page refresh, no localStorage)",
+    "Invalid expressions display an error in the result area without crashing the page or breaking the history panel"
   ]
 }

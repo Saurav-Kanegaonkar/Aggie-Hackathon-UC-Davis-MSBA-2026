@@ -12,6 +12,7 @@
     "evaluate('2+3*4') returns 14 (multiplication before addition)",
     "evaluate('(2+3)*4') returns 20 (parentheses respected)",
     "evaluate('10/3') returns a decimal, not an integer",
-    "evaluate('1/0') returns Infinity or throws a clear error, does not crash"
+    "evaluate('1/0') returns Infinity or throws a clear error, does not crash",
+    "evaluate('-5+3') returns -2 (unary minus handled correctly)"
   ]
 }

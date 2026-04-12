@@ -1,10 +1,10 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 2,
+  "context_version": 3,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T00:38:26Z",
+  "last_updated": "2026-04-12T00:41:13Z",
   "updated_by": "orchestrator-init",
-  "updated_from_commit": "b412b6052dcfc846bda950ac99b442a7e20de3bd",
+  "updated_from_commit": "0ed2892cca85476e10a7373c551809338cf26712",
   "tasks": [
     {
       "id": "task-01",
@@ -41,6 +41,11 @@
       "timestamp": "2026-04-12T00:38:26Z",
       "author": "orchestrator-init",
       "summary": "Initialized trial calculator project: 3 tasks (split, compete, collab), placeholder files created"
+    },
+    {
+      "timestamp": "2026-04-12T00:41:13Z",
+      "author": "orchestrator-init",
+      "summary": "Updated acceptance checks: unary minus (task-01), flexible viewport (task-02), error handling (task-03)"
     }
   ]
 }
