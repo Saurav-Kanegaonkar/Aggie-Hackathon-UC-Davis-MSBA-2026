@@ -18,6 +18,7 @@ Run through this before merging any branch to main.
 - [ ] Winner recorded via `set-winner` command before merge
 - [ ] `winner`, `winner_selected_by`, and `comparison_notes` are all set in the task file
 - [ ] Only the winning branch is being merged (losing branches stay unmerged)
+- [ ] Losing compete branches kept for at least 24 hours (don't delete immediately -- you may want to cherry-pick parts later)
 
 ## After merge
 

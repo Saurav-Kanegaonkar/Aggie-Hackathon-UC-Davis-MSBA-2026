@@ -86,4 +86,5 @@ See `orchestrator/README.md` for full command reference.
 ## Tech Stack
 
 - **Orchestrator:** Python 3.11+ (only dependency: `jsonschema`)
-- **Project code:** TBD when the hackathon problem statement drops
+- **Trial project (calculator):** HTML / CSS / vanilla JavaScript, no build tools
+- **Hackathon project:** TBD when the problem statement drops on April 12

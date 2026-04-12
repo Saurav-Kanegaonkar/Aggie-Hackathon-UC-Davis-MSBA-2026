@@ -151,10 +151,11 @@ For `collab` mode tasks, all teammates share one branch (e.g. `feat/task-03-coll
      --task-id task-XX \
      --author person_a \
      --branch feat/task-XX-a \
-     --test-command "python -m pytest" \
-     --test-result "pass" \
+     --notes "Brief description of what this submission does" \
      --commit
    ```
+
+   *`--test-command` and `--test-result` are optional flags -- use them only if your task has automated tests.*
 
 6. Push your branch:
    ```bash
