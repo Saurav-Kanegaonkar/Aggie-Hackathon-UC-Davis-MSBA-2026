@@ -3,7 +3,7 @@
   "description": "Complete vanilla JS calculator with session history",
   "intent": "Build a complete calculator as a single-page web app: HTML layout, CSS styling, JS arithmetic engine with operator precedence, button-driven UI, and a session history panel. Each teammate builds their own version independently on their own branch. Best overall implementation wins.",
   "mode": "compete",
-  "status": "submitted",
+  "status": "in_progress",
   "notes": "Each person builds in trial-calculator/ on their own branch (feat/task-01-a, feat/task-01-b, feat/task-01-c). Target files: index.html, css/styles.css, js/calculator.js, js/ui.js, js/history.js",
   "acceptance_checks": [
     "Basic arithmetic works: 2+3=5, 2+3*4=14 (operator precedence), (2+3)*4=20 (parentheses)",

@@ -1,16 +1,16 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 8,
+  "context_version": 9,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T01:19:17Z",
+  "last_updated": "2026-04-12T01:43:38Z",
   "updated_by": "person_a",
-  "updated_from_commit": "7e09a0f654b63c0bd87f1c670222ac0dd6f9ca5e",
+  "updated_from_commit": "387f419d9389d02f7306388bc2eed55c7008199c",
   "tasks": [
     {
       "id": "task-01",
       "path": "state/tasks/task-01.json",
       "mode": "compete",
-      "status": "submitted"
+      "status": "in_progress"
     }
   ],
   "decisions": [
@@ -59,6 +59,11 @@
       "timestamp": "2026-04-12T01:19:17Z",
       "author": "person_a",
       "summary": "Recorded submission for task-01 by person_a on feat/task-01-a"
+    },
+    {
+      "timestamp": "2026-04-12T01:43:38Z",
+      "author": "person_a",
+      "summary": "Bug fix: record-submission no longer auto-flips task status to submitted (caused premature 'submitted' state during trial)"
     }
   ]
 }
