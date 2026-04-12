@@ -1,0 +1,265 @@
+/* ─── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── Tokens ─────────────────────────────────────────────── */
+:root {
+  --bg:           #0f0f11;
+  --surface:      #1a1a1f;
+  --surface-hi:   #22222a;
+  --border:       #2e2e38;
+
+  --num-bg:       #262630;
+  --num-bg-h:     #30303e;
+  --num-bg-a:     #1e1e28;
+
+  --op-bg:        #2a2050;
+  --op-bg-h:      #352760;
+  --op-bg-a:      #1f1840;
+  --op-text:      #a78bfa;
+
+  --util-bg:      #1e2a2a;
+  --util-bg-h:    #253535;
+  --util-bg-a:    #172020;
+  --util-text:    #34d399;
+
+  --eq-bg:        #7c3aed;
+  --eq-bg-h:      #6d28d9;
+  --eq-bg-a:      #5b21b6;
+
+  --text:         #e5e5ef;
+  --text-dim:     #6b6b82;
+  --text-expr:    #8b8ba8;
+  --error:        #f87171;
+
+  --radius-card:  18px;
+  --radius-btn:   14px;
+  --gap:          10px;
+  --btn-size:     72px;
+}
+
+/* ─── Layout ─────────────────────────────────────────────── */
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+}
+
+.layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ─── Calculator card ────────────────────────────────────── */
+.calc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  width: calc(var(--btn-size) * 4 + var(--gap) * 3 + 40px);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+
+/* ─── Display ────────────────────────────────────────────── */
+.display-area {
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px 14px;
+  margin-bottom: 18px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.expr-display {
+  font-size: 14px;
+  color: var(--text-expr);
+  min-height: 20px;
+  word-break: break-all;
+  text-align: right;
+}
+
+.main-display {
+  font-size: 42px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  color: var(--text);
+  word-break: break-all;
+  text-align: right;
+  line-height: 1.1;
+  transition: color .15s;
+}
+
+.main-display.error {
+  font-size: 22px;
+  color: var(--error);
+}
+
+/* ─── Button grid ────────────────────────────────────────── */
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--btn-size));
+  grid-template-rows: repeat(5, var(--btn-size));
+  gap: var(--gap);
+}
+
+/* ─── Base button ────────────────────────────────────────── */
+.btn {
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s, transform .08s, box-shadow .12s;
+  user-select: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--op-text);
+}
+
+.btn:active {
+  transform: scale(0.93);
+}
+
+/* Number buttons */
+.btn.num {
+  background: var(--num-bg);
+}
+.btn.num:hover  { background: var(--num-bg-h); }
+.btn.num:active { background: var(--num-bg-a); }
+
+/* Wide zero button */
+.btn.wide {
+  grid-column: span 2;
+  justify-content: flex-start;
+  padding-left: 28px;
+}
+
+/* Operator buttons */
+.btn.op {
+  background: var(--op-bg);
+  color: var(--op-text);
+  font-size: 22px;
+}
+.btn.op:hover  { background: var(--op-bg-h); }
+.btn.op:active { background: var(--op-bg-a); }
+
+/* Utility buttons */
+.btn.util {
+  background: var(--util-bg);
+  color: var(--util-text);
+  font-size: 16px;
+}
+.btn.util:hover  { background: var(--util-bg-h); }
+.btn.util:active { background: var(--util-bg-a); }
+
+/* Equals button */
+.btn.eq {
+  background: var(--eq-bg);
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 4px 20px rgba(124,58,237,.35);
+}
+.btn.eq:hover  { background: var(--eq-bg-h); box-shadow: 0 4px 24px rgba(124,58,237,.5); }
+.btn.eq:active { background: var(--eq-bg-a); transform: scale(0.92); }
+
+/* ─── History card ───────────────────────────────────────── */
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  width: 240px;
+  max-height: calc(var(--btn-size) * 5 + var(--gap) * 4 + 96px + 18px + 40px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.history-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.btn-clear-hist {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.btn-clear-hist:hover { border-color: var(--error); color: var(--error); }
+
+.history-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.history-list::-webkit-scrollbar { width: 4px; }
+.history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.history-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.history-item {
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color .12s;
+}
+
+.history-item:hover { border-color: var(--op-text); }
+
+.history-expr {
+  font-size: 12px;
+  color: var(--text-expr);
+  word-break: break-all;
+}
+
+.history-result {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 2px;
+}

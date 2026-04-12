@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator — Vedant</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="layout">
+
+    <section class="calc-card">
+      <div class="display-area">
+        <div id="expr-display" class="expr-display" aria-label="Expression"></div>
+        <div id="main-display" class="main-display" aria-live="polite">0</div>
+      </div>
+
+      <div class="btn-grid">
+        <!-- Row 1 -->
+        <button class="btn util"  data-action="clear">AC</button>
+        <button class="btn util"  data-action="sign">+/&minus;</button>
+        <button class="btn util"  data-action="paren">(  )</button>
+        <button class="btn op"    data-value="/">&divide;</button>
+
+        <!-- Row 2 -->
+        <button class="btn num"   data-value="7">7</button>
+        <button class="btn num"   data-value="8">8</button>
+        <button class="btn num"   data-value="9">9</button>
+        <button class="btn op"    data-value="*">&times;</button>
+
+        <!-- Row 3 -->
+        <button class="btn num"   data-value="4">4</button>
+        <button class="btn num"   data-value="5">5</button>
+        <button class="btn num"   data-value="6">6</button>
+        <button class="btn op"    data-value="-">&minus;</button>
+
+        <!-- Row 4 -->
+        <button class="btn num"   data-value="1">1</button>
+        <button class="btn num"   data-value="2">2</button>
+        <button class="btn num"   data-value="3">3</button>
+        <button class="btn op"    data-value="+">+</button>
+
+        <!-- Row 5 -->
+        <button class="btn num wide" data-value="0">0</button>
+        <button class="btn num"   data-value=".">.</button>
+        <button class="btn eq"    data-action="equals">=</button>
+      </div>
+    </section>
+
+    <section class="history-card">
+      <div class="history-header">
+        <span class="history-title">History</span>
+        <button class="btn-clear-hist" data-action="clear-history">Clear</button>
+      </div>
+      <ul id="history-list" class="history-list">
+        <li class="history-empty">No calculations yet</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <script src="js/calculator.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
