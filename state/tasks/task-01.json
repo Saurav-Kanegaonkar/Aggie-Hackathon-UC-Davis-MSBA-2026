@@ -41,6 +41,17 @@
       "test_result": "pass",
       "benchmark_command": null,
       "benchmark_result": null
+    },
+    {
+      "author": "person_b",
+      "branch": "feat/task-01-b",
+      "status": "submitted",
+      "notes": "Dark-mode calculator: Shunting-yard engine, operator precedence, unary minus, parentheses, error display, session history, keyboard support",
+      "commit_sha": "8035e8680bb5d5d480f11a25508ec50a2f6a762f",
+      "test_command": null,
+      "test_result": null,
+      "benchmark_command": null,
+      "benchmark_result": null
     }
   ],
   "winner": null,
