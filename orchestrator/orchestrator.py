@@ -1247,13 +1247,6 @@ def cmd_record_submission(args: argparse.Namespace) -> int:
         task_data["submissions"] = submissions
         task_data["status"] = "in_progress"
 
-        all_submitted = all(
-            isinstance(item, dict) and item.get("status") == "submitted"
-            for item in submissions
-        )
-        if all_submitted:
-            task_data["status"] = "submitted"
-
         atomic_write_json(task_path, task_data)
 
         recent_changes = index_data.get("recent_changes")

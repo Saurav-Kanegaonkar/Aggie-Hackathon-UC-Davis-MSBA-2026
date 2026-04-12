@@ -66,6 +66,11 @@
       "summary": "Recorded submission for task-01 by Amal on feat/task-01-c"
     },
     {
+      "timestamp": "2026-04-12T01:43:38Z",
+      "author": "Saurav",
+      "summary": "Bug fix: record-submission no longer auto-flips task status to submitted (caused premature 'submitted' state during trial)"
+    },
+    {
       "timestamp": "2026-04-12T01:53:52Z",
       "author": "team consensus",
       "summary": "Winner recorded for task-01: Amal (by team consensus)"
