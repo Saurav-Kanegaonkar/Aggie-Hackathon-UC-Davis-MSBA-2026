@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Calculator</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="calculator-panel" aria-label="Calculator">
+      <div class="display-card">
+        <p class="display-label">Current expression</p>
+        <div class="calculator-display" id="display" aria-live="polite">0</div>
+      </div>
+
+      <div class="button-grid" id="button-grid">
+        <button type="button" class="btn btn-utility" data-action="clear">C</button>
+        <button type="button" class="btn btn-utility" data-value="(">(</button>
+        <button type="button" class="btn btn-utility" data-value=")">)</button>
+        <button type="button" class="btn btn-operator" data-value="/">/</button>
+
+        <button type="button" class="btn" data-value="7">7</button>
+        <button type="button" class="btn" data-value="8">8</button>
+        <button type="button" class="btn" data-value="9">9</button>
+        <button type="button" class="btn btn-operator" data-value="*">*</button>
+
+        <button type="button" class="btn" data-value="4">4</button>
+        <button type="button" class="btn" data-value="5">5</button>
+        <button type="button" class="btn" data-value="6">6</button>
+        <button type="button" class="btn btn-operator" data-value="-">-</button>
+
+        <button type="button" class="btn" data-value="1">1</button>
+        <button type="button" class="btn" data-value="2">2</button>
+        <button type="button" class="btn" data-value="3">3</button>
+        <button type="button" class="btn btn-operator" data-value="+">+</button>
+
+        <button type="button" class="btn btn-span-2" data-value="0">0</button>
+        <button type="button" class="btn" data-value=".">.</button>
+        <button type="button" class="btn btn-accent" data-action="evaluate">=</button>
+      </div>
+    </section>
+
+    <aside class="history-panel" aria-label="Session history">
+      <div class="history-header">
+        <h1>Session History</h1>
+        <p>Expressions from this browser session.</p>
+      </div>
+      <ol class="history-list" id="history-list">
+        <li class="history-empty">No calculations yet.</li>
+      </ol>
+    </aside>
+  </main>
+
+  <script src="js/calculator.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
