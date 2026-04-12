@@ -14,10 +14,28 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
+# Cross-platform file locking.
+# fcntl.flock() is advisory (Unix); msvcrt.locking() is mandatory (Windows).
+# For our use case (mutex on a sentinel .lock file) the difference is irrelevant.
+# TODO: msvcrt LK_LOCK retries 10x at 1s intervals then raises OSError,
+#       while flock(LOCK_EX) blocks indefinitely.  Acceptable for low-contention
+#       trial usage; consider LK_NBLCK + manual backoff for real hackathon.
+if sys.platform == "win32":
+    import msvcrt
+
+    def _lock(f):  # type: ignore[misc]
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _unlock(f):  # type: ignore[misc]
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+else:
     import fcntl
-except ImportError as exc:  # pragma: no cover
-    raise RuntimeError("fcntl is required on this platform") from exc
+
+    def _lock(f):  # type: ignore[misc]
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+
+    def _unlock(f):  # type: ignore[misc]
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
 def utc_now_iso() -> str:
@@ -198,6 +216,46 @@ def parse_args() -> argparse.Namespace:
         help="Commit archived snapshot and reset state files",
     )
     archive_project.add_argument(
+        "--commit-message",
+        default=None,
+        help="Optional custom git commit message",
+    )
+
+    set_winner = subparsers.add_parser(
+        "set-winner",
+        help="Record the winner of a compete task",
+    )
+    set_winner.add_argument(
+        "--task-id", required=True, help="Task identifier, e.g. task-02"
+    )
+    set_winner.add_argument(
+        "--winner", required=True, help="Author who won, e.g. person_b"
+    )
+    set_winner.add_argument(
+        "--selected-by",
+        required=True,
+        help="How the winner was selected, e.g. 'team consensus on call'",
+    )
+    set_winner.add_argument(
+        "--notes", required=True, help="Human-readable notes on why this person won"
+    )
+    set_winner.add_argument(
+        "--updated-by",
+        default=None,
+        help="Value for updated_by (defaults to --selected-by)",
+    )
+    set_winner.add_argument(
+        "--expected-context-version",
+        type=int,
+        default=None,
+        help="Abort if current context_version is different",
+    )
+    set_winner.add_argument(
+        "--commit",
+        action="store_true",
+        help="Commit updated task file and state/index.json",
+    )
+    set_winner.add_argument(
         "--commit-message",
         default=None,
         help="Optional custom git commit message",
@@ -571,10 +629,10 @@ def with_state_lock(state_path: Path):
     lock_path = state_path.with_name(f"{state_path.name}.lock")
     lock_file = lock_path.open("w", encoding="utf-8")
     try:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        _lock(lock_file)
         yield
     finally:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        _unlock(lock_file)
         lock_file.close()
 
 
@@ -1455,7 +1513,12 @@ def resolve_compete_weights(task_data: dict[str, Any]) -> list[tuple[str, float]
 
 
 def cmd_compare_compete_task(args: argparse.Namespace) -> int:
-    """Compare two compete submissions and print deterministic recommendation."""
+    """Compare compete submissions (2 or 3) via pairwise round-robin scoring.
+
+    # TODO: consider refactoring to absolute scoring (rank against field)
+    #       before the real hackathon — pairwise totals are harder to interpret
+    #       than independent 0-1 scores per submission.
+    """
     if args.tie_threshold < 0:
         raise RuntimeError("--tie-threshold must be >= 0")
 
@@ -1490,9 +1553,9 @@ def cmd_compare_compete_task(args: argparse.Namespace) -> int:
     submissions = task_data.get("submissions")
     if not isinstance(submissions, list):
         raise RuntimeError(f"Task {args.task_id} submissions missing or invalid")
-    if len(submissions) != 2:
+    if len(submissions) < 2:
         raise RuntimeError(
-            f"Task {args.task_id} compare-compete-task requires exactly 2 submissions"
+            f"Task {args.task_id} compare-compete-task requires at least 2 submissions"
         )
 
     normalized_weights = resolve_compete_weights(task_data)
@@ -1504,111 +1567,243 @@ def cmd_compare_compete_task(args: argparse.Namespace) -> int:
             str(item.get("branch", "")),
         ),
     )
-    left = ordered_submissions[0]
-    right = ordered_submissions[1]
 
-    left_author = str(left.get("author") or "unknown")
-    right_author = str(right.get("author") or "unknown")
+    # Build author list and initialize score/reason accumulators.
+    authors: list[str] = []
+    sub_by_author: dict[str, dict[str, Any]] = {}
+    for sub in ordered_submissions:
+        author = str(sub.get("author") or "unknown")
+        authors.append(author)
+        sub_by_author[author] = sub
 
-    scores: dict[str, dict[str, float]] = {
-        left_author: {},
-        right_author: {},
-    }
-    reasons: dict[str, dict[str, str]] = {
-        left_author: {},
-        right_author: {},
-    }
+    num_matchups = len(authors) - 1  # each author participates in N-1 pairs
+
+    scores: dict[str, dict[str, float]] = {a: {} for a in authors}
+    reasons: dict[str, dict[str, list[str]]] = {a: {} for a in authors}
 
     for criterion, _ in normalized_weights:
-        left_explicit = get_explicit_score(left, criterion)
-        right_explicit = get_explicit_score(right, criterion)
+        for a in authors:
+            scores[a][criterion] = 0.0
+            reasons[a][criterion] = []
 
-        if left_explicit is not None:
-            scores[left_author][criterion] = left_explicit
-            reasons[left_author][criterion] = "explicit rubric score"
-        if right_explicit is not None:
-            scores[right_author][criterion] = right_explicit
-            reasons[right_author][criterion] = "explicit rubric score"
+        # Apply explicit rubric scores first (these are absolute, not pairwise).
+        explicit: dict[str, float | None] = {}
+        for a in authors:
+            explicit[a] = get_explicit_score(sub_by_author[a], criterion)
+            if explicit[a] is not None:
+                scores[a][criterion] = explicit[a] * num_matchups
+                reasons[a][criterion].append("explicit rubric score")
 
-        if criterion == "performance":
-            left_perf, right_perf = score_performance_pair(left, right)
-            if left_explicit is None:
-                scores[left_author][criterion] = left_perf[0]
-                reasons[left_author][criterion] = left_perf[1]
-            if right_explicit is None:
-                scores[right_author][criterion] = right_perf[0]
-                reasons[right_author][criterion] = right_perf[1]
-            continue
+        explicit_count = sum(1 for a in authors if explicit[a] is not None)
+        if 0 < explicit_count < len(authors):
+            raise RuntimeError(
+                f"Criterion '{criterion}': mixed explicit and heuristic scoring "
+                f"is not supported. Either all submissions provide rubric_scores "
+                f"for this criterion, or none do."
+            )
 
-        if left_explicit is None:
-            if criterion == "correctness":
-                value, reason = score_correctness(left)
-            elif criterion == "memory_efficiency":
-                value, reason = score_memory_efficiency(left)
-            elif criterion == "readability":
-                value, reason = score_readability(left)
-            else:
-                value, reason = 0.5, "no heuristic for criterion"
-            scores[left_author][criterion] = value
-            reasons[left_author][criterion] = reason
+        # Pairwise round-robin for authors without explicit scores.
+        for i in range(len(authors)):
+            for j in range(i + 1, len(authors)):
+                a_i, a_j = authors[i], authors[j]
+                sub_i, sub_j = sub_by_author[a_i], sub_by_author[a_j]
 
-        if right_explicit is None:
-            if criterion == "correctness":
-                value, reason = score_correctness(right)
-            elif criterion == "memory_efficiency":
-                value, reason = score_memory_efficiency(right)
-            elif criterion == "readability":
-                value, reason = score_readability(right)
-            else:
-                value, reason = 0.5, "no heuristic for criterion"
-            scores[right_author][criterion] = value
-            reasons[right_author][criterion] = reason
+                if criterion == "performance":
+                    (s_i, r_i), (s_j, r_j) = score_performance_pair(sub_i, sub_j)
+                elif criterion == "correctness":
+                    s_i, r_i = score_correctness(sub_i)
+                    s_j, r_j = score_correctness(sub_j)
+                elif criterion == "memory_efficiency":
+                    s_i, r_i = score_memory_efficiency(sub_i)
+                    s_j, r_j = score_memory_efficiency(sub_j)
+                elif criterion == "readability":
+                    s_i, r_i = score_readability(sub_i)
+                    s_j, r_j = score_readability(sub_j)
+                else:
+                    s_i, r_i = 0.5, "no heuristic for criterion"
+                    s_j, r_j = 0.5, "no heuristic for criterion"
 
-    left_total = 0.0
-    right_total = 0.0
-    for criterion, weight in normalized_weights:
-        left_total += scores[left_author][criterion] * weight
-        right_total += scores[right_author][criterion] * weight
+                if explicit[a_i] is None:
+                    scores[a_i][criterion] += s_i
+                    if r_i not in reasons[a_i][criterion]:
+                        reasons[a_i][criterion].append(r_i)
+                if explicit[a_j] is None:
+                    scores[a_j][criterion] += s_j
+                    if r_j not in reasons[a_j][criterion]:
+                        reasons[a_j][criterion].append(r_j)
 
-    left_total = round(left_total, 6)
-    right_total = round(right_total, 6)
-    delta = abs(left_total - right_total)
+        # Normalize by number of matchups so scores are in [0, 1].
+        for a in authors:
+            scores[a][criterion] = round(scores[a][criterion] / num_matchups, 6)
+
+    # Compute weighted totals.
+    totals: dict[str, float] = {}
+    for a in authors:
+        total = 0.0
+        for criterion, weight in normalized_weights:
+            total += scores[a][criterion] * weight
+        totals[a] = round(total, 6)
+
+    # Determine recommendation.
+    ranked = sorted(authors, key=lambda a: totals[a], reverse=True)
+    top_delta = abs(totals[ranked[0]] - totals[ranked[1]])
 
     recommendation: str
-    if delta < args.tie_threshold:
+    if top_delta < args.tie_threshold:
         recommendation = "TIE_HUMAN_REQUIRED"
-    elif left_total > right_total:
-        recommendation = left_author
     else:
-        recommendation = right_author
+        recommendation = ranked[0]
 
+    # Output.
     print(f"TASK: {args.task_id}")
     print(f"TASK_PATH: {task_path}")
     print(f"MODE: compete")
-    print(f"COMPARE: {left_author} vs {right_author}")
+    print(f"COMPARE: {' vs '.join(authors)}")
     print("RUBRIC:")
 
     for criterion, weight in normalized_weights:
-        left_score = scores[left_author][criterion]
-        right_score = scores[right_author][criterion]
-        left_reason = reasons[left_author][criterion]
-        right_reason = reasons[right_author][criterion]
-        print(
-            f"- {criterion} (weight={weight:.4f}) | "
-            f"{left_author}: {left_score:.4f} [{left_reason}] | "
-            f"{right_author}: {right_score:.4f} [{right_reason}]"
-        )
+        print(f"- {criterion} (weight={weight:.4f})")
+        for a in authors:
+            reason_str = "; ".join(reasons[a][criterion]) or "no reason"
+            print(f"    {a}: {scores[a][criterion]:.4f} [{reason_str}]")
 
     print("TOTALS:")
-    print(f"- {left_author}: {left_total:.6f}")
-    print(f"- {right_author}: {right_total:.6f}")
+    for a in authors:
+        print(f"- {a}: {totals[a]:.6f}")
     print(
-        f"RULE: tie if |delta| < {args.tie_threshold:.6f} (observed delta={delta:.6f})"
+        f"RULE: tie if |delta| < {args.tie_threshold:.6f} (observed delta={top_delta:.6f})"
     )
     if recommendation == "TIE_HUMAN_REQUIRED":
         print("RECOMMENDATION: tie/human required")
     else:
         print(f"RECOMMENDATION: choose {recommendation}")
+
+    return 0
+
+
+def cmd_set_winner(args: argparse.Namespace) -> int:
+    """Record the winner of a compete task and mark it done."""
+    state_path = args.state.resolve()
+    schema_path = args.schema.resolve()
+    task_schema_path = args.task_schema.resolve()
+    repo_root = state_path.parent.parent
+
+    schema_data = load_json(schema_path)
+    task_schema_data = load_json(task_schema_path)
+    head_sha = get_head_sha(repo_root)
+
+    for _ in with_state_lock(state_path):
+        index_data = load_json(state_path)
+        current_version = index_data.get("context_version")
+        if not isinstance(current_version, int):
+            raise RuntimeError("context_version missing or not an integer")
+
+        if (
+            args.expected_context_version is not None
+            and current_version != args.expected_context_version
+        ):
+            print(
+                "STALE_CONTEXT: expected "
+                f"{args.expected_context_version}, found {current_version}. "
+                "Reload state and retry.",
+                file=sys.stderr,
+            )
+            return 3
+
+        task_path = get_task_path(index_data, args.task_id, repo_root)
+        task_data = load_json(task_path)
+
+        if task_data.get("mode") != "compete":
+            raise RuntimeError(f"Task {args.task_id} is not in compete mode")
+
+        submissions = task_data.get("submissions")
+        if not isinstance(submissions, list):
+            raise RuntimeError(f"Task {args.task_id} submissions missing or invalid")
+
+        winner_submitted = any(
+            isinstance(s, dict) and s.get("author") == args.winner
+            for s in submissions
+        )
+        if not winner_submitted:
+            available = [s.get("author") for s in submissions if isinstance(s, dict) and s.get("author")]
+            raise RuntimeError(
+                f"No submission found for author '{args.winner}' in {args.task_id}. "
+                f"Available authors: {', '.join(available) if available else '(none)'}"
+            )
+
+        # Mutate task_data in memory (don't write yet).
+        task_data["winner"] = args.winner
+        task_data["winner_selected_by"] = args.selected_by
+        task_data["comparison_notes"] = args.notes
+        task_data["status"] = "done"
+
+        # Mutate index_data in memory.
+        for entry in index_data.get("tasks", []):
+            if isinstance(entry, dict) and entry.get("id") == args.task_id:
+                entry["status"] = "done"
+                break
+
+        recent_changes = index_data.get("recent_changes")
+        if not isinstance(recent_changes, list):
+            raise RuntimeError("recent_changes missing or not a list")
+
+        winner_summary = (
+            f"Winner recorded for {args.task_id}: {args.winner} "
+            f"(by {args.selected_by})"
+        )
+        recent_changes.append(
+            {
+                "timestamp": utc_now_iso(),
+                "author": args.updated_by or args.selected_by,
+                "summary": winner_summary,
+            }
+        )
+        index_data["recent_changes"] = recent_changes[-15:]
+
+        index_data["last_updated"] = utc_now_iso()
+        index_data["updated_by"] = args.updated_by or args.selected_by
+        index_data["updated_from_commit"] = head_sha
+        index_data["context_version"] = current_version + 1
+
+        # Validate BEFORE writing anything to disk.
+        errors = validate_state(index_data, schema_data)
+        if errors:
+            print_validation_errors(f"INVALID: {state_path} failed validation", errors)
+            return 1
+
+        relative_task = str(task_path.relative_to(repo_root))
+        task_errors = validate_tasks_from_index(
+            index_data, repo_root, task_schema_data,
+            overrides={relative_task: task_data},
+        )
+        if task_errors:
+            print_validation_errors(
+                "INVALID_TASKS: task files failed validation",
+                task_errors,
+            )
+            return 1
+
+        # All validation passed — now write atomically.
+        atomic_write_json(task_path, task_data)
+        atomic_write_json(state_path, index_data)
+
+        old_version = current_version
+        new_version = index_data["context_version"]
+
+    print(
+        f"OK: recorded winner '{args.winner}' for {args.task_id}, "
+        f"context_version {old_version} -> {new_version}"
+    )
+
+    if args.commit:
+        commit_message = args.commit_message or (
+            f"orchestrator: record winner for {args.task_id} ({args.winner})"
+        )
+        relative_task_path = str(task_path.relative_to(repo_root))
+        maybe_commit_files(
+            repo_root, ["state/index.json", relative_task_path], commit_message
+        )
+        print("OK: committed updated state files")
 
     return 0
 
@@ -1623,6 +1818,8 @@ def main() -> int:
             return cmd_record_submission(args)
         if args.command == "compare-compete-task":
             return cmd_compare_compete_task(args)
+        if args.command == "set-winner":
+            return cmd_set_winner(args)
         if args.command == "archive-project":
             return cmd_archive_project(args)
         if args.command == "watch":

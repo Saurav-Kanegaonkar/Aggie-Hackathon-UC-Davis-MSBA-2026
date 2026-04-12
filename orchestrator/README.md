@@ -121,6 +121,28 @@ python orchestrator/orchestrator.py compare-compete-task \
   --tie-threshold 0.03
 ```
 
+Record a compete task winner:
+
+```bash
+python orchestrator/orchestrator.py set-winner \
+  --task-id task-02 \
+  --winner person_b \
+  --selected-by "team consensus on call" \
+  --notes "Vedant's gradient look won, cleanest button spacing"
+```
+
+With stale-context guard and commit:
+
+```bash
+python orchestrator/orchestrator.py set-winner \
+  --task-id task-02 \
+  --winner person_b \
+  --selected-by "team consensus on call" \
+  --notes "Vedant's gradient look won, cleanest button spacing" \
+  --expected-context-version 5 \
+  --commit
+```
+
 Run watcher once (single cycle):
 
 ```bash
