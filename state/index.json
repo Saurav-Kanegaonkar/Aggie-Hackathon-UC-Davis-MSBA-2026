@@ -1,10 +1,10 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 4,
+  "context_version": 5,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T00:48:10Z",
+  "last_updated": "2026-04-12T00:56:15Z",
   "updated_by": "person_a",
-  "updated_from_commit": "83066d8af167661507ab5bcba7f9f2727f89c260",
+  "updated_from_commit": "42a925733f82b5447f39d1a091a4e63203c4f440",
   "tasks": [
     {
       "id": "task-01",
@@ -14,8 +14,14 @@
     }
   ],
   "decisions": [
-    { "text": "Pure HTML/CSS/vanilla JS, no build tools", "scope": "global" },
-    { "text": "All state changes via orchestrator commands, never hand-edited", "scope": "global" }
+    {
+      "text": "Pure HTML/CSS/vanilla JS, no build tools",
+      "scope": "global"
+    },
+    {
+      "text": "All state changes via orchestrator commands, never hand-edited",
+      "scope": "global"
+    }
   ],
   "open_questions": [],
   "recent_changes": [
@@ -33,6 +39,11 @@
       "timestamp": "2026-04-12T00:48:10Z",
       "author": "person_a",
       "summary": "task-01 done: calculator engine merged to main, all 6 acceptance checks pass"
+    },
+    {
+      "timestamp": "2026-04-12T00:56:15Z",
+      "author": "person_a",
+      "summary": "Simplified trial to single compete task: all 3 build complete calculators independently"
     }
   ]
 }
