@@ -1,0 +1,17 @@
+{
+  "id": "task-01",
+  "description": "Calculator core arithmetic engine",
+  "intent": "Implement a calculator engine that evaluates arithmetic expressions with correct operator precedence. The module should expose a single evaluate(expression) function that takes a string and returns a number.",
+  "mode": "split",
+  "status": "not_started",
+  "assigned_to": null,
+  "branch": null,
+  "notes": "Target file: trial-calculator/js/calculator.js",
+  "acceptance_checks": [
+    "evaluate('2+3') returns 5",
+    "evaluate('2+3*4') returns 14 (multiplication before addition)",
+    "evaluate('(2+3)*4') returns 20 (parentheses respected)",
+    "evaluate('10/3') returns a decimal, not an integer",
+    "evaluate('1/0') returns Infinity or throws a clear error, does not crash"
+  ]
+}

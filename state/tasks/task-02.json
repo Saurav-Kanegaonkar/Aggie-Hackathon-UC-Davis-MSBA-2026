@@ -1,0 +1,27 @@
+{
+  "id": "task-02",
+  "description": "Calculator visual design (CSS)",
+  "intent": "Style the calculator to look polished and usable in a browser. The CSS should cover the display, button grid, history panel, and hover/active states. No external CSS frameworks.",
+  "mode": "compete",
+  "status": "not_started",
+  "notes": "Target file: trial-calculator/css/styles.css",
+  "acceptance_checks": [
+    "Calculator is centered on the page and looks intentional at 1280x800 viewport",
+    "Buttons have visible hover and active states (color change, shadow, or scale)",
+    "Display area has clear visual separation from the button grid",
+    "History panel is visually distinct and scrollable if content overflows",
+    "No horizontal scrollbar at 1280x800 viewport"
+  ],
+  "arbitration": {
+    "method": "human_review",
+    "criteria": ["readability", "design_quality"],
+    "weights": {
+      "readability": 0.4,
+      "design_quality": 0.6
+    }
+  },
+  "submissions": [],
+  "winner": null,
+  "winner_selected_by": null,
+  "comparison_notes": null
+}

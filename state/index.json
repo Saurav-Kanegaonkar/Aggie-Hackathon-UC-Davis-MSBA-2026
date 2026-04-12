@@ -1,11 +1,46 @@
 {
-  "project": "Aggie Hackathon — UC Davis MSBA 2026",
-  "context_version": 1,
-  "created": "2026-04-11T00:00:00Z",
-  "last_updated": "2026-04-11T00:00:00Z",
-  "updated_by": "person_a",
-  "tasks": [],
-  "decisions": [],
+  "project": "Trial: Vanilla JS Calculator",
+  "context_version": 2,
+  "created": "2026-04-11T23:00:00Z",
+  "last_updated": "2026-04-12T00:38:26Z",
+  "updated_by": "orchestrator-init",
+  "updated_from_commit": "b412b6052dcfc846bda950ac99b442a7e20de3bd",
+  "tasks": [
+    {
+      "id": "task-01",
+      "path": "state/tasks/task-01.json",
+      "mode": "split",
+      "status": "not_started"
+    },
+    {
+      "id": "task-02",
+      "path": "state/tasks/task-02.json",
+      "mode": "compete",
+      "status": "not_started"
+    },
+    {
+      "id": "task-03",
+      "path": "state/tasks/task-03.json",
+      "mode": "collab",
+      "status": "not_started"
+    }
+  ],
+  "decisions": [
+    {
+      "text": "Pure HTML/CSS/vanilla JS, no build tools",
+      "scope": "global"
+    },
+    {
+      "text": "All state changes via orchestrator commands, never hand-edited",
+      "scope": "global"
+    }
+  ],
   "open_questions": [],
-  "recent_changes": []
+  "recent_changes": [
+    {
+      "timestamp": "2026-04-12T00:38:26Z",
+      "author": "orchestrator-init",
+      "summary": "Initialized trial calculator project: 3 tasks (split, compete, collab), placeholder files created"
+    }
+  ]
 }
