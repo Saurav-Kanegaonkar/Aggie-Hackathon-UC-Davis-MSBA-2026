@@ -1,10 +1,10 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 6,
+  "context_version": 7,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T01:05:46Z",
+  "last_updated": "2026-04-12T01:09:16Z",
   "updated_by": "person_a",
-  "updated_from_commit": "e366ed68b6afe8f24b9b25afcf9d50bf02c4a5fa",
+  "updated_from_commit": "5245e504b1b62cdde98ff46c5ccb33978cab2d99",
   "tasks": [
     {
       "id": "task-01",
@@ -49,6 +49,11 @@
       "timestamp": "2026-04-12T01:05:46Z",
       "author": "person_a",
       "summary": "Removed compare-compete-task command and all heuristic scoring helpers; simplified to human review via set-winner only"
+    },
+    {
+      "timestamp": "2026-04-12T01:09:16Z",
+      "author": "person_a",
+      "summary": "Collapsed README to pure signpost, removed duplication with onboarding"
     }
   ]
 }
