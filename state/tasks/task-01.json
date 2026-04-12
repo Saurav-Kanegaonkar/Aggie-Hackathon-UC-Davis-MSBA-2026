@@ -41,6 +41,17 @@
       "test_result": "pass",
       "benchmark_command": null,
       "benchmark_result": null
+    },
+    {
+      "author": "person_c",
+      "branch": "feat/task-01-c",
+      "status": "submitted",
+      "notes": "Vanilla JS calculator with parser-based evaluation, session history, and polished local-file UI.",
+      "commit_sha": "08eb1c613d3a52b0f398b368f1952f3ab9679bdf",
+      "test_command": "node calculator engine smoke checks",
+      "test_result": "pass",
+      "benchmark_command": null,
+      "benchmark_result": null
     }
   ],
   "winner": null,
