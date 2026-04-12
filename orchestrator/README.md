@@ -61,7 +61,7 @@ Usage:
 
 ```bash
 python orchestrator/orchestrator.py add-change \
-  --author person_a \
+  --author Saurav \
   --summary "Implemented X"
 ```
 
@@ -69,7 +69,7 @@ Optional stale-context check:
 
 ```bash
 python orchestrator/orchestrator.py add-change \
-  --author person_a \
+  --author Saurav \
   --summary "Implemented X" \
   --expected-context-version 2
 ```
@@ -78,7 +78,7 @@ Optional commit:
 
 ```bash
 python orchestrator/orchestrator.py add-change \
-  --author person_a \
+  --author Saurav \
   --summary "Implemented X" \
   --commit
 ```
@@ -88,7 +88,7 @@ Record a compete submission:
 ```bash
 python orchestrator/orchestrator.py record-submission \
   --task-id task-02 \
-  --author person_a \
+  --author Saurav \
   --branch feat/reservoir-sampling-a \
   --test-command "pytest -q" \
   --test-result "pass" \
@@ -101,7 +101,7 @@ Optional stale-context check and commit:
 ```bash
 python orchestrator/orchestrator.py record-submission \
   --task-id task-02 \
-  --author person_a \
+  --author Saurav \
   --expected-context-version 3 \
   --commit
 ```
@@ -111,7 +111,7 @@ Record a compete task winner:
 ```bash
 python orchestrator/orchestrator.py set-winner \
   --task-id task-02 \
-  --winner person_b \
+  --winner Vedant \
   --selected-by "team consensus on call" \
   --notes "Vedant's gradient look won, cleanest button spacing"
 ```
@@ -121,7 +121,7 @@ With stale-context guard and commit:
 ```bash
 python orchestrator/orchestrator.py set-winner \
   --task-id task-02 \
-  --winner person_b \
+  --winner Vedant \
   --selected-by "team consensus on call" \
   --notes "Vedant's gradient look won, cleanest button spacing" \
   --expected-context-version 5 \
@@ -160,7 +160,7 @@ With stale-context guard and optional commit:
 ```bash
 python orchestrator/orchestrator.py archive-project \
   --expected-context-version 3 \
-  --updated-by person_a \
+  --updated-by Saurav \
   --commit
 ```
 

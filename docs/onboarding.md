@@ -103,13 +103,13 @@ If you see `OK`, you're good.
 
 ### Author convention
 
-Each teammate has an author identifier used in orchestrator commands:
+Each teammate uses their real first name in orchestrator commands:
 
 | Person | Author ID |
 |--------|-----------|
-| Saurav | person_a  |
-| Vedant | person_b  |
-| Amal   | person_c  |
+| Saurav | Saurav |
+| Vedant | Vedant |
+| Amal   | Amal   |
 
 ### Branch naming
 
@@ -149,7 +149,7 @@ For `collab` mode tasks, all teammates share one branch (e.g. `feat/task-03-coll
    ```bash
    python orchestrator/orchestrator.py record-submission \
      --task-id task-XX \
-     --author person_a \
+     --author Saurav \
      --branch feat/task-XX-a \
      --notes "Brief description of what this submission does" \
      --commit
@@ -169,7 +169,7 @@ The team reviews all branches and decides a winner together. Then:
 ```bash
 python orchestrator/orchestrator.py set-winner \
   --task-id task-XX \
-  --winner person_b \
+  --winner Vedant \
   --selected-by "team consensus" \
   --notes "Reason for picking this submission" \
   --commit

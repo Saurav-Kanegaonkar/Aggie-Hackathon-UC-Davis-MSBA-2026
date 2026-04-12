@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
         "--task-id", required=True, help="Task identifier, e.g. task-02"
     )
     record_submission.add_argument(
-        "--author", required=True, help="Submission author, e.g. person_a"
+        "--author", required=True, help="Submission author, e.g. Saurav"
     )
     record_submission.add_argument(
         "--branch",
@@ -215,7 +215,7 @@ def parse_args() -> argparse.Namespace:
         "--task-id", required=True, help="Task identifier, e.g. task-02"
     )
     set_winner.add_argument(
-        "--winner", required=True, help="Author who won, e.g. person_b"
+        "--winner", required=True, help="Author who won, e.g. Vedant"
     )
     set_winner.add_argument(
         "--selected-by",

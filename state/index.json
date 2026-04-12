@@ -37,38 +37,38 @@
     },
     {
       "timestamp": "2026-04-12T00:48:10Z",
-      "author": "person_a",
+      "author": "Saurav",
       "summary": "task-01 done: calculator engine merged to main, all 6 acceptance checks pass"
     },
     {
       "timestamp": "2026-04-12T00:56:15Z",
-      "author": "person_a",
+      "author": "Saurav",
       "summary": "Simplified trial to single compete task: all 3 build complete calculators independently"
     },
     {
       "timestamp": "2026-04-12T01:05:46Z",
-      "author": "person_a",
+      "author": "Saurav",
       "summary": "Removed compare-compete-task command and all heuristic scoring helpers; simplified to human review via set-winner only"
     },
     {
       "timestamp": "2026-04-12T01:09:16Z",
-      "author": "person_a",
+      "author": "Saurav",
       "summary": "Collapsed README to pure signpost, removed duplication with onboarding"
     },
     {
       "timestamp": "2026-04-12T01:19:17Z",
-      "author": "person_a",
-      "summary": "Recorded submission for task-01 by person_a on feat/task-01-a"
+      "author": "Saurav",
+      "summary": "Recorded submission for task-01 by Saurav on feat/task-01-a"
     },
     {
       "timestamp": "2026-04-12T01:34:09Z",
-      "author": "person_c",
-      "summary": "Recorded submission for task-01 by person_c on feat/task-01-c"
+      "author": "Amal",
+      "summary": "Recorded submission for task-01 by Amal on feat/task-01-c"
     },
     {
       "timestamp": "2026-04-12T01:53:52Z",
       "author": "team consensus",
-      "summary": "Winner recorded for task-01: person_c (by team consensus)"
+      "summary": "Winner recorded for task-01: Amal (by team consensus)"
     }
   ]
 }

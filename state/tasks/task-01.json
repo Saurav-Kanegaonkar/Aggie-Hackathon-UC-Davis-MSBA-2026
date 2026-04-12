@@ -32,7 +32,7 @@
   },
   "submissions": [
     {
-      "author": "person_a",
+      "author": "Saurav",
       "branch": "feat/task-01-a",
       "status": "submitted",
       "notes": null,
@@ -43,7 +43,7 @@
       "benchmark_result": null
     },
     {
-      "author": "person_c",
+      "author": "Amal",
       "branch": "feat/task-01-c",
       "status": "submitted",
       "notes": "Vanilla JS calculator with parser-based evaluation, session history, and polished local-file UI.",
@@ -54,7 +54,7 @@
       "benchmark_result": null
     }
   ],
-  "winner": "person_c",
+  "winner": "Amal",
   "winner_selected_by": "team consensus",
   "comparison_notes": "Amal's calculator selected as the winner during dress rehearsal review."
 }
