@@ -1362,6 +1362,13 @@ def cmd_set_winner(args: argparse.Namespace) -> int:
                 f"Available authors: {', '.join(available) if available else '(none)'}"
             )
 
+        if len(submissions) < 2:
+            raise RuntimeError(
+                f"Cannot pick a winner for {args.task_id}: only {len(submissions)} submission(s) recorded. "
+                f"Compete tasks require at least 2 submissions before set-winner can run. "
+                f"Check that all teammates have run record-submission on main and pushed."
+            )
+
         # Mutate task_data in memory (don't write yet).
         task_data["winner"] = args.winner
         task_data["winner_selected_by"] = args.selected_by
