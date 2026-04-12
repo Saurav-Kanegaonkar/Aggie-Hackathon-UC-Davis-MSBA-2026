@@ -31,7 +31,7 @@ state/
 
 orchestrator/
   orchestrator.py         -- CLI for state updates (add-change, record-submission,
-                             compare-compete-task, set-winner, archive-project, watch)
+                             set-winner, archive-project, watch)
   validate_state.py       -- Schema validator
   README.md               -- Command reference and usage examples
 

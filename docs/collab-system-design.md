@@ -221,10 +221,7 @@ To reduce merge conflicts and improve reliability, state is split:
 }
 ```
 
-**Arbitration methods:**
-- `auto` — tests/benchmark heuristics decide
-- `human_review` — humans review and pick (default)
-- `synthesis` — merge best parts into a combined branch and re-validate
+For compete tasks, the team verbally reviews each submission and runs `set-winner` to record the decision.
 
 ### `collab` — All work on the same branch together
 
@@ -311,14 +308,7 @@ A lightweight local script. It can run on-demand or via watch mode.
 - bumps `context_version`
 - validates schemas
 
-3. `compare-compete-task`
-- compares 2 or 3 compete submissions via pairwise round-robin scoring
-- applies arbitration criteria and normalized weights
-- prints criterion-by-criterion scoring and recommendation
-- supports `--tie-threshold`
-- note: mixed explicit/heuristic scoring is unsupported — for a given criterion, either all submissions must provide `rubric_scores` or none do
-
-4. `set-winner`
+3. `set-winner`
 - records the winner of a compete task after team review
 - sets `winner`, `winner_selected_by`, `comparison_notes` on the task
 - marks task status as `done` and syncs back to `state/index.json`
@@ -326,7 +316,7 @@ A lightweight local script. It can run on-demand or via watch mode.
 - supports `--commit` for atomic git commit of both files
 - required args: `--task-id`, `--winner`, `--selected-by`, `--notes`
 
-5. `archive-project`
+4. `archive-project`
 - archives current `state/` snapshot to `history/snapshot-...`
 - resets assignment state:
   - `context_version = 1`
@@ -334,7 +324,7 @@ A lightweight local script. It can run on-demand or via watch mode.
   - preserves `decisions` where `scope == global`
   - resets task statuses and assignment-specific task fields
 
-6. `watch`
+5. `watch`
 - polls git history for new commits
 - appends summarized entries into `recent_changes`
 - can optionally commit state updates
@@ -366,12 +356,6 @@ python orchestrator/orchestrator.py record-submission \
   --test-result "pass" \
   --benchmark-command "python bench.py" \
   --benchmark-result "1M rows in 0.81s"
-```
-
-```bash
-python orchestrator/orchestrator.py compare-compete-task \
-  --task-id task-02 \
-  --tie-threshold 0.05
 ```
 
 ```bash

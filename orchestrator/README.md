@@ -10,7 +10,7 @@ Components:
 - optional helper commands (next):
   - `archive-project`
   - `record-submission`
-  - `compare-compete-task`
+  - `set-winner`
   - `watch`
 
 Design requirements:
@@ -48,7 +48,7 @@ Dependency:
 
 - `add-change`: appends to `recent_changes`, updates metadata fields, validates schema, writes atomically.
 - `record-submission`: updates a compete task submission in `state/tasks/task-XX.json`, updates `state/index.json`, bumps `context_version`, validates schema, writes atomically.
-- `compare-compete-task`: reads a compete task, applies arbitration weights to submission evidence, and prints a deterministic recommendation.
+- `set-winner`: records the winner of a compete task, sets status to done, validates all schemas before writing, supports `--commit`.
 - `archive-project`: archives the current state snapshot to `history/`, resets assignment state safely, and sets `context_version` to `1`.
 - `watch`: polls git history for new commits, appends `recent_changes`, and can optionally commit `state/index.json`.
 
@@ -104,21 +104,6 @@ python orchestrator/orchestrator.py record-submission \
   --author person_a \
   --expected-context-version 3 \
   --commit
-```
-
-Compare a compete task:
-
-```bash
-python orchestrator/orchestrator.py compare-compete-task \
-  --task-id task-02
-```
-
-Optional tie threshold override:
-
-```bash
-python orchestrator/orchestrator.py compare-compete-task \
-  --task-id task-02 \
-  --tie-threshold 0.03
 ```
 
 Record a compete task winner:
