@@ -240,6 +240,13 @@ def dedupe_and_extend(new_df):
     if "fiscal_year" in new_df.columns:
         new_df["fiscal_year"] = pd.to_numeric(new_df["fiscal_year"], errors="coerce").astype("Int64")
 
+    # Rename filing_date -> submitted_on (ReturnTs from XML)
+    if "filing_date" in new_df.columns:
+        new_df.rename(columns={"filing_date": "submitted_on"}, inplace=True)
+
+    # Add submitted_on to GT panel as null (GT doesn't have this field)
+    gt["submitted_on"] = pd.NA
+
     # Add missing columns that GT panel has
     for col in gt.columns:
         if col not in new_df.columns:
