@@ -14,7 +14,8 @@
     "Clicking buttons updates the display; pressing = evaluates and shows the result",
     "A Clear button resets the display",
     "Each evaluation appends to a visible history panel (expression + result, in-memory only)",
-    "Invalid expressions (e.g. 2++3) show an error without crashing the page"
+    "Invalid expressions (e.g. 2++3) show an error without crashing the page",
+    "Opens in a browser by double-clicking index.html, no local server needed (no ES modules, no fetch calls)"
   ],
   "arbitration": {
     "method": "human_review",
