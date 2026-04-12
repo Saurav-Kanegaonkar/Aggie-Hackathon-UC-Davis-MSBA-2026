@@ -1,10 +1,10 @@
 {
   "project": "Trial: Vanilla JS Calculator",
-  "context_version": 3,
+  "context_version": 4,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T00:41:13Z",
-  "updated_by": "orchestrator-init",
-  "updated_from_commit": "0ed2892cca85476e10a7373c551809338cf26712",
+  "last_updated": "2026-04-12T00:48:10Z",
+  "updated_by": "person_a",
+  "updated_from_commit": "83066d8af167661507ab5bcba7f9f2727f89c260",
   "tasks": [
     {
       "id": "task-01",
@@ -46,6 +46,11 @@
       "timestamp": "2026-04-12T00:41:13Z",
       "author": "orchestrator-init",
       "summary": "Updated acceptance checks: unary minus (task-01), flexible viewport (task-02), error handling (task-03)"
+    },
+    {
+      "timestamp": "2026-04-12T00:48:10Z",
+      "author": "person_a",
+      "summary": "task-01 done: calculator engine merged to main, all 6 acceptance checks pass"
     }
   ]
 }
