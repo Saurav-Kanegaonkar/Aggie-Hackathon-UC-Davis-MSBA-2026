@@ -32,13 +32,13 @@ The product has two outputs:
 
 Use one transparent, rule-based stack:
 
-1. **Peer benchmark**
+1. **Peer benchmark**  
    Compare each nonprofit only to similar peers.
-2. **Resilience gap**
+2. **Resilience gap**  
    Measure how far a nonprofit sits from the benchmark set of financially resilient peers.
-3. **Funding stress test**
+3. **Funding stress test**  
    Estimate what happens if a major revenue source weakens.
-4. **Recovery analogs**
+4. **Recovery analogs**  
    Show whether similar organizations have historically improved after fixing a similar constraint.
 
 That is enough. Do not add clustering, fancy state models, or black-box ML unless everything above is already working.
@@ -53,11 +53,11 @@ That is enough. Do not add clustering, fancy state models, or black-box ML unles
 
 ## Peer Cohort Logic
 
-Primary cohort:
+### Primary cohort dimensions
 
-- broad NTEE sector
 - revenue size bucket
 - state
+- NTEE major category when available
 
 Recommended size buckets:
 
@@ -66,11 +66,30 @@ Recommended size buckets:
 - `2M-10M`
 - above `10M`
 
+### How NTEE should be treated
+
+NTEE is a **cohort-strengthener, not a hard eligibility gate**.
+
+- If NTEE is present and the cohort is large enough, use `NTEE major category + size bucket + state`
+- If NTEE is missing, still score the nonprofit using a broader fallback cohort
+- If NTEE is present but the cohort is too sparse, pool upward and lower confidence
+
+The right mental model is: NTEE works like an optional booster for peer comparability. It sharpens the benchmark when available, but the system should still function without it.
+
+### Fallback logic
+
+Use this order:
+
+1. `NTEE major category + size bucket + state`
+2. `size bucket + state + filing type`, if filing type helps stabilize the cohort
+3. `size bucket + state`
+
 Rules:
 
 - benchmark on medians and percentile bands, not means
 - if cohorts are too small, relax carefully and flag lower confidence
 - peer logic must be explainable in one slide
+- for the live demo, prioritize examples with strong cohort confidence
 
 ## Resilient Peer Benchmark
 
@@ -87,6 +106,19 @@ Require that profile to appear consistently across at least `5 of 7 years`.
 That benchmark becomes the anchor. Then measure each nonprofit's **resilience gap** from that benchmark using normalized feature distance across those same dimensions.
 
 Use this internally as the technical logic. On slides, explain it in plain English.
+
+### Benchmark fallback hierarchy
+
+The strict benchmark rule is the default, not the only rule.
+
+Use this fallback order:
+
+1. top quartile on all `3` benchmark metrics for `5 of 7` years
+2. if fewer than `5` resilient reference organizations remain, relax to top quartile on **any `2 of 3`** benchmark metrics for `5 of 7` years
+3. if still fewer than `5`, relax to all `3` benchmark metrics for `4 of 7` years
+4. if still too sparse, pool to the next-broader cohort and downgrade confidence
+
+This must be documented in the code, notebook, and presentation so the benchmark never looks hand-wavy.
 
 ## Metrics To Keep
 
@@ -145,6 +177,19 @@ Interpretation:
 - **Deep Review**: structurally weak, low-confidence data, or no clear near-term intervention path
 
 Add an **urgency flag** if needed, but keep it separate from the action label.
+
+### Explicit mapping rule
+
+The team should not leave recommendation mapping implicit.
+
+Start with this rule set:
+
+- **Amplify** = top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure
+- **Stabilize** = below benchmark, but positive recovery analog evidence and a fixable financial profile
+- **Diversify** = acceptable current operating health, but elevated concentration risk or stress-test sensitivity
+- **Deep Review** = structurally weak profile, very low confidence, or no clear near-term intervention path
+
+Tune thresholds as the team tests the model, but keep the mapping rule explicit from day one.
 
 ## Government Funding Framing
 
@@ -216,6 +261,160 @@ What we cannot claim:
 - causal proof that advisory intervention will succeed
 - exact prediction of future outcomes
 
+## Implementation Stages
+
+The build should happen in **staged parallel development**, not in one shared stream from the start.
+
+The point is not to split the project into unrelated pieces too early. The point is to let Amal, Saurav, and Vedant each build a serious version of the same core engine up to a controlled comparison stage, then select or merge the best parts with evidence.
+
+### Stage 0: Lock shared rules before anyone builds
+
+All three builders must align on the non-negotiables:
+
+- same filtered dataset
+- same CA + WA scope
+- same `submitted_on is null` rule
+- same `ein + fiscal_year` dedupe rule
+- same size buckets
+- same benchmark metrics
+- same fallback hierarchy for resilient reference cohorts
+- same confidence-tier definition
+- same action-label definition
+- same output contract for portfolio view and memo
+
+This stage exists to prevent fake disagreements caused by inconsistent preprocessing.
+
+### Stage 1: Parallel independent builds
+
+Each person builds on their own branch or worktree.
+
+Up to the comparison checkpoint, every person should implement the same minimum core:
+
+1. cleaned working panel
+2. peer-cohort assignment
+3. resilient benchmark / resilience-gap logic
+4. funding stress-test logic
+5. recovery-analog retrieval
+6. recommendation mapping
+7. one portfolio view and one memo output
+
+Everyone can make different design choices inside that boundary:
+
+- different benchmark implementations
+- different fallback logic details
+- different memo formatting
+- different visualization choices
+- different recommendation calibration
+
+But everyone must produce the same category of deliverable so the solutions can be compared fairly.
+
+### Stage 2: Controlled comparison checkpoint
+
+Do not merge to main yet.
+
+At the checkpoint, compare all versions on the same criteria:
+
+- methodological defensibility
+- sponsor fit
+- peer-comparability quality
+- interpretability
+- recovery-analog usefulness
+- demo clarity
+- implementation stability
+
+Use the same sample nonprofits and the same cohort cells when comparing outputs.
+
+### Stage 3: Winner-or-merge decision
+
+There are two acceptable outcomes:
+
+1. **Single-winner path**  
+   One version is clearly stronger overall. Promote that implementation to the integration branch.
+
+2. **Best-of-all-worlds path**  
+   One version has the best benchmark logic, another has the best memo output, and another has the strongest stress-test or analog retrieval. In that case, merge the strongest components into one final integration branch.
+
+This stage should be evidence-based, not ego-based.
+
+### Stage 4: Final integration branch
+
+Once the winner or merged architecture is chosen:
+
+- create one integration branch
+- port in the chosen benchmark logic
+- port in the chosen stress-test logic
+- port in the chosen analog logic
+- port in the chosen memo / portfolio presentation layer
+- standardize naming and outputs
+- remove redundant code paths
+
+Only after this integration pass should the team prepare the final merge to main.
+
+### Stage 5: Main branch freeze for presentation
+
+Main should represent the final judged system, not an experimental playground.
+
+Before merging to main:
+
+- validate that outputs are reproducible
+- confirm the same sample nonprofits appear correctly in deck and demo
+- confirm recommendation labels match the documented logic
+- confirm low-confidence cases are handled consistently
+- confirm the presentation language matches the product language
+
+## What each builder should optimize for
+
+### Amal
+
+- strongest sponsor framing
+- strongest memo output
+- strongest presentation-ready recommendation logic
+
+### Saurav
+
+- strongest data pipeline and cohort quality
+- strongest benchmark implementation
+- strongest strategy-validation evidence
+
+### Vedant
+
+- strongest financial logic
+- strongest stress-test framing
+- strongest recovery / intervention logic
+
+This is not about locking people into silos forever. It is about making comparison more useful when the branches come back together.
+
+## Recovery Analogs Guardrails
+
+Recovery analogs are a centerpiece feature, but only if they are believable.
+
+Rules:
+
+- analogs must come from the same or pooled-compatible peer cohort
+- analogs should reflect the same primary constraint where possible
+- analogs should be used as evidence of observed paths, not proof of future success
+- if analog quality is weak, show fewer analogs rather than weaker analogs
+
+## Confidence Tiers
+
+Use explicit rules:
+
+- **High** = `6-7` years present and fewer than `20%` missing key fields
+- **Medium** = `4-5` years present
+- **Low** = `3 or fewer` years present, or more than `20%` missing key fields
+
+Low-confidence cases should still be reviewable, but they should never look as certain as high-confidence cases.
+
+## Urgency Flag
+
+Keep urgency separate from the action label.
+
+Default trigger:
+
+- urgent if **shock absorption months < 3** and **current-year operating margin is negative**
+
+That rule can be refined later, but it should be explicit from the first implementation.
+
 ## Presentation Language
 
 ### Use
@@ -263,17 +462,17 @@ Lead with:
 
 ## 90-Second Demo Path
 
-1. Open with the business problem:
+1. Open with the business problem:  
    Fairlight has limited time and limited capital, and needs to know where intervention still matters.
-2. Show the portfolio view:
+2. Show the portfolio view:  
    nonprofits grouped by peer benchmark, resilience gap, and recommendation.
-3. Click one nonprofit:
+3. Click one nonprofit:  
    show peer cohort, resilience gap, 7-year trend, and main constraint.
-4. Run the stress test:
+4. Run the stress test:  
    show what happens if a major revenue source weakens.
-5. Show one recovery analog:
+5. Show one recovery analog:  
    a similar organization that improved after solving a similar issue.
-6. End on the memo:
+6. End on the memo:  
    recommendation, rationale, and what Fairlight should do next.
 
 ## Final Recommendation
