@@ -53,6 +53,14 @@ def _assign_size_buckets(revenue: pd.Series) -> pd.Series:
     return buckets.where(rev.notna(), other=None)
 
 
+RAW_SOURCE_COLS = [
+    "contributions_grants",
+    "program_service_revenue",
+    "investment_income",
+    "other_revenue",
+]
+
+
 def _compute_analog_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """Compute the three constraint metrics for all panel rows."""
     rev = pd.to_numeric(df["total_revenue"], errors="coerce")
@@ -71,12 +79,27 @@ def _compute_analog_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "pct_investment_income", "pct_other_revenue",
     ]
     if all(c in out.columns for c in pct_cols):
+        # Pre-computed percentage columns already present (Stage 1 output)
         pct_df = out[pct_cols].apply(pd.to_numeric, errors="coerce")
-        all_null = pct_df.isna().all(axis=1)
-        hhi = (pct_df.fillna(0.0) ** 2).sum(axis=1)
-        out["revenue_diversification_index"] = (1.0 - hhi).where(~all_null)
+    elif all(c in out.columns for c in RAW_SOURCE_COLS):
+        # National panel has raw source columns — compute pct shares from them
+        rev_nz = rev.where(rev.notna() & rev.gt(0))
+        pct_df = pd.DataFrame(
+            {
+                "pct_contributions": pd.to_numeric(out["contributions_grants"], errors="coerce") / rev_nz,
+                "pct_program_revenue": pd.to_numeric(out["program_service_revenue"], errors="coerce") / rev_nz,
+                "pct_investment_income": pd.to_numeric(out["investment_income"], errors="coerce") / rev_nz,
+                "pct_other_revenue": pd.to_numeric(out["other_revenue"], errors="coerce") / rev_nz,
+            },
+            index=out.index,
+        )
     else:
         out["revenue_diversification_index"] = np.nan
+        return out
+
+    all_null = pct_df.isna().all(axis=1)
+    hhi = (pct_df.fillna(0.0) ** 2).sum(axis=1)
+    out["revenue_diversification_index"] = (1.0 - hhi).where(~all_null)
 
     return out
 
@@ -125,6 +148,12 @@ def build_analog_pool(panel: pd.DataFrame) -> dict:
     for pc in pct_cols:
         if pc in panel.columns:
             needed_cols.append(pc)
+    # If panel lacks pct_* columns, include raw source columns so
+    # _compute_analog_metrics can derive revenue_diversification_index from them.
+    if not any(pc in panel.columns for pc in pct_cols):
+        for rc in RAW_SOURCE_COLS:
+            if rc in panel.columns:
+                needed_cols.append(rc)
 
     relevant = panel.loc[panel["fiscal_year"].isin(window_years), needed_cols].copy()
     relevant = _compute_analog_metrics(relevant)
