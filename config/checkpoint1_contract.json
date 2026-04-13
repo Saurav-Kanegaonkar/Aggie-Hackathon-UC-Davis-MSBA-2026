@@ -7,10 +7,18 @@
     "rule": "include_all",
     "description": "All rows included regardless of submitted_on. GT rows (submitted_on null) and IRS XML rows (submitted_on set) are both valid. Deduplication by (ein, tax_period_end) is handled in the build pipeline, not at the scoring stage. Prior rule 'submitted_on_must_be_null' was removed because it silently discards 17K FY2024 and all FY2025 IRS-sourced rows added by the v4 expansion."
   },
-  "dedupe_keys": [
-    "ein",
-    "fiscal_year"
-  ],
+  "dedupe_rule": {
+    "panel_layer": {
+      "keys": ["ein", "tax_period_end"],
+      "tiebreaker": "IRS version retained over GT when both sources have the same filing.",
+      "description": "Applied during panel build. Resolves source-level conflicts where GT and IRS contain the same filing."
+    },
+    "scoring_layer": {
+      "keys": ["ein", "fiscal_year"],
+      "tiebreaker": "Keep the row with the latest tax_period_end.",
+      "description": "Applied at Stage 1 load time. Resolves cases where an EIN has multiple filings in the same fiscal year (amendments, short-year filings). Latest filing supersedes prior."
+    }
+  },
   "key_fields": [
     "total_revenue",
     "total_expenses",
@@ -44,6 +52,12 @@
   ],
   "min_cohort_size": 10,
   "min_reference_orgs": 5,
+  "benchmark_status_vocabulary": {
+    "ok": "Benchmark resolved with >= min_reference_orgs resilient peers in the cohort-window.",
+    "insufficient_resilient_refs": "Benchmark attempted but fewer than min_reference_orgs resilient peers found after exhausting all fallback steps.",
+    "not_scoreable": "Row failed scoring_eligible upstream (null/non-positive revenue, missing expenses or net assets). No benchmark attempted.",
+    "output_inclusion": "All three statuses appear in the Stage 1 output parquet. Rows with not_scoreable have null gap and benchmark fields; the eligibility failure is explained in the confidence_reason field defined in config/schemas/checkpoint1_scored_row.schema.json."
+  },
   "cohort_fallback_order": [
     [
       "ntee_major_category",
@@ -60,6 +74,15 @@
       "state"
     ]
   ],
+  "cohort_key_format": {
+    "description": "Canonical cohort_key string format. Pipe-delimited key=value pairs matching the cohort dimensions.",
+    "examples": {
+      "L1_primary": "ntee_major_category=B|size_bucket=500K-2M|state=CA",
+      "L2_fallback": "size_bucket=500K-2M|state=CA|return_type=990",
+      "L3_broadest": "size_bucket=500K-2M|state=CA"
+    },
+    "rationale": "Verbose format is memo-friendly, debug-friendly, unambiguous, and robust against NTEE codes containing underscores or dashes. Adopted from Amal's implementation after Stage 1 checkpoint comparison."
+  },
   "benchmark_fallback_order": [
     {
       "label": "3-of-3_5-of-7",
@@ -70,19 +93,18 @@
       "label": "2-of-3_5-of-7",
       "min_metrics": 2,
       "min_years": 5
-    },
-    {
-      "label": "3-of-3_4-of-7",
-      "min_metrics": 3,
-      "min_years": 4
     }
   ],
+  "benchmark_fallback_notes": {
+    "removed_step": "3-of-3_4-of-7 (all 3 metrics × 4 of 7 years) was removed — it is mathematically dominated by 2-of-3_5-of-7 and never fired in any of the three Stage 1 builds.",
+    "cohort_broadening": "If both persistence steps fail to produce >= min_reference_orgs resilient peers, the system broadens the cohort by one fallback level and retries. This is benchmark_fallback_step = 3 (previously step 4).",
+    "step_numbering": "benchmark_fallback_step integers: 1 = strict 3-of-3 × 5-of-7 satisfied within original cohort, 2 = relaxed 2-of-3 × 5-of-7 satisfied within original cohort, 3 = resolved only after cohort broadening (one or both persistence rules retried in the broader cohort)."
+  },
   "benchmark_window": {
     "type": "rolling",
     "window_years": 7,
     "description": "For each scored row at fiscal year Y, the benchmark window is the set of available years in [Y-6 ... Y]. Rolling per-EIN, not a fixed global window.",
     "strict_years_required": 5,
-    "relaxed_years_required": 4,
     "scoring_years": [2023, 2024],
     "scoring_year_notes": "FY2023 is fully populated (41,822 CA+WA EINs). FY2024 is 61% complete (26,766 EINs) due to IRS processing lag — usable but flagged.",
     "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy.",

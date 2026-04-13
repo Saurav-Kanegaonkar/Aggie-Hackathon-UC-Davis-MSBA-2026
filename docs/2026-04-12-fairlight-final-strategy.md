@@ -115,8 +115,7 @@ Use this fallback order:
 
 1. top quartile on all `3` benchmark metrics for `5 of 7` years
 2. if fewer than `5` resilient reference organizations remain, relax to top quartile on **any `2 of 3`** benchmark metrics for `5 of 7` years
-3. if still fewer than `5`, relax to all `3` benchmark metrics for `4 of 7` years
-4. if still too sparse, pool to the next-broader cohort and downgrade confidence
+3. if still too sparse, pool to the next-broader cohort and retry steps 1–2, downgrading confidence
 
 This must be documented in the code, notebook, and presentation so the benchmark never looks hand-wavy.
 
@@ -282,8 +281,8 @@ All three builders must align on the non-negotiables:
 
 - same filtered dataset
 - same CA + WA scope
-- same `submitted_on is null` rule
-- same `ein + fiscal_year` dedupe rule
+- same `submitted_on` handling (`include_all` — both GT and IRS-sourced rows are first-class)
+- same two-stage dedupe rule: panel layer dedupes on `(ein, tax_period_end)` keeping IRS over GT; Stage 1 then resolves remaining `(ein, fiscal_year)` collisions by keeping the row with the latest `tax_period_end`
 - same size buckets
 - same benchmark metrics
 - same fallback hierarchy for resilient reference cohorts
