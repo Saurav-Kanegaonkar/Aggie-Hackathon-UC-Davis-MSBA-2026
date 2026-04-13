@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    input_path = resolve_repo_path(args.input, "data/panel_990_extended_v4.parquet") if args.input else None
+    input_path = resolve_repo_path(args.input, "data/panel_990_extended_v4.parquet")
     contract_path = resolve_repo_path(args.contract, "config/checkpoint1_contract.json")
     output_dir = resolve_repo_path(args.output_dir, "outputs/stage1")
 
