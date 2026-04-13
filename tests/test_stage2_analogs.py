@@ -1,3 +1,4 @@
+import json
 import unittest
 
 import pandas as pd
@@ -63,6 +64,22 @@ def _years_for_candidate(
                 total_revenue=total_revenue,
                 operating_margin=metric_value,
             )
+        )
+    return rows
+
+
+def _background_rows(prefix: str, count: int, *, post_value: float = 0.60) -> list[dict]:
+    rows: list[dict] = []
+    for idx in range(count):
+        rows += _years_for_candidate(
+            f"{prefix}{idx:02d}",
+            state="TX",
+            ntee_major_category="Z",
+            size_bucket=">10M",
+            org_name=f"Background {idx}",
+            pre_value=0.20,
+            post_value=post_value,
+            total_revenue=25_000_000.0 + idx,
         )
     return rows
 
@@ -153,8 +170,8 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="B",
                 size_bucket="500K-2M",
                 org_name="Same State",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=1.00,
                 total_revenue=2000.0,
             )
             + _years_for_candidate(
@@ -163,10 +180,11 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="B",
                 size_bucket="500K-2M",
                 org_name="Different State",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=0.95,
                 total_revenue=1200.0,
             )
+            + _background_rows("8", 6)
         )
 
         out = enrich_recovery_analogs(scored, panel)
@@ -202,8 +220,8 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="B",
                 size_bucket="500K-2M",
                 org_name="Fallback Same State",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=1.00,
                 total_revenue=2000.0,
             )
             + _years_for_candidate(
@@ -212,8 +230,8 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="C",
                 size_bucket="500K-2M",
                 org_name="Fallback One",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=0.96,
                 total_revenue=1500.0,
             )
             + _years_for_candidate(
@@ -222,8 +240,8 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="D",
                 size_bucket="500K-2M",
                 org_name="Fallback Two",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=0.98,
                 total_revenue=1200.0,
             )
             + _years_for_candidate(
@@ -232,11 +250,12 @@ class Stage2AnalogTests(unittest.TestCase):
                 ntee_major_category="E",
                 size_bucket="500K-2M",
                 org_name="Short History",
-                pre_value=10.0,
-                post_value=100.0,
+                pre_value=0.10,
+                post_value=1.00,
                 total_revenue=1400.0,
                 years=[2014, 2015, 2016, 2021],
             )
+            + _background_rows("7", 6)
         )
 
         out = enrich_recovery_analogs(scored, panel)
@@ -247,3 +266,110 @@ class Stage2AnalogTests(unittest.TestCase):
         self.assertNotIn("304", out.loc[0, "recovery_analog_eins"])
         self.assertEqual(out.loc[0, "recovery_analog_evidence"][0]["ein"], "301")
         self.assertEqual(out.loc[0, "recovery_analog_evidence"][0]["state"], "CA")
+
+    def test_national_yearly_quartiles_control_qualification(self):
+        scored = pd.DataFrame(
+            [
+                {
+                    "ein": "1",
+                    "fiscal_year": 2024,
+                    "state": "CA",
+                    "size_bucket": "500K-2M",
+                    "ntee_major_category": "B",
+                    "benchmark_status": "ok",
+                    "operating_margin_gap": -0.6,
+                    "operating_runway_gap": -0.2,
+                    "revenue_diversification_gap": -0.1,
+                    "total_revenue": 1000.0,
+                }
+            ]
+        )
+        panel_rows = _years_for_candidate(
+            "101",
+            state="CA",
+            ntee_major_category="B",
+            size_bucket="500K-2M",
+            org_name="Cohort Only",
+            pre_value=0.10,
+            post_value=0.50,
+            total_revenue=900.0,
+        )
+        panel_rows += _years_for_candidate(
+            "102",
+            state="CA",
+            ntee_major_category="B",
+            size_bucket="500K-2M",
+            org_name="Strict Peer",
+            pre_value=0.20,
+            post_value=0.40,
+            total_revenue=950.0,
+        )
+        for idx in range(10):
+            panel_rows += _years_for_candidate(
+                f"9{idx:02d}",
+                state="NY",
+                ntee_major_category="Z",
+                size_bucket=">10M",
+                org_name=f"National High {idx}",
+                pre_value=0.20,
+                post_value=0.95,
+                total_revenue=50_000_000.0 + idx,
+            )
+        panel = pd.DataFrame(panel_rows)
+
+        out = enrich_recovery_analogs(scored, panel)
+
+        self.assertEqual(out.loc[0, "recovery_analog_status"], "none_in_cohort")
+        self.assertEqual(out.loc[0, "recovery_analog_count"], 0)
+        self.assertEqual(out.loc[0, "recovery_analog_eins"], [])
+
+    def test_output_fields_are_json_serializable_python_lists_and_dicts(self):
+        scored = pd.DataFrame(
+            [
+                {
+                    "ein": "1",
+                    "fiscal_year": 2024,
+                    "state": "CA",
+                    "size_bucket": "500K-2M",
+                    "ntee_major_category": "B",
+                    "benchmark_status": "ok",
+                    "operating_margin_gap": -0.6,
+                    "operating_runway_gap": -0.2,
+                    "revenue_diversification_gap": -0.1,
+                    "total_revenue": 1000.0,
+                }
+            ]
+        )
+        panel = pd.DataFrame(
+            _years_for_candidate(
+                "401",
+                state="CA",
+                ntee_major_category="B",
+                size_bucket="500K-2M",
+                org_name="Serializable One",
+                pre_value=0.10,
+                post_value=1.00,
+                total_revenue=1100.0,
+            )
+            + _years_for_candidate(
+                "402",
+                state="WA",
+                ntee_major_category="B",
+                size_bucket="500K-2M",
+                org_name="Serializable Two",
+                pre_value=0.10,
+                post_value=0.98,
+                total_revenue=1200.0,
+            )
+        )
+
+        out = enrich_recovery_analogs(scored, panel)
+        self.assertIsInstance(out.loc[0, "recovery_analog_eins"], list)
+        self.assertIsInstance(out.loc[0, "recovery_analog_evidence"], list)
+        self.assertTrue(all(isinstance(item, dict) for item in out.loc[0, "recovery_analog_evidence"]))
+        json.dumps(out.loc[0, "recovery_analog_eins"])
+        json.dumps(out.loc[0, "recovery_analog_evidence"])
+
+
+if __name__ == "__main__":
+    unittest.main()
