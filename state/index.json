@@ -1,10 +1,10 @@
 {
   "project": "UC Davis MSBA Hackathon",
-  "context_version": 3,
+  "context_version": 4,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-13T00:58:36Z",
-  "updated_by": "Amal",
-  "updated_from_commit": "45d1005",
+  "last_updated": "2026-04-13T06:05:50Z",
+  "updated_by": "Saurav",
+  "updated_from_commit": "1ccdad924dfbfe3384504ace4f90556163e41016",
   "tasks": [
     {
       "id": "task-01",
@@ -47,6 +47,11 @@
       "timestamp": "2026-04-13T01:26:00Z",
       "author": "Amal",
       "summary": "Stage 0 contract expanded to lock benchmark window, formulas, confidence tiers, action labels, urgency rule, recovery-analog sourcing, and output schemas."
+    },
+    {
+      "timestamp": "2026-04-13T06:05:50Z",
+      "author": "Saurav",
+      "summary": "Stage 0/1 spec patches: dedupe canonicalization, convergence merge path, contract pins (cohort_key format, benchmark_status vocab, persistence ladder cleanup)"
     }
   ]
 }
