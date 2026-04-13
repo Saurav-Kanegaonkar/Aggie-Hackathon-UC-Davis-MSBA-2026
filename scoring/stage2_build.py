@@ -109,7 +109,7 @@ def main() -> None:
     args = parser.parse_args()
 
     build_stage2(
-        stage1_path=Path(args.stage1),
+        stage1_path=args.stage1,
         panel_path=Path(args.panel),
         output_path=Path(args.output),
         schema_path=Path(args.schema),
