@@ -113,7 +113,7 @@ def parse_one(filepath):
     ein = _text(tree, "//irs:ReturnHeader/irs:Filer/irs:EIN")
     tax_period_end = _text(tree, "//irs:ReturnHeader/irs:TaxPeriodEndDt")
 
-    return {
+    row = {
         "ein": ein,
         "org_name": _org_name(tree),
         "state": _state(tree),
@@ -140,6 +140,45 @@ def parse_one(filepath):
         # Provenance
         "source_file": filepath.name,
     }
+
+    # --- v2 extension fields (balance sheet, functional expenses, governance) ---
+    P = "//irs:ReturnData/irs:IRS990/"
+
+    # Functional expense breakdown (Part IX totals)
+    row["program_expenses"] = _float_field(tree, P + "irs:TotalFunctionalExpensesGrp/irs:ProgramServicesAmt")
+    row["management_general_expenses"] = _float_field(tree, P + "irs:TotalFunctionalExpensesGrp/irs:ManagementAndGeneralAmt")
+    row["fundraising_expenses"] = _float_field(tree, P + "irs:TotalFunctionalExpensesGrp/irs:FundraisingAmt")
+    row["total_functional_expenses"] = _float_field(tree, P + "irs:TotalFunctionalExpensesGrp/irs:TotalAmt")
+
+    # Liquidity (Part X balance sheet)
+    row["cash_non_interest_bearing"] = _float_field(tree, P + "irs:CashNonInterestBearingGrp/irs:EOYAmt")
+    row["savings_temporary_investments"] = _float_field(tree, P + "irs:SavingsAndTempCashInvstGrp/irs:EOYAmt")
+
+    # Net asset classes — try post-FASB (2018+) first, then pre-FASB
+    row["unrestricted_net_assets"] = (
+        _float_field(tree, P + "irs:NoDonorRestrictionNetAssetsGrp/irs:EOYAmt")
+        or _float_field(tree, P + "irs:UnrestrictedNetAssetsGrp/irs:EOYAmt")
+    )
+    row["temp_restricted_net_assets"] = (
+        _float_field(tree, P + "irs:DonorRstrNetAssetsGrp/irs:EOYAmt")
+        or _float_field(tree, P + "irs:TemporarilyRstrNetAssetsGrp/irs:EOYAmt")
+    )
+    row["perm_restricted_net_assets"] = _float_field(tree, P + "irs:PermanentlyRstrNetAssetsGrp/irs:EOYAmt")
+
+    # Grants and compensation
+    row["grants_paid"] = _float_field(tree, P + "irs:CYGrantsAndSimilarPaidAmt")
+    row["compensation_top_officer"] = _float_field(tree, P + "irs:CompCurrentOfcrDirectorsGrp/irs:TotalAmt")
+
+    # Government grants (Part VIII revenue)
+    row["government_grants"] = _float_field(tree, P + "irs:GovernmentGrantsAmt")
+
+    # Governance counts
+    row["num_employees"] = _int_field(tree, P + "irs:TotalEmployeeCnt")
+    row["num_volunteers"] = _int_field(tree, P + "irs:TotalVolunteersCnt")
+    row["num_voting_board_members"] = _int_field(tree, P + "irs:VotingMembersGoverningBodyCnt")
+    row["formation_year"] = _int_field(tree, P + "irs:FormationYr")
+
+    return row
 
 
 # ---------------------------------------------------------------------------
