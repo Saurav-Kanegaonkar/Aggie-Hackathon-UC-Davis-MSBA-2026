@@ -92,6 +92,11 @@
     "operating_runway_proxy_months": "net_assets_eoy / (total_expenses / 12)",
     "operating_margin": "(total_revenue - total_expenses) / total_revenue",
     "revenue_diversification_index": "1 - (pct_contributions^2 + pct_program_revenue^2 + pct_investment_income^2 + pct_other_revenue^2)",
+    "revenue_diversification_null_handling": {
+      "rule": "Nulls in any of the four pct_ columns are filled with 0 before the HHI formula is applied. Rationale: null in revenue share columns means the org reported zero revenue from that stream, not that the data is missing.",
+      "all_null_edge_case": "If all four pct_ columns are null for a row, set revenue_diversification_index = null. Treat the year as non-qualifying for the 5-of-7 persistence rule in resilient benchmark construction.",
+      "shadow_metric": "Each builder also computes revenue_diversification_index_renormalized: drop nulls, rescale remaining shares to sum to 1, apply HHI, take 1 minus. This shadow variant is not used for scoring but is carried in Stage 1 outputs so the checkpoint can flag rows where the two variants materially diverge."
+    },
     "shock_absorption_months": "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)"
   },
   "confidence_tiers": {
@@ -116,15 +121,20 @@
     "selection_rule": "Prefer same cohort first, then relax to size_bucket only if strict cohort yields zero analogs."
   },
   "shared_sample_selection": {
-    "latest_per_ein": true,
-    "strata": [
-      "state",
-      "ntee_present"
-    ],
-    "quantiles": [
-      0.33,
-      0.66
+    "method": "curated",
+    "count": 11,
+    "description": "Hand-picked 11 EINs covering all 4 size buckets, 9 NTEE categories + 1 unclassified, all 3 confidence tiers, FY2023 and FY2024 scoring years, and both CA and WA. Replaces the prior mechanical quantile-based selection of 8 EINs.",
+    "eins": [
+      "204374795", "237071436", "203812932", "201384250", "061652679",
+      "042800910", "237102713", "020549032", "160470118", "141843628",
+      "956125213"
     ]
+  },
+  "stage1_output": {
+    "path": "outputs/stage1/scored_rows.parquet",
+    "format": "parquet",
+    "schema": "config/schemas/checkpoint1_scored_row.schema.json",
+    "description": "Each builder writes scored rows here on their feat/task-01-{a,b,c} branch. Parquet preserves nullable types."
   },
   "output_files": {
     "shared_samples": "checkpoint1_shared_samples.csv",
