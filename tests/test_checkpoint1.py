@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -17,7 +18,7 @@ CANONICAL_OUTPUT_SUFFIX = Path("outputs/stage1/scored_rows.parquet")
 
 def build_fixture_rows() -> list[dict]:
     rows: list[dict] = []
-    years = list(range(2017, 2024))
+    years = list(range(2017, 2025))
 
     def add_org(
         ein: str,
@@ -117,29 +118,30 @@ def build_fixture_rows() -> list[dict]:
 
 class Checkpoint1CliTests(unittest.TestCase):
     def run_cli(self) -> Path:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp = Path(tmp_dir)
-            input_path = tmp / "panel.csv"
-            output_dir = tmp / "outputs" / "stage1"
-            pd.DataFrame(build_fixture_rows()).to_csv(input_path, index=False)
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
 
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(CLI),
-                    "--input",
-                    str(input_path),
-                    "--output-dir",
-                    str(output_dir),
-                    "--contract",
-                    str(CONTRACT),
-                ],
-                capture_output=True,
-                text=True,
-                cwd=ROOT,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
-            return output_dir / "scored_rows.parquet"
+        input_path = tmp / "panel.csv"
+        output_dir = tmp / "outputs" / "stage1"
+        pd.DataFrame(build_fixture_rows()).to_csv(input_path, index=False)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--input",
+                str(input_path),
+                "--output-dir",
+                str(output_dir),
+                "--contract",
+                str(CONTRACT),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+        return output_dir / "scored_rows.parquet"
 
     def test_checkpoint1_cli_writes_contract_parquet_output(self) -> None:
         output_path = self.run_cli()
@@ -150,6 +152,20 @@ class Checkpoint1CliTests(unittest.TestCase):
 
         scored = pd.read_parquet(output_path)
         required_columns = {
+            "ein",
+            "fiscal_year",
+            "state",
+            "size_bucket",
+            "cohort_level",
+            "cohort_key",
+            "cohort_size",
+            "benchmark_rule",
+            "reference_org_count",
+            "benchmark_status",
+            "operating_margin",
+            "operating_runway_proxy_months",
+            "revenue_diversification_index",
+            "resilience_gap",
             "benchmark_operating_margin_q75",
             "benchmark_operating_runway_q75",
             "benchmark_revenue_diversification_q75",
@@ -160,9 +176,33 @@ class Checkpoint1CliTests(unittest.TestCase):
             "is_shared_sample",
             "confidence_reason",
             "revenue_diversification_index_renormalized",
-            "operating_runway_proxy_months",
+            "data_confidence_tier",
+            "cohort_confidence_tier",
+            "checkpoint1_confidence_tier",
         }
         self.assertTrue(required_columns.issubset(set(scored.columns)))
+        self.assertGreaterEqual(len(scored), 50)
+        self.assertIn(2024, set(scored["fiscal_year"].astype(int)))
+        self.assertTrue(pd.api.types.is_bool_dtype(scored["is_shared_sample"]))
+        self.assertTrue(pd.api.types.is_integer_dtype(scored["benchmark_fallback_step"]))
+        numeric_columns = [
+            "operating_margin",
+            "operating_runway_proxy_months",
+            "revenue_diversification_index",
+            "benchmark_operating_margin_q75",
+            "benchmark_operating_runway_q75",
+            "benchmark_revenue_diversification_q75",
+            "operating_margin_gap",
+            "operating_runway_gap",
+            "revenue_diversification_gap",
+            "revenue_diversification_index_renormalized",
+            "resilience_gap",
+        ]
+        for column in numeric_columns:
+            self.assertTrue(pd.api.types.is_numeric_dtype(scored[column]), msg=f"{column} should be numeric")
+        self.assertTrue(scored["confidence_reason"].notna().any())
+        self.assertTrue(scored["benchmark_rule"].notna().any())
+        self.assertTrue(scored["benchmark_status"].notna().any())
 
     def test_diversification_zero_fill_and_shadow_metric(self) -> None:
         output_path = self.run_cli()
@@ -171,6 +211,12 @@ class Checkpoint1CliTests(unittest.TestCase):
         row = scored.loc[scored["ein"].astype(str).eq("000000003")].iloc[0]
         self.assertTrue(pd.notna(row["revenue_diversification_index"]))
         self.assertTrue(pd.notna(row["revenue_diversification_index_renormalized"]))
+        self.assertTrue(pd.notna(row["benchmark_operating_margin_q75"]))
+        self.assertTrue(pd.notna(row["benchmark_operating_runway_q75"]))
+        self.assertTrue(pd.notna(row["benchmark_revenue_diversification_q75"]))
+        self.assertTrue(pd.notna(row["benchmark_fallback_step"]))
+        self.assertTrue(pd.notna(row["is_shared_sample"]))
+        self.assertTrue(pd.notna(row["confidence_reason"]))
         self.assertNotAlmostEqual(
             float(row["revenue_diversification_index"]),
             float(row["revenue_diversification_index_renormalized"]),
