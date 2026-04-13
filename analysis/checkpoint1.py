@@ -100,10 +100,12 @@ def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     scored["size_bucket"] = scored["total_revenue"].apply(assign_size_bucket, buckets=contract["size_buckets"])
 
     liquid_assets = scored["cash_non_interest_bearing"].fillna(0) + scored["savings_temporary_investments"].fillna(0)
+    net_assets_eoy = _optional_numeric(scored, "net_assets_eoy")
+    runway_numerator = net_assets_eoy.where(net_assets_eoy.notna(), liquid_assets)
     monthly_expenses = scored["total_expenses"] / 12.0
     scored["operating_margin"] = safe_divide(scored["total_revenue"] - scored["total_expenses"], scored["total_revenue"])
-    scored["operating_runway_proxy_months"] = safe_divide(liquid_assets, monthly_expenses)
-    scored["shock_absorption_months"] = scored["operating_runway_proxy_months"]
+    scored["operating_runway_proxy_months"] = safe_divide(runway_numerator, monthly_expenses)
+    scored["shock_absorption_months"] = safe_divide(liquid_assets, monthly_expenses)
 
     pct_frame = pd.DataFrame({column: _optional_numeric(scored, column) for column in PCT_COLUMNS}, index=scored.index)
     diversification = pct_frame.apply(_compute_row_diversification, axis=1, result_type="expand")
@@ -366,7 +368,7 @@ def attach_resilient_benchmarks(frame: pd.DataFrame, contract: dict) -> pd.DataF
 
         gap_values = [gap for gap in [op_margin_gap, runway_gap, diversification_gap] if gap is not None and not pd.isna(gap)]
         scored.loc[row_index, "resilience_gap"] = float(np.mean(gap_values)) if gap_values else np.nan
-        if chosen_level_idx > assigned_level_idx:
+        if chosen_level_idx > 0:
             scored.loc[row_index, "benchmark_fallback_step"] = 4
         else:
             scored.loc[row_index, "benchmark_fallback_step"] = int(chosen_stats["rule_step"])
@@ -380,6 +382,8 @@ def _data_confidence_for_window(window: pd.DataFrame, key_fields: list[str]) -> 
         return "Low", "no years in window"
 
     missing_share = float(window[key_fields].isna().sum().sum()) / float(len(window) * len(key_fields))
+    if missing_share > 0.2:
+        return "Low", f"{years_present} years in window; >20% missing key fields"
     if years_present >= 6 and missing_share < 0.2:
         return "High", f"{years_present} years in window"
     if years_present >= 4:
