@@ -74,6 +74,38 @@
       "min_years": 4
     }
   ],
+  "benchmark_window": {
+    "window_years": 7,
+    "strict_years_required": 5,
+    "relaxed_years_required": 4,
+    "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy."
+  },
+  "metric_formulas": {
+    "operating_runway_proxy_months": "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)",
+    "operating_margin": "(total_revenue - total_expenses) / total_revenue",
+    "revenue_diversification_index": "1 - sum(share^2) across non-negative contributions_grants, program_service_revenue, investment_income, and other_revenue after renormalizing over positive components",
+    "shock_absorption_months": "max(0, liquid_assets - largest_revenue_source) / (total_expenses / 12)"
+  },
+  "confidence_tiers": {
+    "High": "Six to seven years present and less than 20 percent missing across the fixed key fields.",
+    "Medium": "Four to five years present, or fallback cohorts / relaxed benchmark rules with otherwise usable filings.",
+    "Low": "Three or fewer years present, more than 20 percent missing key fields, broadest-cohort fallback, or insufficient resilient references."
+  },
+  "action_labels": {
+    "Amplify": "Top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure.",
+    "Stabilize": "Below benchmark but recoverable, with positive recovery analog evidence and a fixable financial profile.",
+    "Diversify": "Acceptable operating health with elevated concentration risk or stress-test sensitivity.",
+    "Deep Review": "Structurally weak profile, very low confidence, or no clear near-term intervention path."
+  },
+  "urgency_flag": {
+    "rule": "shock_absorption_months < 3 and current_year_operating_margin < 0",
+    "separate_from_action_label": true
+  },
+  "recovery_analogs": {
+    "source_pool": "Organizations from the resilient reference construction and adjacent recoverable peers within the same benchmark window.",
+    "minimum_count_for_positive_signal": 1,
+    "selection_rule": "Prefer same cohort and fallback breadth first, then same state and size bucket if the strict cohort is sparse."
+  },
   "shared_sample_selection": {
     "latest_per_ein": true,
     "strata": [
@@ -88,5 +120,10 @@
   "output_files": {
     "shared_samples": "checkpoint1_shared_samples.csv",
     "summary_markdown": "checkpoint1_stage0_summary.md"
+  },
+  "output_schemas": {
+    "checkpoint1_scored_row": "config/schemas/checkpoint1_scored_row.schema.json",
+    "portfolio_view_row": "config/schemas/portfolio_view_row.schema.json",
+    "capital_stewardship_memo": "config/schemas/capital_stewardship_memo.schema.json"
   }
 }

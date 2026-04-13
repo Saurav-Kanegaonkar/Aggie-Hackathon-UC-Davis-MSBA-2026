@@ -195,7 +195,7 @@ def build_stage0_artifacts(df: pd.DataFrame, contract: dict) -> dict[str, pd.Dat
             f"- Deduped EIN-year rows: {len(deduped):,}",
             f"- Latest EIN rows considered for sampling: {len(latest):,}",
             f"- Shared checkpoint samples selected: {len(shared_samples):,}",
-            "- Contract rules locked: CA+WA scope, submitted_on null, ein+fiscal_year dedupe, fixed size buckets, fixed cohort fallback order, fixed benchmark fallback order.",
+            "- Contract rules locked: CA+WA scope, submitted_on null, ein+fiscal_year dedupe, fixed size buckets, fixed cohort fallback order, fixed benchmark fallback order, fixed benchmark window, fixed core formulas, fixed confidence tiers, fixed action labels, fixed urgency rule, and fixed recovery-analog sourcing.",
         ]
     )
     return {"shared_samples": shared_samples, "summary_markdown": summary}

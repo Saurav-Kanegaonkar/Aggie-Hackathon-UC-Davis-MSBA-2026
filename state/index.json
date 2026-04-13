@@ -23,6 +23,10 @@
       "scope": "assignment"
     },
     {
+      "text": "Stage 0 also locks the 7-year benchmark window, the core metric formulas, the confidence tiers, the action-label vocabulary, the urgency flag rule, the recovery-analog sourcing rule, and the output schemas.",
+      "scope": "assignment"
+    },
+    {
       "text": "All future state changes after this bootstrap go through orchestrator commands from main.",
       "scope": "assignment"
     }
@@ -38,6 +42,11 @@
       "timestamp": "2026-04-13T00:58:36Z",
       "author": "Amal",
       "summary": "Bootstrap task-01 replaced placeholder state with the fixed checkpoint-1 Fairlight compete task and comparison contract."
+    },
+    {
+      "timestamp": "2026-04-13T01:26:00Z",
+      "author": "Amal",
+      "summary": "Stage 0 contract expanded to lock benchmark window, formulas, confidence tiers, action labels, urgency rule, recovery-analog sourcing, and output schemas."
     }
   ]
 }

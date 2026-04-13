@@ -11,6 +11,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "analysis" / "build_stage0_contract.py"
+CHECKED_IN_CONTRACT = ROOT / "config" / "checkpoint1_contract.json"
 
 
 def build_contract(path: Path) -> Path:
@@ -168,6 +169,46 @@ class Stage0ContractTests(unittest.TestCase):
         selected = shared_samples[shared_samples["ein"] == 100000001]
         self.assertEqual(len(selected), 1)
         self.assertEqual(selected.iloc[0]["tax_period_end"], "2023-12-31")
+
+    def test_checked_in_contract_locks_ratified_rules(self):
+        contract = json.loads(CHECKED_IN_CONTRACT.read_text())
+
+        self.assertIn("benchmark_window", contract)
+        self.assertEqual(contract["benchmark_window"]["strict_years_required"], 5)
+        self.assertEqual(contract["benchmark_window"]["relaxed_years_required"], 4)
+        self.assertEqual(contract["benchmark_window"]["window_years"], 7)
+
+        self.assertIn("metric_formulas", contract)
+        self.assertIn("operating_runway_proxy_months", contract["metric_formulas"])
+        self.assertIn("operating_margin", contract["metric_formulas"])
+        self.assertIn("revenue_diversification_index", contract["metric_formulas"])
+        self.assertIn("shock_absorption_months", contract["metric_formulas"])
+
+        self.assertIn("confidence_tiers", contract)
+        self.assertEqual(set(contract["confidence_tiers"].keys()), {"High", "Medium", "Low"})
+
+        self.assertIn("action_labels", contract)
+        self.assertEqual(
+            set(contract["action_labels"].keys()),
+            {"Amplify", "Stabilize", "Diversify", "Deep Review"},
+        )
+
+        self.assertIn("urgency_flag", contract)
+        self.assertIn("recovery_analogs", contract)
+        self.assertIn("output_schemas", contract)
+        self.assertEqual(
+            set(contract["output_schemas"].keys()),
+            {"checkpoint1_scored_row", "portfolio_view_row", "capital_stewardship_memo"},
+        )
+
+    def test_output_schema_files_exist_and_are_valid_json(self):
+        contract = json.loads(CHECKED_IN_CONTRACT.read_text())
+        for relative_path in contract["output_schemas"].values():
+            schema_path = ROOT / relative_path
+            self.assertTrue(schema_path.exists(), msg=f"Missing schema file: {schema_path}")
+            payload = json.loads(schema_path.read_text())
+            self.assertEqual(payload["type"], "object")
+            self.assertIn("properties", payload)
 
 
 if __name__ == "__main__":

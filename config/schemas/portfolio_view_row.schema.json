@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PortfolioViewRow",
+  "type": "object",
+  "properties": {
+    "ein": {
+      "type": "string"
+    },
+    "organization_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "peer_cohort": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "checkpoint1_confidence_tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "benchmark_position": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "resilience_gap": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "funding_concentration_profile": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action_label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "urgency_flag": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "ein"
+  ],
+  "additionalProperties": true
+}
