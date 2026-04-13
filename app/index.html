@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fairlight — Capital Stewardship Advisor</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242736;
+    --border: #2e3146;
+    --text: #e4e6f0;
+    --text-muted: #8b8fa3;
+    --amplify: #22c55e;
+    --stabilize: #3b82f6;
+    --diversify: #f59e0b;
+    --deepreview: #ef4444;
+    --accent: #818cf8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  nav .logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  nav button { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  nav button:hover, nav button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .stats-bar { display: flex; gap: 16px; margin-left: auto; font-size: 12px; color: var(--text-muted); }
+  .stats-bar .stat { display: flex; align-items: center; gap: 4px; }
+  .stats-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* VIEWS */
+  .view { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* PORTFOLIO INBOX */
+  .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filters select, .filters input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+  .filters input { width: 240px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; background: var(--surface); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; position: sticky; top: 49px; z-index: 10; }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 12px; }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .label-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .label-Amplify { background: rgba(34,197,94,0.15); color: var(--amplify); }
+  .label-Stabilize { background: rgba(59,130,246,0.15); color: var(--stabilize); }
+  .label-Diversify { background: rgba(245,158,11,0.15); color: var(--diversify); }
+  .label-Deep-Review { background: rgba(239,68,68,0.15); color: var(--deepreview); }
+
+  .urgency-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .urgency-acute { background: rgba(239,68,68,0.2); color: #f87171; }
+  .urgency-flagged { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+  .trend-icon { font-size: 14px; }
+  .trend-improving { color: var(--amplify); }
+  .trend-declining { color: var(--deepreview); }
+  .trend-unavailable { color: var(--text-muted); }
+
+  .checkbox-col { width: 32px; text-align: center; }
+  .checkbox-col input { cursor: pointer; }
+
+  /* DECISION LAB */
+  .detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .detail-header .back-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .detail-header .back-btn:hover { color: var(--text); border-color: var(--text-muted); }
+  .detail-header h1 { font-size: 22px; font-weight: 600; }
+  .detail-header .label-badge { font-size: 14px; padding: 4px 12px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .detail-card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px; }
+  .detail-card .metric-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .detail-card .metric-label { color: var(--text-muted); }
+  .detail-card .metric-value { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .detail-card.full-width { grid-column: 1 / -1; }
+
+  .gap-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .gap-bar .bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; position: relative; overflow: hidden; }
+  .gap-bar .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .gap-phrase { font-size: 11px; font-style: italic; color: var(--text-muted); }
+
+  .scenario-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .scenario-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .scenario-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--accent); }
+  .scenario-card .delta { font-size: 20px; font-weight: 700; margin: 8px 0; }
+  .delta-positive { color: var(--amplify); }
+  .delta-negative { color: var(--deepreview); }
+  .delta-neutral { color: var(--text-muted); }
+
+  .memo-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+
+  .analog-list { list-style: none; }
+  .analog-list li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+  /* FUNDING DECISION */
+  .funding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .funding-header h2 { font-size: 18px; }
+  .export-btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .export-btn:hover { opacity: 0.9; }
+
+  .funding-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .funding-card h4 { font-size: 15px; margin-bottom: 6px; }
+  .funding-card .engagement { font-size: 13px; color: var(--accent); margin-bottom: 4px; }
+  .funding-card .rationale { font-size: 13px; color: var(--text-muted); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-state h3 { font-size: 16px; margin-bottom: 8px; }
+
+  .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Fairlight <span>Capital Stewardship Advisor</span></div>
+  <button id="nav-inbox" class="active" onclick="showView('inbox')">Portfolio Inbox</button>
+  <button id="nav-lab" onclick="showView('lab')">Decision Lab</button>
+  <button id="nav-funding" onclick="showView('funding')">Funding Decision</button>
+  <div class="stats-bar" id="stats-bar"></div>
+</nav>
+
+<!-- VIEW A: Portfolio Inbox -->
+<div id="view-inbox" class="view active">
+  <div class="filters">
+    <input type="text" id="search" placeholder="Search org name or EIN..." oninput="applyFilters()">
+    <select id="filter-label" onchange="applyFilters()">
+      <option value="">All Labels</option>
+      <option value="Amplify">Amplify</option>
+      <option value="Stabilize">Stabilize</option>
+      <option value="Diversify">Diversify</option>
+      <option value="Deep Review">Deep Review</option>
+    </select>
+    <select id="filter-urgency" onchange="applyFilters()">
+      <option value="">All Urgency</option>
+      <option value="acute">Acute</option>
+      <option value="flagged">Flagged</option>
+      <option value="none">None</option>
+    </select>
+    <select id="filter-state" onchange="applyFilters()">
+      <option value="">All States</option>
+    </select>
+    <select id="sort-by" onchange="applyFilters()">
+      <option value="leverage">Leverage Ranking</option>
+      <option value="action_label">Action Label</option>
+      <option value="org_name">Org Name</option>
+      <option value="total_revenue">Revenue</option>
+      <option value="urgency_severity">Urgency</option>
+    </select>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="checkbox-col"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+        <th>Organization</th>
+        <th>State</th>
+        <th>Size</th>
+        <th>Revenue</th>
+        <th>Action</th>
+        <th>Urgency</th>
+        <th>Trend</th>
+        <th>Confidence</th>
+        <th>Distress Risk</th>
+      </tr>
+    </thead>
+    <tbody id="inbox-body"></tbody>
+  </table>
+  <div id="inbox-loading" class="loading">Loading data...</div>
+</div>
+
+<!-- VIEW B: Decision Lab -->
+<div id="view-lab" class="view">
+  <div id="lab-content">
+    <div class="empty-state">
+      <h3>Select an organization</h3>
+      <p>Click a row in the Portfolio Inbox to open the Decision Lab.</p>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW C: Funding Decision -->
+<div id="view-funding" class="view">
+  <div class="funding-header">
+    <h2>Funding Decision — Selected Organizations (<span id="funding-count">0</span>)</h2>
+    <button class="export-btn" onclick="exportFunding()">Export JSON</button>
+  </div>
+  <div id="funding-list">
+    <div class="empty-state">
+      <h3>No organizations selected</h3>
+      <p>Use the checkboxes in the Portfolio Inbox to select organizations for funding review.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- DATA ---
+let allData = [];
+let filteredData = [];
+let selectedEINs = new Set();
+let currentEIN = null;
+let useServer = false;
+
+// --- INIT ---
+async function init() {
+  let loaded = false;
+  try {
+    const resp = await fetch('/api/orgs');
+    if (resp.ok) {
+      const ct = resp.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        allData = await resp.json();
+        useServer = true;
+        loaded = true;
+        console.log('Using server API');
+      }
+    }
+  } catch(e) { /* server not available, fall back */ }
+
+  if (!loaded) {
+    try {
+      const resp = await fetch('data.json');
+      allData = await resp.json();
+      const seen = new Map();
+      allData.forEach(r => {
+        const key = r.ein;
+        if (!seen.has(key) || r.fiscal_year > seen.get(key).fiscal_year) {
+          seen.set(key, r);
+        }
+      });
+      allData = Array.from(seen.values());
+      console.log('Using static data.json');
+    } catch(e2) {
+      console.error('Failed to load data', e2);
+    }
+  }
+
+  document.getElementById('inbox-loading').style.display = 'none';
+
+  // Populate state filter
+  const states = [...new Set(allData.map(r => r.state).filter(Boolean))].sort();
+  const stateSelect = document.getElementById('filter-state');
+  states.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    stateSelect.appendChild(opt);
+  });
+
+  updateStats();
+  applyFilters();
+}
+
+function updateStats() {
+  const counts = {};
+  allData.forEach(r => { counts[r.action_label] = (counts[r.action_label] || 0) + 1; });
+  const bar = document.getElementById('stats-bar');
+  const colors = { Amplify: 'var(--amplify)', Stabilize: 'var(--stabilize)', Diversify: 'var(--diversify)', 'Deep Review': 'var(--deepreview)' };
+  bar.innerHTML = `<span class="stat">${allData.length} orgs</span>` +
+    Object.entries(counts).map(([k,v]) =>
+      `<span class="stat"><span class="dot" style="background:${colors[k]}"></span>${k}: ${v}</span>`
+    ).join('');
+}
+
+// --- FILTERS & SORT ---
+function applyFilters() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const label = document.getElementById('filter-label').value;
+  const urgency = document.getElementById('filter-urgency').value;
+  const state = document.getElementById('filter-state').value;
+  const sortBy = document.getElementById('sort-by').value;
+
+  filteredData = allData.filter(r => {
+    if (search && !((r.org_name||'').toLowerCase().includes(search) || (r.ein||'').includes(search))) return false;
+    if (label && r.action_label !== label) return false;
+    if (urgency && r.urgency_severity !== urgency) return false;
+    if (state && r.state !== state) return false;
+    return true;
+  });
+
+  const urgencyOrder = { acute: 0, flagged: 1, none: 2 };
+  const labelOrder = { 'Deep Review': 0, Diversify: 1, Stabilize: 2, Amplify: 3 };
+  const sizeOrder = { '10M+': 0, '2M-10M': 1, '500K-2M': 2, '100K-500K': 3, 'Under 100K': 4 };
+
+  if (sortBy === 'leverage') {
+    filteredData.sort((a, b) => (urgencyOrder[a.urgency_severity] ?? 9) - (urgencyOrder[b.urgency_severity] ?? 9)
+      || (sizeOrder[a.size_bucket] ?? 9) - (sizeOrder[b.size_bucket] ?? 9));
+  } else if (sortBy === 'action_label') {
+    filteredData.sort((a, b) => (labelOrder[a.action_label] ?? 9) - (labelOrder[b.action_label] ?? 9));
+  } else if (sortBy === 'org_name') {
+    filteredData.sort((a, b) => (a.org_name || '').localeCompare(b.org_name || ''));
+  } else if (sortBy === 'total_revenue') {
+    filteredData.sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0));
+  } else if (sortBy === 'urgency_severity') {
+    filteredData.sort((a, b) => (urgencyOrder[a.urgency_severity] ?? 9) - (urgencyOrder[b.urgency_severity] ?? 9));
+  }
+
+  renderInbox();
+}
+
+// --- RENDER INBOX ---
+function renderInbox() {
+  const tbody = document.getElementById('inbox-body');
+  tbody.innerHTML = filteredData.map(r => `
+    <tr onclick="openLab('${r.ein}')">
+      <td class="checkbox-col" onclick="event.stopPropagation()">
+        <input type="checkbox" ${selectedEINs.has(r.ein)?'checked':''} onchange="toggleSelect('${r.ein}', this.checked)">
+      </td>
+      <td><strong>${esc(r.org_name)}</strong><br><span style="color:var(--text-muted);font-size:11px">EIN ${r.ein} · FY${r.fiscal_year}</span></td>
+      <td>${r.state || ''}</td>
+      <td>${r.size_bucket || ''}</td>
+      <td class="num">${fmtRev(r.total_revenue)}</td>
+      <td>${labelBadge(r.action_label)}</td>
+      <td>${urgencyBadge(r.urgency_severity)}</td>
+      <td>${trendIcon(r.trend_direction)}</td>
+      <td><span style="font-size:12px">${r.checkpoint1_confidence_tier || ''}</span></td>
+      <td><span style="color:var(--text-muted);font-size:12px">—</span></td>
+    </tr>
+  `).join('');
+}
+
+// --- DECISION LAB ---
+async function openLab(ein) {
+  currentEIN = ein;
+  showView('lab');
+
+  let rows;
+  if (useServer) {
+    const resp = await fetch(`/api/org/${ein}`);
+    rows = await resp.json();
+  } else {
+    // In static mode, reload full data.json to get both FYs
+    const resp = await fetch('data.json');
+    const allRows = await resp.json();
+    rows = allRows.filter(r => r.ein === ein);
+  }
+
+  if (!rows || rows.length === 0) {
+    document.getElementById('lab-content').innerHTML = '<div class="empty-state"><h3>Organization not found</h3></div>';
+    return;
+  }
+
+  // Use most recent FY as primary
+  rows.sort((a, b) => b.fiscal_year - a.fiscal_year);
+  const r = rows[0];
+  const prev = rows.length > 1 ? rows[1] : null;
+
+  document.getElementById('lab-content').innerHTML = `
+    <div class="detail-header">
+      <button class="back-btn" onclick="showView('inbox')">← Back</button>
+      <h1>${esc(r.org_name)}</h1>
+      ${labelBadge(r.action_label)}
+      ${urgencyBadge(r.urgency_severity)}
+      ${trendIcon(r.trend_direction)}
+    </div>
+
+    <div class="detail-grid">
+      <!-- Org Snapshot -->
+      <div class="detail-card">
+        <h3>Org Snapshot</h3>
+        ${metricRow('EIN', r.ein)}
+        ${metricRow('State', r.state)}
+        ${metricRow('NTEE Category', r.ntee_major_category)}
+        ${metricRow('Size Bucket', r.size_bucket)}
+        ${metricRow('Fiscal Year', r.fiscal_year)}
+        ${metricRow('Total Revenue', fmtRev(r.total_revenue))}
+        ${metricRow('Total Expenses', fmtRev(r.total_expenses))}
+        ${metricRow('Net Assets (EOY)', fmtRev(r.net_assets_eoy))}
+      </div>
+
+      <!-- Cohort Context -->
+      <div class="detail-card">
+        <h3>Cohort Context</h3>
+        ${metricRow('Benchmark Status', r.benchmark_status)}
+        ${metricRow('Benchmark Rule', r.benchmark_rule)}
+        ${metricRow('Cohort Size', r.cohort_size)}
+        ${metricRow('Confidence Tier', r.checkpoint1_confidence_tier)}
+        ${metricRow('Resilience Gap', fmtNum(r.resilience_gap))}
+      </div>
+
+      <!-- Resilience Assessment -->
+      <div class="detail-card full-width">
+        <h3>Resilience Assessment</h3>
+        ${gapRow('Operating Margin', r.operating_margin, r.benchmark_operating_margin_q75, r.operating_margin_gap)}
+        ${gapRow('Operating Runway (months)', r.operating_runway_proxy_months, r.benchmark_operating_runway_q75, r.operating_runway_gap)}
+        ${gapRow('Revenue Diversification', r.revenue_diversification_index, r.benchmark_revenue_diversification_q75, r.revenue_diversification_gap)}
+      </div>
+
+      <!-- Stress Test -->
+      <div class="detail-card">
+        <h3>Stress Test — 25% Shock</h3>
+        ${r.stress_test_status === 'computed' ? `
+          ${metricRow('Severity', stressBadge(r.stress_25pct_severity))}
+          ${metricRow('Burn Months', fmtNum(r.stress_25pct_burn_months, 1))}
+          ${metricRow('Post-Shock Revenue', fmtRev(r.stress_25pct_post_shock_revenue))}
+        ` : '<p style="color:var(--text-muted);font-size:13px">Unavailable — missing raw inputs</p>'}
+      </div>
+
+      <!-- Stress Test 50% -->
+      <div class="detail-card">
+        <h3>Stress Test — 50% Shock</h3>
+        ${r.stress_test_status === 'computed' ? `
+          ${metricRow('Severity', stressBadge(r.stress_50pct_severity))}
+          ${metricRow('Burn Months', fmtNum(r.stress_50pct_burn_months, 1))}
+          ${metricRow('Post-Shock Revenue', fmtRev(r.stress_50pct_post_shock_revenue))}
+        ` : '<p style="color:var(--text-muted);font-size:13px">Unavailable — missing raw inputs</p>'}
+      </div>
+
+      <!-- Recovery Analogs -->
+      <div class="detail-card">
+        <h3>Recovery Analog Evidence</h3>
+        ${r.recovery_analog_status === 'found' ? `
+          ${metricRow('Constraint', r.recovery_analog_constraint)}
+          ${metricRow('Analog Count', r.recovery_analog_count)}
+          ${renderAnalogs(r.recovery_analog_evidence)}
+        ` : '<p style="color:var(--text-muted);font-size:13px">No analogs available</p>'}
+      </div>
+
+      <!-- Distress Risk Placeholder -->
+      <div class="detail-card">
+        <h3>Distress Risk Tier</h3>
+        <p style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center">
+          Awaiting model integration<br>
+          <span style="font-size:11px">Slot for Amal's distress_predictions.parquet</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Scenario Cards -->
+    <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px">What-If Scenarios</h3>
+    <div class="scenario-cards">
+      ${scenario25(r)}
+      ${scenarioReserve(r)}
+      ${scenarioDiversify(r)}
+    </div>
+
+    <!-- Memo -->
+    <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px">Capital Stewardship Memo</h3>
+    <div class="memo-box">${esc(r.memo_text || 'No memo available')}</div>
+
+    <!-- Action & Rationale -->
+    <div class="detail-card full-width" style="max-width:100%">
+      <h3>Recommended Action</h3>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        ${labelBadge(r.action_label)}
+        <span style="font-size:14px">${actionExplanation(r)}</span>
+      </div>
+      <h3 style="margin-top:12px">Rationale Rules</h3>
+      <ul style="list-style:disc;margin-left:20px;font-size:13px;color:var(--text-muted)">
+        ${(r.action_label_rationale || []).map(rule => `<li><code>${rule}</code></li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+// --- SCENARIOS ---
+function scenario25(r) {
+  if (r.stress_test_status !== 'computed') {
+    return `<div class="scenario-card"><h4>25% Revenue Shock</h4><p style="color:var(--text-muted);font-size:13px">Stress test unavailable</p></div>`;
+  }
+  const sevClass = ['critical','severe'].includes(r.stress_25pct_severity) ? 'delta-negative' : ['mild','none'].includes(r.stress_25pct_severity) ? 'delta-positive' : 'delta-neutral';
+  return `<div class="scenario-card">
+    <h4>Scenario 1: 25% Revenue Shock</h4>
+    <div class="delta ${sevClass}">${r.stress_25pct_severity}</div>
+    <div style="font-size:13px;color:var(--text-muted)">
+      Burn months: ${fmtNum(r.stress_25pct_burn_months, 1)}<br>
+      Post-shock revenue: ${fmtRev(r.stress_25pct_post_shock_revenue)}
+    </div>
+  </div>`;
+}
+
+function scenarioReserve(r) {
+  // Reserve injection: +3 months of monthly expenses
+  const monthlyExp = r.total_expenses ? r.total_expenses / 12 : null;
+  const injection = monthlyExp ? monthlyExp * 3 : null;
+  const currentSAM = r.shock_absorption_months;
+  let newSAM = null;
+  let newUrgent = null;
+
+  if (injection !== null && r.net_assets_eoy !== null && monthlyExp > 0) {
+    const newNetAssets = (r.net_assets_eoy || 0) + injection;
+    newSAM = newNetAssets / monthlyExp;
+    const margin = r.operating_margin;
+    newUrgent = (newSAM < 3 && margin !== null && margin < 0);
+  }
+
+  const delta = (newSAM !== null && currentSAM !== null) ? newSAM - currentSAM : null;
+  const deltaClass = delta > 0 ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-neutral';
+
+  return `<div class="scenario-card">
+    <h4>Scenario 2: +3 Month Reserve Injection</h4>
+    ${injection !== null ? `
+      <div class="delta ${deltaClass}">${delta !== null ? (delta > 0 ? '+' : '') + delta.toFixed(1) + ' months' : 'N/A'}</div>
+      <div style="font-size:13px;color:var(--text-muted)">
+        Injection: ${fmtRev(injection)}<br>
+        Shock absorption: ${fmtNum(currentSAM, 1)} → ${fmtNum(newSAM, 1)} months<br>
+        Urgency would fire: ${newUrgent ? 'Yes' : 'No'}
+      </div>
+    ` : '<p style="color:var(--text-muted);font-size:13px">Missing expense data</p>'}
+  </div>`;
+}
+
+function scenarioDiversify(r) {
+  const currentRDI = r.revenue_diversification_index;
+  const benchRDI = r.benchmark_revenue_diversification_q75;
+  const currentGap = r.revenue_diversification_gap;
+
+  if (currentRDI === null || benchRDI === null) {
+    return `<div class="scenario-card"><h4>Scenario 3: Diversification Lift to Q75</h4><p style="color:var(--text-muted);font-size:13px">Missing diversification data</p></div>`;
+  }
+
+  const newGap = 0; // By definition, lifting to Q75 sets gap = 0
+  const gapDelta = newGap - (currentGap || 0);
+
+  // Would the label change?
+  // Simplified: if current label is Diversify and gap goes to 0, it wouldn't qualify for Diversify anymore
+  let newLabel = r.action_label;
+  if (r.action_label === 'Diversify') {
+    newLabel = 'Stabilize (or Amplify)';
+  }
+
+  return `<div class="scenario-card">
+    <h4>Scenario 3: Diversify to Cohort Q75</h4>
+    <div class="delta delta-positive">${currentRDI < benchRDI ? '+' + (benchRDI - currentRDI).toFixed(2) : 'Already above'}</div>
+    <div style="font-size:13px;color:var(--text-muted)">
+      RDI: ${fmtNum(currentRDI)} → ${fmtNum(benchRDI)}<br>
+      Gap: ${fmtNum(currentGap)} → 0.00<br>
+      ${r.action_label === 'Diversify' ? `Label would shift: ${newLabel}` : 'Label unchanged'}
+    </div>
+  </div>`;
+}
+
+// --- FUNDING DECISION ---
+function toggleSelect(ein, checked) {
+  if (checked) selectedEINs.add(ein); else selectedEINs.delete(ein);
+  updateFunding();
+}
+function toggleSelectAll() {
+  const checked = document.getElementById('select-all').checked;
+  filteredData.forEach(r => { if (checked) selectedEINs.add(r.ein); else selectedEINs.delete(r.ein); });
+  renderInbox();
+  updateFunding();
+}
+
+function updateFunding() {
+  document.getElementById('funding-count').textContent = selectedEINs.size;
+  const list = document.getElementById('funding-list');
+  if (selectedEINs.size === 0) {
+    list.innerHTML = '<div class="empty-state"><h3>No organizations selected</h3><p>Use the checkboxes in the Portfolio Inbox.</p></div>';
+    return;
+  }
+
+  const engagement = {
+    'Amplify': 'Reserve & endowment management',
+    'Stabilize': 'Fractional CFO + cash flow planning',
+    'Diversify': 'Strategic advisory on revenue restructuring',
+    'Deep Review': 'Decline with rationale — requires further diligence'
+  };
+
+  const selected = allData.filter(r => selectedEINs.has(r.ein));
+  list.innerHTML = selected.map(r => `
+    <div class="funding-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h4>${esc(r.org_name)} <span style="color:var(--text-muted);font-size:12px">(${r.ein})</span></h4>
+        ${labelBadge(r.action_label)}
+      </div>
+      <div class="engagement">${engagement[r.action_label] || ''}</div>
+      <div class="rationale">${(r.memo_text || '').split('.').slice(0, 3).join('.') + '.'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:6px">
+        Confidence: ${r.checkpoint1_confidence_tier || 'N/A'} · Urgency: ${r.urgency_severity || 'none'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function exportFunding() {
+  const selected = allData.filter(r => selectedEINs.has(r.ein));
+  const engagement = {
+    'Amplify': 'Reserve & endowment management',
+    'Stabilize': 'Fractional CFO + cash flow planning',
+    'Diversify': 'Strategic advisory on revenue restructuring',
+    'Deep Review': 'Decline with rationale'
+  };
+  const exportData = selected.map(r => ({
+    ein: r.ein,
+    org_name: r.org_name,
+    state: r.state,
+    action_label: r.action_label,
+    engagement_type: engagement[r.action_label],
+    confidence: r.checkpoint1_confidence_tier,
+    urgency: r.urgency_severity,
+    memo_excerpt: (r.memo_text || '').split('.').slice(0, 3).join('.') + '.'
+  }));
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'fairlight_funding_decision.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- HELPERS ---
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function fmtRev(v) {
+  if (v == null) return 'N/A';
+  if (Math.abs(v) >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  if (Math.abs(v) >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+
+function fmtNum(v, decimals) {
+  if (v == null) return 'N/A';
+  return Number(v).toFixed(decimals !== undefined ? decimals : 2);
+}
+
+function labelBadge(label) {
+  const cls = (label || '').replace(' ', '-');
+  return `<span class="label-badge label-${cls}">${label || ''}</span>`;
+}
+
+function urgencyBadge(sev) {
+  if (!sev || sev === 'none') return '';
+  return `<span class="urgency-badge urgency-${sev}">${sev}</span>`;
+}
+
+function trendIcon(dir) {
+  if (dir === 'improving') return '<span class="trend-icon trend-improving">↑</span>';
+  if (dir === 'declining') return '<span class="trend-icon trend-declining">↓</span>';
+  return '<span class="trend-icon trend-unavailable">—</span>';
+}
+
+function stressBadge(sev) {
+  const colors = { none: 'var(--amplify)', mild: '#a3e635', moderate: 'var(--diversify)', severe: '#f97316', critical: 'var(--deepreview)' };
+  return `<span style="color:${colors[sev] || 'var(--text-muted)'};font-weight:600">${sev || 'N/A'}</span>`;
+}
+
+function gapPhrase(gap) {
+  if (gap == null) return 'data unavailable';
+  if (gap >= 0) return 'above peer benchmark';
+  if (gap >= -0.3) return 'near peer benchmark';
+  if (gap >= -1.0) return 'below peer benchmark';
+  return 'materially behind peer benchmark';
+}
+
+function gapColor(gap) {
+  if (gap == null) return 'var(--text-muted)';
+  if (gap >= 0) return 'var(--amplify)';
+  if (gap >= -0.3) return 'var(--stabilize)';
+  if (gap >= -1.0) return 'var(--diversify)';
+  return 'var(--deepreview)';
+}
+
+function gapRow(label, actual, benchmark, gap) {
+  const pct = gap != null ? Math.min(Math.max((gap + 2) / 4 * 100, 5), 95) : 50;
+  return `
+    <div style="margin-bottom:12px">
+      <div class="metric-row"><span class="metric-label">${label}</span><span class="metric-value">${fmtNum(actual)} vs ${fmtNum(benchmark)}</span></div>
+      <div class="gap-bar">
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${gapColor(gap)}"></div></div>
+        <span style="font-size:12px;color:${gapColor(gap)};min-width:60px">${fmtNum(gap)}</span>
+      </div>
+      <span class="gap-phrase">${gapPhrase(gap)}</span>
+    </div>
+  `;
+}
+
+function metricRow(label, value) {
+  return `<div class="metric-row"><span class="metric-label">${label}</span><span class="metric-value">${value ?? 'N/A'}</span></div>`;
+}
+
+function renderAnalogs(evidence) {
+  if (!evidence || !Array.isArray(evidence) || evidence.length === 0) return '<p style="color:var(--text-muted);font-size:13px">No analog evidence</p>';
+  return '<ul class="analog-list">' + evidence.slice(0, 3).map(a => {
+    if (typeof a !== 'object') return '';
+    return `<li>
+      <strong>${esc(a.org_name || 'Unknown')}</strong> (${a.state || '??'})
+      — recovered from ${a.matched_metric_name || '?'}: ${fmtNum(a.matched_metric_pre_value)} → ${fmtNum(a.matched_metric_post_value)}
+      (${a.pre_window_year || '?'} to ${a.post_window_year || '?'})
+    </li>`;
+  }).join('') + '</ul>';
+}
+
+function actionExplanation(r) {
+  const label = r.action_label;
+  if (label === 'Deep Review') return 'Requires deeper diligence before recommendation.';
+  if (label === 'Amplify') return 'All resilience metrics above benchmark — back from strength.';
+  if (label === 'Diversify') return 'Elevated concentration risk with adequate margin — restructure revenue sources.';
+  return 'Primary constraint identified — stabilize before additional capital.';
+}
+
+// Start
+init();
+</script>
+</body>
+</html>

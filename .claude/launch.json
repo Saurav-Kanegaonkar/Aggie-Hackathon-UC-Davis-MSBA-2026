@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fairlight",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["app/serve.py"],
+      "port": 8080,
+      "autoPort": true
+    }
+  ]
+}
