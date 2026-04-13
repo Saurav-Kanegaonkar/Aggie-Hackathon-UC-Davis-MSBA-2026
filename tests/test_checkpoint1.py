@@ -76,11 +76,11 @@ def build_fixture_rows() -> list[dict]:
             "ein": "000000002",
             "state": "CA",
             "submitted_on": "",
-            "tax_period_end": "2023-11-30",
+            "tax_period_end": "2024-01-31",
             "fiscal_year": 2023,
             "total_revenue": 1_100_000,
-            "total_expenses": 1_020_000,
-            "net_assets_eoy": 170_000,
+            "total_expenses": 1_000_000,
+            "net_assets_eoy": "not-a-number",
             "cash_non_interest_bearing": 10_000,
             "savings_temporary_investments": 2_000,
             "contributions_grants": 250_000,
@@ -211,6 +211,12 @@ class Checkpoint1CliTests(unittest.TestCase):
     def test_diversification_zero_fill_and_shadow_metric(self) -> None:
         output_path = self.run_cli()
         scored = pd.read_parquet(output_path)
+
+        runway_row = scored.loc[
+            scored["ein"].astype(str).eq("000000002") & scored["fiscal_year"].astype(int).eq(2023)
+        ].iloc[0]
+        self.assertAlmostEqual(float(runway_row["operating_runway_proxy_months"]), 1.92, places=6)
+        self.assertAlmostEqual(float(runway_row["net_assets_eoy"]), 160_000.0, places=6)
 
         row = scored.loc[scored["ein"].astype(str).eq("000000003")].iloc[0]
         self.assertTrue(pd.notna(row["revenue_diversification_index"]))

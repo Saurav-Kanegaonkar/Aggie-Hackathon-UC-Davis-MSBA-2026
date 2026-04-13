@@ -8,7 +8,6 @@ import pandas as pd
 
 from analysis.stage0_contract import (
     assign_size_bucket,
-    dedupe_panel,
     filter_stage0_panel,
     load_contract,
     load_panel,
@@ -93,6 +92,20 @@ def _compute_row_diversification(values: pd.Series) -> tuple[float | None, float
             normalized = present / total
             renormalized = 1.0 - float(normalized.pow(2).sum())
     return official, renormalized
+
+
+def dedupe_stage1_panel(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    deduped = frame.copy()
+    deduped["net_assets_eoy"] = _optional_numeric(deduped, "net_assets_eoy")
+    stage1_key_fields = list(contract["key_fields"]) + ["net_assets_eoy"]
+    deduped["_stage1_null_score"] = deduped[stage1_key_fields].isna().sum(axis=1)
+    deduped = deduped.sort_values(
+        ["ein", "fiscal_year", "_stage1_null_score", "tax_period_end"],
+        ascending=[True, True, True, False],
+        kind="mergesort",
+    )
+    deduped = deduped.drop_duplicates(subset=["ein", "fiscal_year"], keep="first")
+    return deduped.drop(columns=["_stage1_null_score"])
 
 
 def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
@@ -499,7 +512,7 @@ def finalize_output(frame: pd.DataFrame) -> pd.DataFrame:
 
 def build_checkpoint1_outputs(panel: pd.DataFrame, contract: dict) -> Stage1Outputs:
     filtered = filter_stage0_panel(panel, contract)
-    deduped = dedupe_panel(filtered, key_fields=contract["key_fields"])
+    deduped = dedupe_stage1_panel(filtered, contract)
     scored = add_stage1_metrics(deduped, contract)
     scored = assign_stage1_cohorts(scored, contract)
     scored = attach_resilient_benchmarks(scored, contract)
