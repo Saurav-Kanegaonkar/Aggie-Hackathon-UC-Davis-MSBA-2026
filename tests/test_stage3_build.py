@@ -308,6 +308,30 @@ class Stage3BuildTests(unittest.TestCase):
             ["stabilize_default_scoreable", "stabilize_primary_constraint_low_runway"],
         )
 
+    def test_diversify_threshold_uses_calibrated_neg_point_three_cutoff(self):
+        fixture = _stage2_fixture()
+        base = fixture[fixture["ein"] == "300"].iloc[0].to_dict()
+
+        diversify_row = base | {
+            "ein": "301",
+            "revenue_diversification_gap": -0.31,
+            "stress_25pct_severity": "mild",
+            "urgency_severity": "none",
+            "operating_margin_gap": 0.05,
+        }
+        stabilize_row = base | {
+            "ein": "302",
+            "revenue_diversification_gap": -0.29,
+            "stress_25pct_severity": "mild",
+            "urgency_severity": "none",
+            "operating_margin_gap": 0.05,
+        }
+
+        labeled = assign_action_labels(pd.DataFrame([diversify_row, stabilize_row]))
+        labels = dict(zip(labeled["ein"], labeled["action_label"]))
+        self.assertEqual(labels["301"], "Diversify")
+        self.assertEqual(labels["302"], "Stabilize")
+
     def test_compute_trend_direction_uses_2023_to_2024_join_only(self):
         trended = compute_trend_direction(_stage2_fixture())
         trends = {(row.ein, row.fiscal_year): row.trend_direction for row in trended.itertuples()}

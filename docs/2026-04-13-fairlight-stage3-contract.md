@@ -108,7 +108,7 @@ Allowed rule names:
 - `amplify_diversification_above_benchmark`
 - `amplify_no_severe_25pct_stress`
 - `amplify_no_urgency`
-- `diversify_concentration_gap_below_neg_0_5`
+- `diversify_concentration_gap_below_neg_0_30`
 - `diversify_margin_at_or_above_neg_0_30`
 - `diversify_no_severe_25pct_stress`
 - `diversify_no_urgency`
@@ -246,7 +246,7 @@ Implementation note:
 
 Assign `Diversify` if the row did not already match `Deep Review` or `Amplify` and **all** of the following conditions are true:
 
-- `revenue_diversification_gap <= -0.5`
+- `revenue_diversification_gap <= -0.30`
 - `operating_margin_gap >= -0.30`
 - `stress_25pct_severity not in ('severe', 'critical')`
 - `urgency_severity == 'none'`
@@ -257,7 +257,7 @@ Implementation note:
 
 `action_label_rationale` must be exactly:
 
-- `["diversify_concentration_gap_below_neg_0_5", "diversify_margin_at_or_above_neg_0_30", "diversify_no_severe_25pct_stress", "diversify_no_urgency"]`
+- `["diversify_concentration_gap_below_neg_0_30", "diversify_margin_at_or_above_neg_0_30", "diversify_no_severe_25pct_stress", "diversify_no_urgency"]`
 
 ### Stabilize
 
@@ -323,9 +323,11 @@ Absolute concentration thresholds are rejected because the current dataset is he
 
 The load-bearing Diversify signal is:
 
-- `revenue_diversification_gap <= -0.5`
+- `revenue_diversification_gap <= -0.30`
 
 This is cohort-relative and therefore interpretable across different nonprofit funding models.
+
+The fixed `-0.30` threshold was calibrated on the April 13 merged Stage 2 parquet by sweeping candidate cutoffs across the post-`Deep Review`, post-`Amplify` eligible pool and selecting the smallest value that produced a final `Diversify` share inside the intended `10% - 15%` range after precedence application. The contract therefore freezes the measured `-0.30` cutoff rather than treating Diversify as an intuition-based threshold.
 
 ## Trend Methodology
 
@@ -573,7 +575,7 @@ Assignment:
 
 - not `Deep Review`
 - not `Amplify` because `operating_runway_gap < 0`
-- not `Diversify` because `revenue_diversification_gap > -0.5`
+- not `Diversify` because `revenue_diversification_gap > -0.30`
 - therefore `Stabilize`
 
 `trend_direction = improving` because `resilience_gap_2024 = -0.735061` and `resilience_gap_2023 = -0.244139`.
@@ -659,18 +661,18 @@ Builders must also report full-dataset label counts and shares.
 
 These are diagnostics, not quotas.
 
-For the April 13 merged Stage 2 parquet and the ratified Stage 3 rules, the baseline dry-run distribution is approximately:
+For the April 13 merged Stage 2 parquet and the ratified Stage 3 rules, the post-calibration baseline dry-run distribution is approximately:
 
 - `Amplify`: `3.35%`
-- `Diversify`: `0.53%`
-- `Stabilize`: `63.21%`
-- `Deep Review`: `32.91%`
+- `Diversify`: `12.28%`
+- `Stabilize`: `51.30%`
+- `Deep Review`: `33.07%`
 
 Sanity-check ranges for this rule shape are:
 
 - `Amplify`: `2% - 6%`
-- `Diversify`: `0% - 2%`
-- `Stabilize`: `55% - 70%`
+- `Diversify`: `10% - 15%`
+- `Stabilize`: `45% - 60%`
 - `Deep Review`: `25% - 40%`
 
 Outputs far outside these ranges should be investigated before submission, but the ranges are not acceptance criteria by themselves.

@@ -48,7 +48,7 @@ AMPLIFY_RULES = [
     "amplify_no_urgency",
 ]
 DIVERSIFY_RULES = [
-    "diversify_concentration_gap_below_neg_0_5",
+    "diversify_concentration_gap_below_neg_0_30",
     "diversify_margin_at_or_above_neg_0_30",
     "diversify_no_severe_25pct_stress",
     "diversify_no_urgency",
@@ -58,6 +58,7 @@ STABILIZE_RULE_MAP = {
     "operating_runway_gap": "stabilize_primary_constraint_low_runway",
     "revenue_diversification_gap": "stabilize_primary_constraint_high_concentration_in_volatile_source",
 }
+DIVERSIFY_GAP_THRESHOLD = -0.30
 
 
 def _load_from_git_ref(ref: str) -> pd.DataFrame:
@@ -171,7 +172,7 @@ def assign_action_labels(stage2_df: pd.DataFrame) -> pd.DataFrame:
     diversify_mask = (
         ~deep_mask
         & ~amplify_mask
-        & out["revenue_diversification_gap"].le(-0.5)
+        & out["revenue_diversification_gap"].le(DIVERSIFY_GAP_THRESHOLD)
         & out["operating_margin_gap"].ge(-0.30)
         & no_severe_stress
         & no_urgency
