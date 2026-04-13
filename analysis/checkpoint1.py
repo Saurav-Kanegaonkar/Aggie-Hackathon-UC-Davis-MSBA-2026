@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import time
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,12 @@ PCT_COLUMNS = [
 @dataclass(frozen=True)
 class Stage1Outputs:
     scored_rows: pd.DataFrame
+
+
+def stage1_year_bounds(contract: dict) -> tuple[int, int]:
+    scoring_years = [int(year) for year in contract["benchmark_window"]["scoring_years"]]
+    window_years = int(contract["benchmark_window"]["window_years"])
+    return min(scoring_years) - window_years + 1, max(scoring_years)
 
 
 def load_stage1_inputs(input_path: str | Path | None, contract_path: str | Path) -> tuple[pd.DataFrame, dict]:
@@ -73,27 +80,6 @@ def _build_group_key(frame: pd.DataFrame, dimensions: list[str]) -> pd.Series:
     return key
 
 
-def _compute_row_diversification(values: pd.Series) -> tuple[float | None, float | None]:
-    shares = pd.to_numeric(values, errors="coerce")
-    all_null = shares.isna().all()
-    if all_null:
-        return None, None
-
-    official = 1.0 - float(shares.fillna(0).pow(2).sum())
-
-    present = shares.dropna()
-    if present.empty:
-        renormalized = None
-    else:
-        total = float(present.sum())
-        if total <= 0:
-            renormalized = None
-        else:
-            normalized = present / total
-            renormalized = 1.0 - float(normalized.pow(2).sum())
-    return official, renormalized
-
-
 def dedupe_stage1_panel(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     deduped = frame.copy()
     deduped["net_assets_eoy"] = _optional_numeric(deduped, "net_assets_eoy")
@@ -109,6 +95,12 @@ def dedupe_stage1_panel(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     return deduped.drop(columns=["_net_assets_present", "_stage1_null_score"])
 
 
+def restrict_stage1_history_window(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    lower_year, upper_year = stage1_year_bounds(contract)
+    year_mask = frame["fiscal_year"].astype("Int64").between(lower_year, upper_year, inclusive="both")
+    return frame.loc[year_mask.fillna(False)].copy()
+
+
 def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     scored = frame.copy()
     scored["size_bucket"] = scored["total_revenue"].apply(assign_size_bucket, buckets=contract["size_buckets"])
@@ -121,9 +113,18 @@ def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     scored["shock_absorption_months"] = safe_divide(liquid_assets, monthly_expenses)
 
     pct_frame = pd.DataFrame({column: _optional_numeric(scored, column) for column in PCT_COLUMNS}, index=scored.index)
-    diversification = pct_frame.apply(_compute_row_diversification, axis=1, result_type="expand")
-    scored["revenue_diversification_index"] = diversification[0].astype("float64")
-    scored["revenue_diversification_index_renormalized"] = diversification[1].astype("float64")
+    all_pct_null = pct_frame.isna().all(axis=1)
+    scored["revenue_diversification_index"] = (
+        1.0 - pct_frame.fillna(0).pow(2).sum(axis=1)
+    ).astype("float64")
+    scored.loc[all_pct_null, "revenue_diversification_index"] = np.nan
+
+    pct_sums = pct_frame.sum(axis=1, skipna=True)
+    renormalized_shares = pct_frame.div(pct_sums.replace(0, np.nan), axis=0)
+    scored["revenue_diversification_index_renormalized"] = (
+        1.0 - renormalized_shares.pow(2).sum(axis=1, skipna=True)
+    ).astype("float64")
+    scored.loc[all_pct_null | pct_sums.le(0), "revenue_diversification_index_renormalized"] = np.nan
 
     scored["scoreable_flag"] = (
         scored["total_revenue"].gt(0).fillna(False)
@@ -220,81 +221,100 @@ def _rolling_qualifies(group: pd.DataFrame, qualifies: pd.Series, window_years: 
     return pd.Series(rolling, index=group.index)
 
 
-def build_resilient_benchmark_maps(frame: pd.DataFrame, contract: dict) -> dict[tuple[int, str], dict[tuple[int, str], dict[str, float | int]]]:
-    benchmark_maps: dict[tuple[int, str], dict[tuple[int, str], dict[str, float | int]]] = {}
-    scoring_years = set(int(year) for year in contract["benchmark_window"]["scoring_years"])
+def build_resilient_benchmark(
+    cohort_window: pd.DataFrame,
+    scoring_year: int,
+    contract: dict,
+) -> dict[str, float | int | str | None]:
+    min_ref = int(contract["min_reference_orgs"])
     window_years = int(contract["benchmark_window"]["window_years"])
+    year_min = scoring_year - window_years + 1
 
-    for level_idx, _dimensions in enumerate(contract["cohort_fallback_order"]):
-        key_col = f"_cohort_key_{level_idx}"
-        subset = frame.loc[frame["scoreable_flag"] & frame[key_col].notna()].copy()
-        if subset.empty:
-            for rule in contract["benchmark_fallback_order"]:
-                benchmark_maps[(level_idx, rule["label"])] = {}
+    w = cohort_window.loc[
+        cohort_window["fiscal_year"].astype("Int64").between(year_min, scoring_year, inclusive="both")
+    ].copy()
+    if w.empty:
+        return {
+            "benchmark_operating_margin_q75": np.nan,
+            "benchmark_operating_runway_q75": np.nan,
+            "benchmark_revenue_diversification_q75": np.nan,
+            "reference_org_count": 0,
+            "rule_step": None,
+            "benchmark_rule": None,
+            "benchmark_status": "no_window_data",
+        }
+
+    scoring_eins = set(w.loc[w["fiscal_year"].astype(int) == scoring_year, "ein"].astype(str))
+    if not scoring_eins:
+        return {
+            "benchmark_operating_margin_q75": np.nan,
+            "benchmark_operating_runway_q75": np.nan,
+            "benchmark_revenue_diversification_q75": np.nan,
+            "reference_org_count": 0,
+            "rule_step": None,
+            "benchmark_rule": None,
+            "benchmark_status": "no_scoring_year_data",
+        }
+
+    q75_per_year = (
+        w.groupby("fiscal_year", dropna=False)[CORE_METRICS]
+        .quantile(0.75)
+        .rename(columns={metric: f"{metric}_q75" for metric in CORE_METRICS})
+    )
+    w = w.merge(q75_per_year, on="fiscal_year", how="left")
+    for metric in CORE_METRICS:
+        q75_col = f"{metric}_q75"
+        w[f"{metric}_above"] = w[metric].notna() & (w[metric] >= w[q75_col])
+    above_cols = [f"{metric}_above" for metric in CORE_METRICS]
+    w["n_metrics_above"] = w[above_cols].sum(axis=1)
+
+    w_scored = w.loc[w["ein"].astype(str).isin(scoring_eins)].copy()
+    for rule_idx, rule in enumerate(contract["benchmark_fallback_order"], start=1):
+        qualifies = (w_scored["n_metrics_above"] >= int(rule["min_metrics"])).rename("q")
+        year_counts = w_scored.assign(q=qualifies).groupby("ein", sort=False)["q"].sum()
+        resilient_eins = year_counts[year_counts >= int(rule["min_years"])].index.astype(str).tolist()
+        if len(resilient_eins) < min_ref:
             continue
 
-        subset = subset.sort_values(["ein", "fiscal_year"], kind="mergesort")
-        subset["_available_metric_count"] = subset[CORE_METRICS].notna().sum(axis=1)
-        for rule_idx, rule in enumerate(contract["benchmark_fallback_order"]):
-            qualifies = subset["_available_metric_count"] >= int(rule["min_metrics"])
-            resilient = pd.Series(False, index=subset.index)
-            for _, org_group in subset.groupby("ein", sort=False):
-                resilient.loc[org_group.index] = _rolling_qualifies(
-                    org_group,
-                    qualifies.loc[org_group.index],
-                    window_years=window_years,
-                    min_years=int(rule["min_years"]),
-                )
+        res_sy = w.loc[
+            w["ein"].astype(str).isin(resilient_eins)
+            & (w["fiscal_year"].astype(int) == scoring_year)
+        ].copy()
+        return {
+            "benchmark_operating_margin_q75": float(res_sy["operating_margin"].quantile(0.75))
+            if res_sy["operating_margin"].notna().any()
+            else np.nan,
+            "benchmark_operating_runway_q75": float(res_sy["operating_runway_proxy_months"].quantile(0.75))
+            if res_sy["operating_runway_proxy_months"].notna().any()
+            else np.nan,
+            "benchmark_revenue_diversification_q75": float(res_sy["revenue_diversification_index"].quantile(0.75))
+            if res_sy["revenue_diversification_index"].notna().any()
+            else np.nan,
+            "reference_org_count": len(resilient_eins),
+            "rule_step": rule_idx,
+            "benchmark_rule": rule["label"],
+            "benchmark_status": "ok",
+        }
 
-            resilient_subset = subset.loc[resilient & subset["fiscal_year"].astype(int).isin(scoring_years)].copy()
-            if resilient_subset.empty:
-                benchmark_maps[(level_idx, rule["label"])] = {}
-                continue
-
-            aggregated = (
-                resilient_subset.groupby(["fiscal_year", key_col], dropna=False)
-                .agg(
-                    reference_org_count=("ein", "nunique"),
-                    benchmark_operating_margin_q75=("operating_margin", lambda values: values.quantile(0.75)),
-                    benchmark_operating_runway_q75=("operating_runway_proxy_months", lambda values: values.quantile(0.75)),
-                    benchmark_revenue_diversification_q75=("revenue_diversification_index", lambda values: values.quantile(0.75)),
-                )
-                .reset_index()
-            )
-
-            stats_map: dict[tuple[int, str], dict[str, float | int]] = {}
-            for _, row in aggregated.iterrows():
-                stats_map[(int(row["fiscal_year"]), str(row[key_col]))] = {
-                    "reference_org_count": int(row["reference_org_count"]),
-                    "benchmark_operating_margin_q75": float(row["benchmark_operating_margin_q75"])
-                    if pd.notna(row["benchmark_operating_margin_q75"])
-                    else np.nan,
-                    "benchmark_operating_runway_q75": float(row["benchmark_operating_runway_q75"])
-                    if pd.notna(row["benchmark_operating_runway_q75"])
-                    else np.nan,
-                    "benchmark_revenue_diversification_q75": float(row["benchmark_revenue_diversification_q75"])
-                    if pd.notna(row["benchmark_revenue_diversification_q75"])
-                    else np.nan,
-                    "rule_step": rule_idx + 1,
-                }
-            benchmark_maps[(level_idx, rule["label"])] = stats_map
-
-    return benchmark_maps
+    return {
+        "benchmark_operating_margin_q75": np.nan,
+        "benchmark_operating_runway_q75": np.nan,
+        "benchmark_revenue_diversification_q75": np.nan,
+        "reference_org_count": 0,
+        "rule_step": 4,
+        "benchmark_rule": contract["benchmark_fallback_order"][-1]["label"],
+        "benchmark_status": "insufficient_reference_set",
+    }
 
 
-def _normalized_gap(value: float | int | None, benchmark: float | int | None) -> float | None:
-    if pd.isna(value) or pd.isna(benchmark):
-        return None
-    benchmark_value = float(benchmark)
-    scale = abs(benchmark_value) if abs(benchmark_value) > 1e-9 else 1.0
-    return (float(value) - benchmark_value) / scale
+def _normalized_gap_series(values: pd.Series, benchmarks: pd.Series) -> pd.Series:
+    scale = benchmarks.abs().where(benchmarks.abs() > 1e-9, 1.0)
+    gaps = (values - benchmarks) / scale
+    return gaps.where(values.notna() & benchmarks.notna(), np.nan)
 
 
-def attach_resilient_benchmarks(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
-    scored = frame.copy()
-    scoring_years = set(int(year) for year in contract["benchmark_window"]["scoring_years"])
-    min_reference_orgs = int(contract["min_reference_orgs"])
-    benchmark_maps = build_resilient_benchmark_maps(scored, contract)
+def attach_resilient_benchmarks(scoring_rows: pd.DataFrame, history_frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    scored = scoring_rows.copy()
 
     scored["benchmark_rule"] = pd.Series(pd.NA, index=scored.index, dtype="string")
     scored["reference_org_count"] = pd.Series(pd.NA, index=scored.index, dtype="Int64")
@@ -307,84 +327,110 @@ def attach_resilient_benchmarks(frame: pd.DataFrame, contract: dict) -> pd.DataF
     scored["revenue_diversification_gap"] = np.nan
     scored["resilience_gap"] = np.nan
     scored["benchmark_fallback_step"] = pd.Series(pd.NA, index=scored.index, dtype="Int64")
+    cohort_key_cols = [f"_cohort_key_{idx}" for idx in range(len(contract["cohort_fallback_order"]))]
+    group_fields = ["fiscal_year", "_assigned_level_idx"] + cohort_key_cols
+    benchmark_records: list[dict[str, object]] = []
 
-    for row_index, row in scored.iterrows():
-        if not bool(row["scoreable_flag"]):
-            scored.loc[row_index, "benchmark_status"] = "not_scoreable"
+    unique_groups = (
+        scored.loc[scored["scoreable_flag"]]
+        .drop_duplicates(subset=group_fields)
+        .loc[:, group_fields]
+    )
+    history_scoreable = history_frame.loc[history_frame["scoreable_flag"]].copy()
+    history_by_level_key: dict[int, dict[str, pd.DataFrame]] = {}
+    for level_idx in range(len(contract["cohort_fallback_order"])):
+        key_col = f"_cohort_key_{level_idx}"
+        level_rows = history_scoreable.loc[history_scoreable[key_col].notna()].copy()
+        if level_rows.empty:
+            history_by_level_key[level_idx] = {}
             continue
+        history_by_level_key[level_idx] = {
+            str(level_key): group.copy()
+            for level_key, group in level_rows.groupby(key_col, sort=False)
+        }
 
-        year = int(row["fiscal_year"])
-        if year not in scoring_years:
-            scored.loc[row_index, "benchmark_status"] = "not_scored_year"
-            continue
+    for group in unique_groups.itertuples(index=False):
+        group_dict = dict(zip(group_fields, group))
+        year = int(group_dict["fiscal_year"])
+        assigned_level_idx = int(group_dict["_assigned_level_idx"])
 
-        if pd.isna(row["_assigned_level_idx"]):
-            scored.loc[row_index, "benchmark_status"] = "missing_cohort"
-            continue
-
-        assigned_level_idx = int(row["_assigned_level_idx"])
         chosen_level_idx: int | None = None
-        chosen_rule_label: str | None = None
-        chosen_stats: dict[str, float | int] | None = None
-        last_attempt: tuple[int, str, int] | None = None
-
+        chosen_stats: dict[str, float | int | str | None] | None = None
         for level_idx in range(assigned_level_idx, len(contract["cohort_fallback_order"])):
-            key = row[f"_cohort_key_{level_idx}"]
+            key = group_dict.get(f"_cohort_key_{level_idx}")
             if pd.isna(key):
                 continue
-            for rule in contract["benchmark_fallback_order"]:
-                stats = benchmark_maps.get((level_idx, rule["label"]), {}).get((year, str(key)))
-                reference_count = int(stats["reference_org_count"]) if stats else 0
-                last_attempt = (level_idx, rule["label"], reference_count)
-                if stats and reference_count >= min_reference_orgs:
-                    chosen_level_idx = level_idx
-                    chosen_rule_label = rule["label"]
-                    chosen_stats = stats
-                    break
-            if chosen_stats is not None:
+            cohort_window = history_by_level_key.get(level_idx, {}).get(str(key))
+            if cohort_window is None:
+                continue
+            stats = build_resilient_benchmark(cohort_window, year, contract)
+            if stats["benchmark_status"] == "ok":
+                chosen_level_idx = level_idx
+                chosen_stats = stats
                 break
+            if chosen_stats is None:
+                chosen_level_idx = level_idx
+                chosen_stats = stats
 
         if chosen_stats is None:
-            if last_attempt is not None:
-                level_idx, rule_label, reference_count = last_attempt
-                level_name = "+".join(contract["cohort_fallback_order"][level_idx])
-                scored.loc[row_index, "benchmark_rule"] = f"{level_name}::{rule_label}"
-                scored.loc[row_index, "reference_org_count"] = reference_count
-            scored.loc[row_index, "benchmark_status"] = "insufficient_reference_set"
             continue
 
-        assert chosen_level_idx is not None
-        assert chosen_rule_label is not None
+        level_name = "+".join(contract["cohort_fallback_order"][chosen_level_idx]) if chosen_level_idx is not None else None
+        benchmark_records.append(
+            {
+                **group_dict,
+                "benchmark_rule": f"{level_name}::{chosen_stats['benchmark_rule']}" if level_name and chosen_stats["benchmark_rule"] else pd.NA,
+                "reference_org_count": chosen_stats["reference_org_count"],
+                "benchmark_status": chosen_stats["benchmark_status"],
+                "benchmark_operating_margin_q75": chosen_stats["benchmark_operating_margin_q75"],
+                "benchmark_operating_runway_q75": chosen_stats["benchmark_operating_runway_q75"],
+                "benchmark_revenue_diversification_q75": chosen_stats["benchmark_revenue_diversification_q75"],
+                "benchmark_fallback_step": 4 if chosen_level_idx is not None and chosen_level_idx > 0 else chosen_stats["rule_step"],
+            }
+        )
 
-        level_name = "+".join(contract["cohort_fallback_order"][chosen_level_idx])
-        scored.loc[row_index, "benchmark_rule"] = f"{level_name}::{chosen_rule_label}"
-        scored.loc[row_index, "reference_org_count"] = int(chosen_stats["reference_org_count"])
-        scored.loc[row_index, "benchmark_status"] = "ok"
-        scored.loc[row_index, "benchmark_operating_margin_q75"] = chosen_stats["benchmark_operating_margin_q75"]
-        scored.loc[row_index, "benchmark_operating_runway_q75"] = chosen_stats["benchmark_operating_runway_q75"]
-        scored.loc[row_index, "benchmark_revenue_diversification_q75"] = chosen_stats[
-            "benchmark_revenue_diversification_q75"
+    if benchmark_records:
+        benchmark_df = pd.DataFrame(benchmark_records)
+        benchmark_value_cols = [
+            "benchmark_rule",
+            "reference_org_count",
+            "benchmark_status",
+            "benchmark_operating_margin_q75",
+            "benchmark_operating_runway_q75",
+            "benchmark_revenue_diversification_q75",
+            "benchmark_fallback_step",
         ]
+        scored = scored.merge(benchmark_df, on=group_fields, how="left", suffixes=("", "_new"))
+        for column in benchmark_value_cols:
+            new_col = f"{column}_new"
+            if new_col in scored.columns:
+                scored[column] = scored[new_col].combine_first(scored[column])
+                scored = scored.drop(columns=[new_col])
 
-        op_margin_gap = _normalized_gap(row["operating_margin"], chosen_stats["benchmark_operating_margin_q75"])
-        runway_gap = _normalized_gap(
-            row["operating_runway_proxy_months"],
-            chosen_stats["benchmark_operating_runway_q75"],
-        )
-        diversification_gap = _normalized_gap(
-            row["revenue_diversification_index"],
-            chosen_stats["benchmark_revenue_diversification_q75"],
-        )
-        scored.loc[row_index, "operating_margin_gap"] = op_margin_gap
-        scored.loc[row_index, "operating_runway_gap"] = runway_gap
-        scored.loc[row_index, "revenue_diversification_gap"] = diversification_gap
+    missing_status = scored["benchmark_status"].isna()
+    scored.loc[~scored["scoreable_flag"], "benchmark_status"] = "not_scoreable"
+    scored.loc[scored["scoreable_flag"] & scored["_assigned_level_idx"].isna(), "benchmark_status"] = "missing_cohort"
+    scored.loc[
+        scored["scoreable_flag"] & scored["_assigned_level_idx"].notna() & missing_status,
+        "benchmark_status",
+    ] = "insufficient_reference_set"
 
-        gap_values = [gap for gap in [op_margin_gap, runway_gap, diversification_gap] if gap is not None and not pd.isna(gap)]
-        scored.loc[row_index, "resilience_gap"] = float(np.mean(gap_values)) if gap_values else np.nan
-        if chosen_level_idx > 0:
-            scored.loc[row_index, "benchmark_fallback_step"] = 4
-        else:
-            scored.loc[row_index, "benchmark_fallback_step"] = int(chosen_stats["rule_step"])
+    scored["operating_margin_gap"] = _normalized_gap_series(
+        scored["operating_margin"], scored["benchmark_operating_margin_q75"]
+    )
+    scored["operating_runway_gap"] = _normalized_gap_series(
+        scored["operating_runway_proxy_months"], scored["benchmark_operating_runway_q75"]
+    )
+    scored["revenue_diversification_gap"] = _normalized_gap_series(
+        scored["revenue_diversification_index"], scored["benchmark_revenue_diversification_q75"]
+    )
+    scored["resilience_gap"] = scored[
+        ["operating_margin_gap", "operating_runway_gap", "revenue_diversification_gap"]
+    ].mean(axis=1, skipna=True)
+    scored.loc[
+        scored[["operating_margin_gap", "operating_runway_gap", "revenue_diversification_gap"]].isna().all(axis=1),
+        "resilience_gap",
+    ] = np.nan
 
     return scored
 
@@ -425,8 +471,8 @@ def _cohort_confidence(row: pd.Series) -> tuple[str, str]:
     return "Low", "not scoreable"
 
 
-def attach_confidence_fields(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
-    scored = frame.copy()
+def attach_confidence_fields(scoring_rows: pd.DataFrame, history_frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    scored = scoring_rows.copy()
     scored["data_confidence_tier"] = pd.Series(pd.NA, index=scored.index, dtype="string")
     scored["cohort_confidence_tier"] = pd.Series(pd.NA, index=scored.index, dtype="string")
     scored["checkpoint1_confidence_tier"] = pd.Series(pd.NA, index=scored.index, dtype="string")
@@ -435,23 +481,93 @@ def attach_confidence_fields(frame: pd.DataFrame, contract: dict) -> pd.DataFram
     window_years = int(contract["benchmark_window"]["window_years"])
     key_fields = contract["key_fields"]
 
-    sorted_scored = scored.sort_values(["ein", "fiscal_year"], kind="mergesort")
-    for _, org_group in sorted_scored.groupby("ein", sort=False):
-        years = org_group["fiscal_year"].astype(int).to_numpy()
-        for row in org_group.itertuples():
-            lower_year = int(row.fiscal_year) - window_years + 1
-            window = org_group.loc[(years >= lower_year) & (years <= int(row.fiscal_year))]
-            data_tier, data_reason = _data_confidence_for_window(window, key_fields)
-            cohort_tier, cohort_reason = _cohort_confidence(scored.loc[row.Index])
-            checkpoint_tier = (
-                data_tier if TIER_ORDER[data_tier] <= TIER_ORDER[cohort_tier] else cohort_tier
-            )
+    history = history_frame.copy()
+    history["fiscal_year"] = history["fiscal_year"].astype("Int64")
+    scored["fiscal_year"] = scored["fiscal_year"].astype("Int64")
 
-            reason_parts = [data_reason, cohort_reason]
-            scored.loc[row.Index, "data_confidence_tier"] = data_tier
-            scored.loc[row.Index, "cohort_confidence_tier"] = cohort_tier
-            scored.loc[row.Index, "checkpoint1_confidence_tier"] = checkpoint_tier
-            scored.loc[row.Index, "confidence_reason"] = "; ".join(reason_parts)
+    data_frames: list[pd.DataFrame] = []
+    for scoring_year in sorted(scored["fiscal_year"].dropna().astype(int).unique()):
+        lower_year = scoring_year - window_years + 1
+        window = history.loc[
+            history["fiscal_year"].between(lower_year, scoring_year, inclusive="both").fillna(False)
+        ].copy()
+        if window.empty:
+            continue
+
+        years_in_window = window.groupby("ein", sort=False)["fiscal_year"].nunique()
+        window_row_counts = window.groupby("ein", sort=False).size()
+        missing_cells = window[key_fields].isna().sum(axis=1).groupby(window["ein"], sort=False).sum()
+        pct_missing = (missing_cells / (window_row_counts * len(key_fields))).astype("float64")
+
+        window_stats = pd.DataFrame(
+            {
+                "ein": years_in_window.index.astype(str),
+                "fiscal_year": scoring_year,
+                "years_in_window": years_in_window.astype("Int64").to_numpy(),
+                "pct_missing_key_fields": pct_missing.reindex(years_in_window.index).astype("float64").to_numpy(),
+            }
+        )
+        data_frames.append(window_stats)
+
+    if data_frames:
+        data_stats = pd.concat(data_frames, ignore_index=True)
+        data_stats["ein"] = data_stats["ein"].astype("string")
+        scored["ein"] = scored["ein"].astype("string")
+        scored = scored.merge(data_stats, on=["ein", "fiscal_year"], how="left", suffixes=("", "_window"))
+        for column in ["years_in_window", "pct_missing_key_fields"]:
+            window_col = f"{column}_window"
+            if window_col in scored.columns:
+                scored[column] = scored[window_col].combine_first(scored[column]) if column in scored.columns else scored[window_col]
+                scored = scored.drop(columns=[window_col])
+
+    years_present = pd.to_numeric(scored.get("years_in_window"), errors="coerce").fillna(0).astype(int)
+    pct_missing = pd.to_numeric(scored.get("pct_missing_key_fields"), errors="coerce")
+
+    data_high = years_present.ge(6) & pct_missing.lt(0.2)
+    data_medium = years_present.ge(4) & ~data_high & pct_missing.le(0.2)
+    scored.loc[data_high, "data_confidence_tier"] = "High"
+    scored.loc[data_medium, "data_confidence_tier"] = "Medium"
+    scored.loc[scored["data_confidence_tier"].isna(), "data_confidence_tier"] = "Low"
+
+    data_reason = pd.Series(index=scored.index, dtype="string")
+    data_reason.loc[years_present.eq(0)] = "no years in window"
+    data_reason.loc[years_present.gt(0) & pct_missing.gt(0.2)] = (
+        years_present[years_present.gt(0) & pct_missing.gt(0.2)].astype(str) + " years in window; >20% missing key fields"
+    )
+    default_data_mask = data_reason.isna()
+    data_reason.loc[default_data_mask] = years_present[default_data_mask].astype(str) + " years in window"
+
+    status = scored["benchmark_status"].astype("string")
+    fallback_step = pd.to_numeric(scored["benchmark_fallback_step"], errors="coerce")
+    assigned_level = pd.to_numeric(scored["_assigned_level_idx"], errors="coerce")
+    cohort_reason = pd.Series(index=scored.index, dtype="string")
+
+    high_mask = status.eq("ok") & fallback_step.eq(1) & assigned_level.eq(0)
+    medium_fallback_mask = status.eq("ok") & fallback_step.isin([2, 3])
+    low_broadened_mask = status.eq("ok") & fallback_step.eq(4)
+    medium_ok_mask = status.eq("ok") & ~(high_mask | medium_fallback_mask | low_broadened_mask)
+    medium_not_scored_mask = status.eq("not_scored_year")
+    low_insufficient_mask = status.eq("insufficient_reference_set")
+    low_missing_mask = status.eq("missing_cohort")
+
+    scored.loc[high_mask, "cohort_confidence_tier"] = "High"
+    scored.loc[medium_fallback_mask | medium_ok_mask | medium_not_scored_mask, "cohort_confidence_tier"] = "Medium"
+    scored.loc[low_broadened_mask | low_insufficient_mask | low_missing_mask, "cohort_confidence_tier"] = "Low"
+    scored.loc[scored["cohort_confidence_tier"].isna(), "cohort_confidence_tier"] = "Low"
+
+    cohort_reason.loc[high_mask] = "strict benchmark"
+    cohort_reason.loc[medium_fallback_mask] = "benchmark fallback step " + fallback_step[medium_fallback_mask].astype(int).astype(str)
+    cohort_reason.loc[low_broadened_mask] = "cohort broadened"
+    cohort_reason.loc[medium_ok_mask] = "usable benchmark"
+    cohort_reason.loc[medium_not_scored_mask] = "outside scoring years"
+    cohort_reason.loc[low_insufficient_mask] = "insufficient reference set"
+    cohort_reason.loc[low_missing_mask] = "missing cohort"
+    cohort_reason.loc[cohort_reason.isna()] = "not scoreable"
+
+    checkpoint_is_data = scored["data_confidence_tier"].map(TIER_ORDER) <= scored["cohort_confidence_tier"].map(TIER_ORDER)
+    scored.loc[checkpoint_is_data, "checkpoint1_confidence_tier"] = scored.loc[checkpoint_is_data, "data_confidence_tier"]
+    scored.loc[~checkpoint_is_data, "checkpoint1_confidence_tier"] = scored.loc[~checkpoint_is_data, "cohort_confidence_tier"]
+    scored["confidence_reason"] = data_reason + "; " + cohort_reason
 
     return scored
 
@@ -463,8 +579,10 @@ def tag_shared_samples(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     return scored
 
 
-def finalize_output(frame: pd.DataFrame) -> pd.DataFrame:
+def finalize_output(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     scored = frame.copy()
+    scoring_years = {int(year) for year in contract["benchmark_window"]["scoring_years"]}
+    scored = scored.loc[scored["fiscal_year"].astype("Int64").isin(scoring_years)].copy()
     scored["benchmark_fallback_step"] = scored["benchmark_fallback_step"].astype("Int64")
     scored["reference_org_count"] = scored["reference_org_count"].astype("Int64")
     scored["cohort_size"] = scored["cohort_size"].astype("Int64")
@@ -512,14 +630,42 @@ def finalize_output(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_checkpoint1_outputs(panel: pd.DataFrame, contract: dict) -> Stage1Outputs:
+    t0 = time.perf_counter()
     filtered = filter_stage0_panel(panel, contract)
-    deduped = dedupe_stage1_panel(filtered, contract)
-    scored = add_stage1_metrics(deduped, contract)
-    scored = assign_stage1_cohorts(scored, contract)
-    scored = attach_resilient_benchmarks(scored, contract)
-    scored = attach_confidence_fields(scored, contract)
+    print(f"[stage1] filter_stage0_panel: {time.perf_counter() - t0:.2f}s", flush=True)
+
+    t1 = time.perf_counter()
+    filtered = restrict_stage1_history_window(filtered, contract)
+    print(f"[stage1] restrict_stage1_history_window: {time.perf_counter() - t1:.2f}s", flush=True)
+
+    t2 = time.perf_counter()
+    history_panel = dedupe_stage1_panel(filtered, contract)
+    print(f"[stage1] dedupe_stage1_panel: {time.perf_counter() - t2:.2f}s", flush=True)
+
+    t3 = time.perf_counter()
+    history_panel = add_stage1_metrics(history_panel, contract)
+    print(f"[stage1] add_stage1_metrics: {time.perf_counter() - t3:.2f}s", flush=True)
+
+    t4 = time.perf_counter()
+    history_panel = assign_stage1_cohorts(history_panel, contract)
+    print(f"[stage1] assign_stage1_cohorts: {time.perf_counter() - t4:.2f}s", flush=True)
+
+    scoring_years = {int(year) for year in contract["benchmark_window"]["scoring_years"]}
+    scored = history_panel.loc[history_panel["fiscal_year"].astype("Int64").isin(scoring_years)].copy()
+
+    t5 = time.perf_counter()
+    scored = attach_resilient_benchmarks(scored, history_panel, contract)
+    print(f"[stage1] attach_resilient_benchmarks: {time.perf_counter() - t5:.2f}s", flush=True)
+
+    t6 = time.perf_counter()
+    scored = attach_confidence_fields(scored, history_panel, contract)
+    print(f"[stage1] attach_confidence_fields: {time.perf_counter() - t6:.2f}s", flush=True)
+
+    t7 = time.perf_counter()
     scored = tag_shared_samples(scored, contract)
-    scored = finalize_output(scored)
+    scored = finalize_output(scored, contract)
+    print(f"[stage1] finalize_output: {time.perf_counter() - t7:.2f}s", flush=True)
+
     return Stage1Outputs(scored_rows=scored)
 
 

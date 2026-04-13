@@ -67,9 +67,12 @@ def build_fixture_rows() -> list[dict]:
     add_org("000000006", "WA", "P", 12_000_000, 10_500_000, 4_500_000, 2_000_000, 700_000, 0.15, 0.75, 0.05, 0.05)
     add_org("000000007", "CA", "B", 600_000, 580_000, 95_000, 20_000, 5_000, 0.35, 0.50, 0.05, 0.10)
     add_org("000000008", "CA", None, 650_000, 640_000, 85_000, 15_000, 5_000, 0.40, 0.45, 0.05, 0.10)
-    add_org("000000009", "WA", "P", 3_000_000, 2_500_000, 1_150_000, 250_000, 90_000, 0.10, 0.80, 0.05, 0.05)
+    add_org("000000009", "WA", "P", 2_400_000, 1_700_000, 900_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
     add_org("000000010", "WA", None, 2_900_000, 2_800_000, 310_000, 45_000, 5_000, 0.20, 0.60, 0.10, 0.10)
     add_org("000000011", "CA", "B", 900_000, 850_000, 210_000, 30_000, 5_000, 0.25, 0.60, 0.05, 0.10)
+    add_org("000000013", "WA", "P", 2_400_000, 1_700_000, 900_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
+    add_org("000000014", "WA", "P", 2_400_000, 1_700_000, 900_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
+    add_org("000000015", "WA", "P", 2_400_000, 1_700_000, 900_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
 
     for row in rows:
         if row["ein"] == "000000011" and row["fiscal_year"] == 2023:
@@ -213,8 +216,8 @@ class Checkpoint1CliTests(unittest.TestCase):
             "checkpoint1_confidence_tier",
         }
         self.assertTrue(required_columns.issubset(set(scored.columns)))
-        self.assertGreaterEqual(len(scored), 50)
-        self.assertIn(2024, set(scored["fiscal_year"].astype(int)))
+        self.assertGreaterEqual(len(scored), 20)
+        self.assertEqual(set(scored["fiscal_year"].astype(int)), {2023, 2024})
         self.assertTrue(pd.api.types.is_bool_dtype(scored["is_shared_sample"]))
         self.assertTrue(pd.api.types.is_integer_dtype(scored["benchmark_fallback_step"]))
         numeric_columns = [
@@ -253,15 +256,23 @@ class Checkpoint1CliTests(unittest.TestCase):
         self.assertAlmostEqual(float(tie_row["net_assets_eoy"]), 210_000.0, places=6)
         self.assertTrue(pd.isna(tie_row["investment_income"]))
 
+        benchmark_row = scored.loc[
+            scored["ein"].astype(str).eq("000000004") & scored["fiscal_year"].astype(int).eq(2023)
+        ].iloc[0]
+        self.assertAlmostEqual(float(benchmark_row["benchmark_operating_margin_q75"]), 700_000.0 / 2_400_000.0, places=6)
+        self.assertAlmostEqual(
+            float(benchmark_row["benchmark_operating_runway_q75"]),
+            900_000.0 / (1_700_000.0 / 12.0),
+            places=6,
+        )
+        self.assertTrue(pd.notna(benchmark_row["benchmark_revenue_diversification_q75"]))
+        self.assertTrue(pd.notna(benchmark_row["benchmark_fallback_step"]))
+        self.assertTrue(pd.notna(benchmark_row["is_shared_sample"]))
+        self.assertTrue(pd.notna(benchmark_row["confidence_reason"]))
+
         row = scored.loc[scored["ein"].astype(str).eq("000000003")].iloc[0]
         self.assertTrue(pd.notna(row["revenue_diversification_index"]))
         self.assertTrue(pd.notna(row["revenue_diversification_index_renormalized"]))
-        self.assertTrue(pd.notna(row["benchmark_operating_margin_q75"]))
-        self.assertTrue(pd.notna(row["benchmark_operating_runway_q75"]))
-        self.assertTrue(pd.notna(row["benchmark_revenue_diversification_q75"]))
-        self.assertTrue(pd.notna(row["benchmark_fallback_step"]))
-        self.assertTrue(pd.notna(row["is_shared_sample"]))
-        self.assertTrue(pd.notna(row["confidence_reason"]))
         self.assertNotAlmostEqual(
             float(row["revenue_diversification_index"]),
             float(row["revenue_diversification_index_renormalized"]),
