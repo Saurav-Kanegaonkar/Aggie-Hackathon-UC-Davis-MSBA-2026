@@ -118,6 +118,16 @@ def _validate(df: pd.DataFrame, expected_rows: int) -> None:
     assert df["urgency_flag"].dtype == bool or df["urgency_flag"].dtype == object
     assert df["urgency_flag"].notna().all(), "urgency_flag has nulls"
 
+    # Addendum: recovery_analog_eins must be a list (not a string)
+    import json as _json
+    sample_found = df[df["recovery_analog_status"] == "found"]
+    if len(sample_found) > 0:
+        sample_eins = sample_found["recovery_analog_eins"].iloc[0]
+        assert isinstance(sample_eins, list), (
+            f"recovery_analog_eins must be list, got {type(sample_eins)}"
+        )
+        _json.dumps(list(sample_eins))  # must be JSON serializable
+
     print("[stage2] Validation passed.")
 
 

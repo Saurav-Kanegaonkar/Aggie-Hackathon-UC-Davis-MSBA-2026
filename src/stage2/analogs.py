@@ -1,34 +1,31 @@
 """
-Stage 2 recovery analog module.
+Stage 2 recovery analog module — rebuilt per analog addendum
+(docs/2026-04-13-fairlight-stage2-analog-addendum.md).
+
+Key pins from the addendum:
+  1. Quartile thresholds are national per fiscal_year — NOT per cohort.
+     Cohort filtering happens only at selection time.
+  2. "Bottom quartile" = metric <= national Q25 for that year (at or below).
+     "Top quartile"    = metric >= national Q75 for that year (at or above).
+  3. Five-year rule: >= 5 unique fiscal years in panel (non-consecutive OK).
+  4. Pool built once nationally; per-row selection queries pre-built pool.
+  5. Output: recovery_analog_eins is a Python list of string EINs (not CSV).
+             recovery_analog_evidence is a Python list of dicts (not JSON string).
 
 Adds 5 fields per row:
-  recovery_analog_eins       - comma-separated EIN strings (up to 3)
-  recovery_analog_count      - int (0-3)
-  recovery_analog_evidence   - JSON string of list of structs
-  recovery_analog_constraint - constraint label (str or null)
+  recovery_analog_eins       - list of str (up to 3 EINs)
+  recovery_analog_count      - int
+  recovery_analog_evidence   - list of dicts (JSON-serializable)
+  recovery_analog_constraint - str or None
   recovery_analog_status     - "found" | "none_in_cohort" | "not_applicable"
-
-Recovery analog definition:
-  An EIN that has:
-    - At least 1 pre-window year in [2014-2019] where it is bottom quartile on the
-      matched constraint metric within its cohort nationally.
-    - At least 1 post-window year in [2020-2024] where it is top quartile on that metric.
-    - At least 5 total years of panel data.
-
-Source pool: full national panel (not CA+WA limited).
-Cohort: strict = (ntee_major_category, size_bucket); fallback = (size_bucket,).
 """
 from __future__ import annotations
-
-import json
-from collections import defaultdict
-from typing import Any
 
 import numpy as np
 import pandas as pd
 
-PRE_WINDOW = set(range(2014, 2020))    # 2014-2019
-POST_WINDOW = set(range(2020, 2025))   # 2020-2024
+PRE_WINDOW = set(range(2014, 2020))    # FY2014–2019
+POST_WINDOW = set(range(2020, 2025))   # FY2020–2024
 
 CONSTRAINT_METRIC_MAP = {
     "operating_margin_gap": "operating_margin",
@@ -42,6 +39,8 @@ CONSTRAINT_LABEL_MAP = {
     "revenue_diversification_gap": "high_concentration_in_volatile_source",
 }
 
+METRICS = list(CONSTRAINT_METRIC_MAP.values())
+
 
 def _assign_size_buckets(revenue: pd.Series) -> pd.Series:
     rev = pd.to_numeric(revenue, errors="coerce")
@@ -51,223 +50,177 @@ def _assign_size_buckets(revenue: pd.Series) -> pd.Series:
         labels=["<500K", "500K-2M", "2M-10M", ">10M"],
         right=False,
     ).astype(object)
-    buckets = buckets.where(rev.notna(), other=None)
-    return buckets
+    return buckets.where(rev.notna(), other=None)
 
 
 def _compute_analog_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    """Add operating_margin, operating_runway_proxy_months, revenue_diversification_index."""
+    """Compute the three constraint metrics for all panel rows."""
     rev = pd.to_numeric(df["total_revenue"], errors="coerce")
     exp = pd.to_numeric(df["total_expenses"], errors="coerce")
     net = pd.to_numeric(df["net_assets_eoy"], errors="coerce")
     monthly_exp = exp / 12.0
 
-    df = df.copy()
-    df["_om"] = (rev - exp) / rev.where(rev.notna() & rev.ne(0))
-    df["_or"] = net / monthly_exp.where(monthly_exp.notna() & monthly_exp.ne(0))
+    out = df.copy()
+    out["operating_margin"] = (rev - exp) / rev.where(rev.notna() & rev.ne(0))
+    out["operating_runway_proxy_months"] = net / monthly_exp.where(
+        monthly_exp.notna() & monthly_exp.ne(0)
+    )
 
-    pct_cols = ["pct_contributions", "pct_program_revenue", "pct_investment_income", "pct_other_revenue"]
-    if all(c in df.columns for c in pct_cols):
-        pct_df = df[pct_cols].apply(pd.to_numeric, errors="coerce")
+    pct_cols = [
+        "pct_contributions", "pct_program_revenue",
+        "pct_investment_income", "pct_other_revenue",
+    ]
+    if all(c in out.columns for c in pct_cols):
+        pct_df = out[pct_cols].apply(pd.to_numeric, errors="coerce")
         all_null = pct_df.isna().all(axis=1)
         hhi = (pct_df.fillna(0.0) ** 2).sum(axis=1)
-        df["_rdi"] = (1.0 - hhi).where(~all_null)
+        out["revenue_diversification_index"] = (1.0 - hhi).where(~all_null)
     else:
-        df["_rdi"] = np.nan
+        out["revenue_diversification_index"] = np.nan
 
-    df = df.rename(columns={
-        "_om": "operating_margin",
-        "_or": "operating_runway_proxy_months",
-        "_rdi": "revenue_diversification_index",
-    })
-    return df
+    return out
 
 
 def build_analog_pool(panel: pd.DataFrame) -> dict:
     """
-    Build the analog candidate pool from the full national panel.
+    Build the analog candidate pool once from the full national panel.
 
-    Returns a dict:
-      strict_lookup:   (metric, ntee, size_bucket) -> list of candidate dicts
-      fallback_lookup: (metric, size_bucket)       -> list of candidate dicts
+    Returns:
+      strict_lookup:   {(metric, ntee, size_bucket) -> list of candidate dicts}
+      fallback_lookup: {(metric, size_bucket)        -> list of candidate dicts}
       panel_summary:   {ein -> {state, total_revenue, org_name}}
     """
-    METRICS = [
-        ("operating_margin", "operating_margin"),
-        ("operating_runway_proxy_months", "operating_runway_proxy_months"),
-        ("revenue_diversification_index", "revenue_diversification_index"),
-    ]
-    METRIC_NAMES = [m[0] for m in METRICS]
-
-    # --- Panel summary (latest filing per EIN) for metadata ---
+    # ── Panel summary (latest filing per EIN) — vectorized ───────────────────
     panel_latest = (
-        panel.sort_values(["ein", "fiscal_year", "tax_period_end"], ascending=[True, False, False])
+        panel.sort_values(
+            ["ein", "fiscal_year", "tax_period_end"],
+            ascending=[True, False, False],
+        )
         .drop_duplicates(subset=["ein"], keep="first")
+        [["ein", "total_revenue", "state", "org_name"]]
+        .copy()
     )
-    panel_summary: dict[str, dict] = {}
-    for _, r in panel_latest[["ein", "total_revenue", "state", "org_name"]].iterrows():
-        panel_summary[str(r["ein"])] = {
-            "state": str(r.get("state", "")),
-            "total_revenue": float(r["total_revenue"]) if pd.notna(r["total_revenue"]) else np.nan,
-            "org_name": str(r.get("org_name", "") or ""),
-        }
+    panel_latest["ein"] = panel_latest["ein"].astype(str)
+    panel_latest["state"] = panel_latest["state"].fillna("").astype(str)
+    panel_latest["org_name"] = panel_latest["org_name"].fillna("").astype(str)
+    panel_latest["total_revenue"] = pd.to_numeric(panel_latest["total_revenue"], errors="coerce")
+    panel_latest = panel_latest.set_index("ein")
+    # Build lookup as dict of records for O(1) access
+    panel_summary: dict[str, dict] = panel_latest.to_dict(orient="index")
 
-    # --- Qualifying EINs (>= 5 years of data) ---
+    # ── EINs with >= 5 unique fiscal years ───────────────────────────────────
     years_per_ein = panel.groupby("ein")["fiscal_year"].nunique()
     min5_eins = set(years_per_ein[years_per_ein >= 5].index.astype(str))
 
-    # --- Restrict to window years ---
+    # ── Prepare window-year subset with computed metrics ─────────────────────
     window_years = PRE_WINDOW | POST_WINDOW
-    relevant_mask = panel["fiscal_year"].isin(window_years)
-    relevant = panel[relevant_mask].copy()
-
     needed_cols = [
-        "ein", "fiscal_year", "ntee_major_category", "total_revenue", "total_expenses",
-        "net_assets_eoy",
+        "ein", "fiscal_year", "ntee_major_category",
+        "total_revenue", "total_expenses", "net_assets_eoy",
     ]
-    pct_cols = ["pct_contributions", "pct_program_revenue", "pct_investment_income", "pct_other_revenue"]
+    pct_cols = [
+        "pct_contributions", "pct_program_revenue",
+        "pct_investment_income", "pct_other_revenue",
+    ]
     for pc in pct_cols:
-        if pc in relevant.columns:
+        if pc in panel.columns:
             needed_cols.append(pc)
 
-    relevant = relevant[needed_cols].copy()
+    relevant = panel.loc[panel["fiscal_year"].isin(window_years), needed_cols].copy()
     relevant = _compute_analog_metrics(relevant)
     relevant["size_bucket"] = _assign_size_buckets(relevant["total_revenue"])
     relevant["ein"] = relevant["ein"].astype(str)
-    relevant["ntee_major_category"] = relevant["ntee_major_category"].fillna("").astype(str).str.strip()
-
-    # Drop rows missing size_bucket
+    relevant["ntee_major_category"] = (
+        relevant["ntee_major_category"].fillna("").astype(str).str.strip()
+    )
     relevant = relevant.dropna(subset=["size_bucket"])
 
-    # --- Compute per-(cohort, fiscal_year) Q25 and Q75 thresholds ---
-    # Use agg for efficiency
-    def _make_thresholds_strict(metric_col: str) -> dict:
-        """Returns {(ntee, size_bucket, fiscal_year): (q25, q75)}"""
-        mask = relevant["ntee_major_category"] != ""
-        sub = relevant[mask][["ntee_major_category", "size_bucket", "fiscal_year", metric_col]].dropna(
-            subset=[metric_col]
+    # ── ADDENDUM PIN 1: National per-year quartile thresholds ─────────────────
+    # Thresholds are global per fiscal_year — NOT per cohort.
+    print("[analogs] Computing national per-year quartile thresholds...")
+    national_thresholds: dict[str, dict[int, tuple]] = {}
+    for metric in METRICS:
+        sub = relevant[["fiscal_year", metric]].dropna(subset=[metric])
+        q25 = sub.groupby("fiscal_year")[metric].quantile(0.25)
+        q75 = sub.groupby("fiscal_year")[metric].quantile(0.75)
+        thresh = pd.concat([q25.rename("q25"), q75.rename("q75")], axis=1)
+        national_thresholds[metric] = {
+            int(yr): (row["q25"], row["q75"])
+            for yr, row in thresh.iterrows()
+        }
+
+    # ── Find recovery candidates per metric ──────────────────────────────────
+    print("[analogs] Finding recovery candidates (pre bottom->post top, national thresholds)...")
+
+    # Pre-join thresholds onto relevant rows for each metric
+    # Build: pre_rows with is_bottom flag, post_rows with is_top flag
+    from collections import defaultdict
+
+    strict_lookup: dict = defaultdict(list)
+    fallback_lookup: dict = defaultdict(list)
+
+    for metric in METRICS:
+        thresh_map = national_thresholds[metric]
+        # Build a small DataFrame of thresholds for fast merge (avoids Python-level map)
+        thresh_df = pd.DataFrame(
+            [(yr, q25, q75) for yr, (q25, q75) in thresh_map.items()],
+            columns=["fiscal_year", "_q25", "_q75"],
         )
-        if sub.empty:
-            return {}
-        grp = sub.groupby(["ntee_major_category", "size_bucket", "fiscal_year"])[metric_col].agg(
-            q25=lambda x: x.quantile(0.25),
-            q75=lambda x: x.quantile(0.75),
-        )
-        return {k: (v["q25"], v["q75"]) for k, v in grp.iterrows()}
 
-    def _make_thresholds_fallback(metric_col: str) -> dict:
-        """Returns {(size_bucket, fiscal_year): (q25, q75)}"""
-        sub = relevant[["size_bucket", "fiscal_year", metric_col]].dropna(subset=[metric_col])
-        if sub.empty:
-            return {}
-        grp = sub.groupby(["size_bucket", "fiscal_year"])[metric_col].agg(
-            q25=lambda x: x.quantile(0.25),
-            q75=lambda x: x.quantile(0.75),
-        )
-        return {k: (v["q25"], v["q75"]) for k, v in grp.iterrows()}
+        m_df = relevant[
+            ["ein", "fiscal_year", "ntee_major_category", "size_bucket", metric]
+        ].dropna(subset=[metric]).copy()
 
-    print("[analogs] Computing quartile thresholds per cohort+year...")
-    strict_thresholds = {m: _make_thresholds_strict(m) for m in METRIC_NAMES}
-    fallback_thresholds = {m: _make_thresholds_fallback(m) for m in METRIC_NAMES}
+        # Merge thresholds in one vectorised join instead of per-row map
+        m_df = m_df.merge(thresh_df, on="fiscal_year", how="left")
 
-    # --- Find recovery candidates ---
-    # For each (ein, metric, ntee, size_bucket), check pre-window bottom + post-window top
-    # Strategy: iterate once over relevant rows, building per-(ein, metric, ntee, sb) records
-
-    # Structure: candidates[metric][(ntee, size_bucket)][ein] = {"pre": [(year, val)], "post": [(year, val)]}
-    # Then for each EIN that has both pre and post, it's a candidate
-
-    print("[analogs] Building pre/post quartile membership per EIN...")
-    # Use vectorized operations for each metric
-
-    strict_lookup: dict = defaultdict(list)    # (metric, ntee, sb) -> list of candidate dicts
-    fallback_lookup: dict = defaultdict(list)  # (metric, sb) -> list of candidate dicts
-
-    for metric in METRIC_NAMES:
-        st_thresh = strict_thresholds[metric]
-        fb_thresh = fallback_thresholds[metric]
-
-        # Work with a copy that has valid metric values
-        m_df = relevant[["ein", "fiscal_year", "ntee_major_category", "size_bucket", metric]].dropna(
-            subset=[metric]
-        ).copy()
-
-        # --- Strict cohort ---
-        s_df = m_df[m_df["ntee_major_category"] != ""].copy()
-        if len(s_df) > 0:
-            # Map threshold keys
-            s_df["_key"] = list(zip(s_df["ntee_major_category"], s_df["size_bucket"], s_df["fiscal_year"]))
-            s_df["_q25"] = s_df["_key"].map(lambda k: st_thresh.get(k, (np.nan, np.nan))[0])
-            s_df["_q75"] = s_df["_key"].map(lambda k: st_thresh.get(k, (np.nan, np.nan))[1])
-
-            pre_strict = s_df[
-                s_df["fiscal_year"].isin(PRE_WINDOW) & (s_df[metric] < s_df["_q25"])
-            ][["ein", "ntee_major_category", "size_bucket", "fiscal_year", metric]].rename(
-                columns={"fiscal_year": "pre_year", metric: "pre_val"}
-            )
-            post_strict = s_df[
-                s_df["fiscal_year"].isin(POST_WINDOW) & (s_df[metric] > s_df["_q75"])
-            ][["ein", "ntee_major_category", "size_bucket", "fiscal_year", metric]].rename(
-                columns={"fiscal_year": "post_year", metric: "post_val"}
-            )
-
-            if len(pre_strict) > 0 and len(post_strict) > 0:
-                combined = pre_strict.merge(
-                    post_strict, on=["ein", "ntee_major_category", "size_bucket"], how="inner"
-                )
-                combined = combined[combined["ein"].isin(min5_eins)]
-                # Keep best: latest post_year per (ein, ntee, sb)
-                combined = combined.sort_values(
-                    ["post_year", "pre_year", "ein"],
-                    ascending=[False, True, True],
-                ).drop_duplicates(subset=["ein", "ntee_major_category", "size_bucket"], keep="first")
-
-                for _, row in combined.iterrows():
-                    ein = str(row["ein"])
-                    ntee = str(row["ntee_major_category"])
-                    sb = str(row["size_bucket"])
-                    meta = panel_summary.get(ein, {})
-                    strict_lookup[(metric, ntee, sb)].append({
-                        "ein": ein,
-                        "state": meta.get("state", ""),
-                        "total_revenue": meta.get("total_revenue", np.nan),
-                        "org_name": meta.get("org_name", ""),
-                        "pre_year": int(row["pre_year"]),
-                        "post_year": int(row["post_year"]),
-                        "pre_val": float(row["pre_val"]),
-                        "post_val": float(row["post_val"]),
-                    })
-
-        # --- Fallback cohort ---
-        f_df = m_df.copy()
-        f_df["_key"] = list(zip(f_df["size_bucket"], f_df["fiscal_year"]))
-        f_df["_q25"] = f_df["_key"].map(lambda k: fb_thresh.get(k, (np.nan, np.nan))[0])
-        f_df["_q75"] = f_df["_key"].map(lambda k: fb_thresh.get(k, (np.nan, np.nan))[1])
-
-        pre_fb = f_df[
-            f_df["fiscal_year"].isin(PRE_WINDOW) & (f_df[metric] < f_df["_q25"])
-        ][["ein", "size_bucket", "fiscal_year", metric]].rename(
+        # ADDENDUM PIN 2: at-or-below Q25 for pre-window, at-or-above Q75 for post
+        pre = m_df[
+            m_df["fiscal_year"].isin(PRE_WINDOW) & (m_df[metric] <= m_df["_q25"])
+        ][["ein", "ntee_major_category", "size_bucket", "fiscal_year", metric]].rename(
             columns={"fiscal_year": "pre_year", metric: "pre_val"}
         )
-        post_fb = f_df[
-            f_df["fiscal_year"].isin(POST_WINDOW) & (f_df[metric] > f_df["_q75"])
-        ][["ein", "size_bucket", "fiscal_year", metric]].rename(
+
+        post = m_df[
+            m_df["fiscal_year"].isin(POST_WINDOW) & (m_df[metric] >= m_df["_q75"])
+        ][["ein", "ntee_major_category", "size_bucket", "fiscal_year", metric]].rename(
             columns={"fiscal_year": "post_year", metric: "post_val"}
         )
 
-        if len(pre_fb) > 0 and len(post_fb) > 0:
-            combined_fb = pre_fb.merge(post_fb, on=["ein", "size_bucket"], how="inner")
-            combined_fb = combined_fb[combined_fb["ein"].isin(min5_eins)]
-            combined_fb = combined_fb.sort_values(
-                ["post_year", "pre_year", "ein"],
-                ascending=[False, True, True],
-            ).drop_duplicates(subset=["ein", "size_bucket"], keep="first")
+        if pre.empty or post.empty:
+            continue
 
-            for _, row in combined_fb.iterrows():
+        # Deduplicate before merging to avoid Cartesian product blow-up.
+        # For each EIN+cohort keep: earliest pre_year (with its metric val),
+        # latest post_year (with its metric val).
+        pre_best = (
+            pre.sort_values("pre_year")
+            .drop_duplicates(subset=["ein", "ntee_major_category", "size_bucket"], keep="first")
+        )
+        post_best = (
+            post.sort_values("post_year", ascending=False)
+            .drop_duplicates(subset=["ein", "ntee_major_category", "size_bucket"], keep="first")
+        )
+        # Filter to qualified EINs before the join to reduce data size
+        qualified_eins = (
+            set(pre_best["ein"]) & set(post_best["ein"]) & min5_eins
+        )
+        pre_best = pre_best[pre_best["ein"].isin(qualified_eins)]
+        post_best = post_best[post_best["ein"].isin(qualified_eins)]
+
+        def _build_lookup_entries(pre_df, post_df, key_cols, lookup):
+            if pre_df.empty or post_df.empty:
+                return
+            combined = pre_df.merge(post_df, on=key_cols, how="inner")
+            if combined.empty:
+                return
+            for _, row in combined.iterrows():
                 ein = str(row["ein"])
                 sb = str(row["size_bucket"])
+                ntee = str(row.get("ntee_major_category", ""))
                 meta = panel_summary.get(ein, {})
-                fallback_lookup[(metric, sb)].append({
+                key = (metric, ntee, sb) if "ntee_major_category" in key_cols else (metric, sb)
+                lookup[key].append({
                     "ein": ein,
                     "state": meta.get("state", ""),
                     "total_revenue": meta.get("total_revenue", np.nan),
@@ -278,7 +231,37 @@ def build_analog_pool(panel: pd.DataFrame) -> dict:
                     "post_val": float(row["post_val"]),
                 })
 
-    print(f"[analogs] Strict lookup keys: {len(strict_lookup)}, fallback keys: {len(fallback_lookup)}")
+        # ── Strict cohort: ntee + size_bucket ────────────────────────────────
+        strict_pre_b = pre_best[pre_best["ntee_major_category"] != ""]
+        strict_post_b = post_best[post_best["ntee_major_category"] != ""]
+        _build_lookup_entries(
+            strict_pre_b, strict_post_b,
+            ["ein", "ntee_major_category", "size_bucket"],
+            strict_lookup,
+        )
+
+        # ── Fallback cohort: size_bucket only ────────────────────────────────
+        # Re-dedupe on (ein, size_bucket) only since ntee not part of key
+        pre_fb = (
+            pre.sort_values("pre_year")
+            .drop_duplicates(subset=["ein", "size_bucket"], keep="first")
+        )
+        post_fb = (
+            post.sort_values("post_year", ascending=False)
+            .drop_duplicates(subset=["ein", "size_bucket"], keep="first")
+        )
+        qualified_fb = set(pre_fb["ein"]) & set(post_fb["ein"]) & min5_eins
+        _build_lookup_entries(
+            pre_fb[pre_fb["ein"].isin(qualified_fb)],
+            post_fb[post_fb["ein"].isin(qualified_fb)],
+            ["ein", "size_bucket"],
+            fallback_lookup,
+        )
+
+    print(
+        f"[analogs] Pool: {len(strict_lookup)} strict keys, "
+        f"{len(fallback_lookup)} fallback keys"
+    )
     return {
         "strict_lookup": dict(strict_lookup),
         "fallback_lookup": dict(fallback_lookup),
@@ -286,62 +269,100 @@ def build_analog_pool(panel: pd.DataFrame) -> dict:
     }
 
 
-def _primary_constraint(row) -> str | None:
-    """
-    Identify the primary constraint from per-metric gaps.
-    Returns the gap column name with the most negative non-null value.
-    Tie-break: operating_margin_gap > operating_runway_gap > revenue_diversification_gap.
-    """
-    gap_cols = ["operating_margin_gap", "operating_runway_gap", "revenue_diversification_gap"]
-    best_col = None
-    best_val = float("inf")
-    for col in gap_cols:
-        val = row.get(col) if hasattr(row, "get") else getattr(row, col, None)
-        if val is None or (isinstance(val, float) and np.isnan(val)):
-            continue
-        val = float(val)
-        if val < best_val:
-            best_val = val
-            best_col = col
-    return best_col
-
-
 def _select_from_pool(
     pool: list[dict],
     target_ein: str,
     target_state: str,
     target_revenue: float,
-    max_analogs: int,
+    max_analogs: int = 3,
 ) -> list[dict]:
-    """Sort and filter a candidate pool for one target org."""
-    filtered = [c for c in pool if c["ein"] != target_ein]
-    if not filtered:
+    """
+    Sort pool candidates by the contract selection order and return top N.
+
+    Order: strict cohort > fallback (handled by caller),
+           same-state preference, smallest revenue-ratio diff,
+           most recent post_year, lowest EIN ascending.
+    """
+    candidates = [c for c in pool if c["ein"] != target_ein]
+    if not candidates:
         return []
 
-    def _sort_key(c):
+    def _key(c):
         same_state = 0 if c["state"] == target_state else 1
         rev = c.get("total_revenue", np.nan)
-        if pd.notna(target_revenue) and target_revenue > 0 and pd.notna(rev) and rev > 0:
+        if (
+            pd.notna(target_revenue)
+            and target_revenue > 0
+            and pd.notna(rev)
+            and rev > 0
+        ):
             rev_ratio = abs(rev / target_revenue - 1.0)
         else:
             rev_ratio = 9999.0
         return (same_state, rev_ratio, -c["post_year"], c["ein"])
 
-    filtered.sort(key=_sort_key)
-    return filtered[:max_analogs]
+    candidates.sort(key=_key)
+    return candidates[:max_analogs]
+
+
+def _primary_constraint(
+    om_gap: float, or_gap: float, rdi_gap: float
+) -> str | None:
+    """
+    Return the gap column name with the most negative non-null value.
+    Tie-break: operating_margin_gap > operating_runway_gap > revenue_diversification_gap.
+    """
+    gap_cols = [
+        ("operating_margin_gap", om_gap),
+        ("operating_runway_gap", or_gap),
+        ("revenue_diversification_gap", rdi_gap),
+    ]
+    best_col = None
+    best_val = float("inf")
+    for col, val in gap_cols:
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            continue
+        fv = float(val)
+        if fv < best_val:
+            best_val = fv
+            best_col = col
+    return best_col
 
 
 def compute_analogs(df: pd.DataFrame, analog_pool: dict) -> pd.DataFrame:
     """
-    Add the 5 recovery-analog fields to df.
+    Add 5 recovery-analog fields to df.
 
-    Eligible rows: benchmark_status = "ok"
-    Not-applicable: not_scoreable or insufficient_resilient_refs
+    ADDENDUM PIN 5: recovery_analog_eins is a Python list of strings.
+                    recovery_analog_evidence is a Python list of dicts.
+                    Empty → [] (not None, not "[]").
     """
     strict_lookup = analog_pool["strict_lookup"]
     fallback_lookup = analog_pool["fallback_lookup"]
 
     out = df.copy()
+
+    # Vectorised pre-fetch
+    bstatus_col = out["benchmark_status"].fillna("not_scoreable").tolist()
+    ein_col = out["ein"].astype(str).tolist()
+    ntee_col = (
+        out.get("ntee_major_category", pd.Series([""] * len(out)))
+        .fillna("").astype(str).str.strip().tolist()
+    )
+    sb_col = out["size_bucket"].tolist()
+    state_col = out["state"].astype(str).tolist()
+    rev_col = pd.to_numeric(
+        out.get("total_revenue", pd.Series([np.nan] * len(out))), errors="coerce"
+    ).tolist()
+    om_gap_col = pd.to_numeric(
+        out.get("operating_margin_gap", pd.Series([np.nan] * len(out))), errors="coerce"
+    ).tolist()
+    or_gap_col = pd.to_numeric(
+        out.get("operating_runway_gap", pd.Series([np.nan] * len(out))), errors="coerce"
+    ).tolist()
+    rdi_gap_col = pd.to_numeric(
+        out.get("revenue_diversification_gap", pd.Series([np.nan] * len(out))), errors="coerce"
+    ).tolist()
 
     eins_out = []
     counts_out = []
@@ -349,76 +370,52 @@ def compute_analogs(df: pd.DataFrame, analog_pool: dict) -> pd.DataFrame:
     constraints_out = []
     statuses_out = []
 
-    # Vectorized pre-fetch of needed columns
-    benchmark_status = out["benchmark_status"].fillna("not_scoreable").tolist()
-    ein_list = out["ein"].astype(str).tolist()
-    ntee_list = out.get("ntee_major_category", pd.Series([""] * len(out))).fillna("").astype(str).str.strip().tolist()
-    size_bucket_list = out["size_bucket"].tolist()
-    state_list = out["state"].astype(str).tolist()
-    revenue_list = pd.to_numeric(out.get("total_revenue", pd.Series([np.nan] * len(out))), errors="coerce").tolist()
-    om_gap_list = pd.to_numeric(out.get("operating_margin_gap", pd.Series([np.nan] * len(out))), errors="coerce").tolist()
-    or_gap_list = pd.to_numeric(out.get("operating_runway_gap", pd.Series([np.nan] * len(out))), errors="coerce").tolist()
-    rdi_gap_list = pd.to_numeric(out.get("revenue_diversification_gap", pd.Series([np.nan] * len(out))), errors="coerce").tolist()
-
     for i in range(len(out)):
-        bstatus = str(benchmark_status[i])
+        bstatus = str(bstatus_col[i])
 
+        # Not eligible
         if bstatus in ("not_scoreable", "insufficient_resilient_refs"):
-            eins_out.append("")
+            eins_out.append([])
             counts_out.append(0)
-            evidences_out.append("[]")
+            evidences_out.append([])
             constraints_out.append(None)
             statuses_out.append("not_applicable")
             continue
 
-        # Determine primary constraint
-        gaps = {
-            "operating_margin_gap": om_gap_list[i],
-            "operating_runway_gap": or_gap_list[i],
-            "revenue_diversification_gap": rdi_gap_list[i],
-        }
-        constraint_col = None
-        best_val = float("inf")
-        for col in ["operating_margin_gap", "operating_runway_gap", "revenue_diversification_gap"]:
-            v = gaps[col]
-            if v is None or np.isnan(v):
-                continue
-            if float(v) < best_val:
-                best_val = float(v)
-                constraint_col = col
-
+        constraint_col = _primary_constraint(om_gap_col[i], or_gap_col[i], rdi_gap_col[i])
         if constraint_col is None:
-            eins_out.append("")
+            eins_out.append([])
             counts_out.append(0)
-            evidences_out.append("[]")
+            evidences_out.append([])
             constraints_out.append(None)
             statuses_out.append("not_applicable")
             continue
 
         metric = CONSTRAINT_METRIC_MAP[constraint_col]
         constraint_label = CONSTRAINT_LABEL_MAP[constraint_col]
-        ein = ein_list[i]
-        ntee = ntee_list[i]
-        sb = size_bucket_list[i]
-        state = state_list[i]
-        rev = revenue_list[i]
+        ein = ein_col[i]
+        ntee = ntee_col[i]
+        sb = sb_col[i]
+        state = state_col[i]
+        rev = rev_col[i]
 
-        analogs = []
+        selected: list[dict] = []
         if sb is not None and not (isinstance(sb, float) and np.isnan(float(sb) if isinstance(sb, float) else 0)):
             sb_str = str(sb)
-
-            # Strict cohort
+            # Strict cohort first
             strict_pool = strict_lookup.get((metric, ntee, sb_str), [])
-            analogs = _select_from_pool(strict_pool, ein, state, rev, max_analogs=3)
+            selected = _select_from_pool(strict_pool, ein, state, rev)
+            # Fallback if strict yields nothing
+            if not selected:
+                fb_pool = fallback_lookup.get((metric, sb_str), [])
+                selected = _select_from_pool(fb_pool, ein, state, rev)
 
-            # Fallback cohort if needed
-            if len(analogs) == 0:
-                fallback_pool = fallback_lookup.get((metric, sb_str), [])
-                analogs = _select_from_pool(fallback_pool, ein, state, rev, max_analogs=3)
-
-        if analogs:
-            ein_csv = ",".join(a["ein"] for a in analogs)
-            evidence = [
+        if selected:
+            # ADDENDUM PIN 5: Python list of strings
+            eins_out.append([a["ein"] for a in selected])
+            counts_out.append(len(selected))
+            # ADDENDUM PIN 5: Python list of dicts
+            evidences_out.append([
                 {
                     "ein": a["ein"],
                     "org_name": a["org_name"],
@@ -426,20 +423,21 @@ def compute_analogs(df: pd.DataFrame, analog_pool: dict) -> pd.DataFrame:
                     "pre_window_year": a["pre_year"],
                     "post_recovery_year": a["post_year"],
                     "matched_metric_name": metric,
-                    "matched_metric_pre_value": a["pre_val"] if not np.isnan(a["pre_val"]) else None,
-                    "matched_metric_post_value": a["post_val"] if not np.isnan(a["post_val"]) else None,
+                    "matched_metric_pre_value": (
+                        None if np.isnan(a["pre_val"]) else a["pre_val"]
+                    ),
+                    "matched_metric_post_value": (
+                        None if np.isnan(a["post_val"]) else a["post_val"]
+                    ),
                 }
-                for a in analogs
-            ]
-            eins_out.append(ein_csv)
-            counts_out.append(len(analogs))
-            evidences_out.append(json.dumps(evidence))
+                for a in selected
+            ])
             constraints_out.append(constraint_label)
             statuses_out.append("found")
         else:
-            eins_out.append("")
+            eins_out.append([])
             counts_out.append(0)
-            evidences_out.append("[]")
+            evidences_out.append([])
             constraints_out.append(constraint_label)
             statuses_out.append("none_in_cohort")
 

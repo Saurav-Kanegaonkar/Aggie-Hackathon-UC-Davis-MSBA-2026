@@ -27,6 +27,14 @@ from src.stage2.analogs import (
     CONSTRAINT_LABEL_MAP,
     CONSTRAINT_METRIC_MAP,
 )
+
+# Helper to call _primary_constraint with a dict/Series of gaps (old signature compat)
+def _pc(gaps: dict) -> str | None:
+    return _primary_constraint(
+        gaps.get("operating_margin_gap", float("nan")),
+        gaps.get("operating_runway_gap", float("nan")),
+        gaps.get("revenue_diversification_gap", float("nan")),
+    )
 from src.stage2.hydrate import hydrate_stage2
 
 
@@ -200,46 +208,19 @@ class TestUrgency(unittest.TestCase):
 class TestAnalogConstraint(unittest.TestCase):
 
     def test_most_negative_gap_wins(self):
-        row = pd.Series({
-            "operating_margin_gap": -0.5,
-            "operating_runway_gap": -0.3,
-            "revenue_diversification_gap": -0.1,
-        })
-        self.assertEqual(_primary_constraint(row), "operating_margin_gap")
+        self.assertEqual(_pc({"operating_margin_gap": -0.5, "operating_runway_gap": -0.3, "revenue_diversification_gap": -0.1}), "operating_margin_gap")
 
     def test_tie_break_order(self):
-        # All equal — operating_margin_gap should win (first in tie-break order)
-        row = pd.Series({
-            "operating_margin_gap": -0.5,
-            "operating_runway_gap": -0.5,
-            "revenue_diversification_gap": -0.5,
-        })
-        self.assertEqual(_primary_constraint(row), "operating_margin_gap")
+        self.assertEqual(_pc({"operating_margin_gap": -0.5, "operating_runway_gap": -0.5, "revenue_diversification_gap": -0.5}), "operating_margin_gap")
 
     def test_null_gaps_skipped(self):
-        row = pd.Series({
-            "operating_margin_gap": None,
-            "operating_runway_gap": -0.7,
-            "revenue_diversification_gap": None,
-        })
-        self.assertEqual(_primary_constraint(row), "operating_runway_gap")
+        self.assertEqual(_pc({"operating_margin_gap": None, "operating_runway_gap": -0.7, "revenue_diversification_gap": None}), "operating_runway_gap")
 
     def test_all_null_returns_none(self):
-        row = pd.Series({
-            "operating_margin_gap": None,
-            "operating_runway_gap": float("nan"),
-            "revenue_diversification_gap": None,
-        })
-        self.assertIsNone(_primary_constraint(row))
+        self.assertIsNone(_pc({"operating_margin_gap": None, "operating_runway_gap": float("nan"), "revenue_diversification_gap": None}))
 
     def test_positive_gaps_still_ranked(self):
-        # All positive — least positive is "most negative"
-        row = pd.Series({
-            "operating_margin_gap": 0.1,
-            "operating_runway_gap": 0.5,
-            "revenue_diversification_gap": 0.3,
-        })
-        self.assertEqual(_primary_constraint(row), "operating_margin_gap")
+        self.assertEqual(_pc({"operating_margin_gap": 0.1, "operating_runway_gap": 0.5, "revenue_diversification_gap": 0.3}), "operating_margin_gap")
 
 
 # ---------------------------------------------------------------------------
