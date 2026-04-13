@@ -1,0 +1,73 @@
+{
+  "panel_rows": 3838909,
+  "train_rows": 2216714,
+  "test_rows": 693330,
+  "train_positive_rate": 0.19082885748905812,
+  "test_positive_rate": 0.18162058471434958,
+  "decision_threshold": 0.49389630160948517,
+  "medium_cutoff": 0.47385016867788404,
+  "high_cutoff": 0.5383193900118829,
+  "train_threshold_metrics": {
+    "precision": 0.26325512284824565,
+    "recall": 0.590553954606596,
+    "f1": 0.36417123681072455
+  },
+  "test_metrics": {
+    "roc_auc": 0.6440657667693651,
+    "pr_auc": 0.29100540558578103,
+    "precision": 0.26116090278568205,
+    "recall": 0.5648610658894722,
+    "f1": 0.35718087777443003,
+    "baseline_rate": 0.18162058471434958,
+    "threshold": 0.49389630160948517
+  },
+  "top_features": [
+    {
+      "feature": "num__total_expenses",
+      "coefficient": 4.293707496789441
+    },
+    {
+      "feature": "num__revenue_growth_yoy",
+      "coefficient": 2.6413409820454903
+    },
+    {
+      "feature": "num__program_service_revenue",
+      "coefficient": -2.079462557286718
+    },
+    {
+      "feature": "num__total_revenue",
+      "coefficient": -1.8678344906299251
+    },
+    {
+      "feature": "num__savings_temporary_investments",
+      "coefficient": -1.8591749844308976
+    },
+    {
+      "feature": "num__pct_other_revenue",
+      "coefficient": -1.6166940638949325
+    },
+    {
+      "feature": "num__operating_margin_lagged_1y",
+      "coefficient": -1.483075553329656
+    },
+    {
+      "feature": "num__revenue_diversification_index",
+      "coefficient": 1.2557013708855207
+    },
+    {
+      "feature": "num__expense_growth_yoy",
+      "coefficient": 1.2279975160670604
+    },
+    {
+      "feature": "num__margin_change_yoy",
+      "coefficient": 1.084969825276329
+    }
+  ],
+  "stage2_scored_rows": 67406,
+  "stage2_tier_counts": {
+    "Low": 39767,
+    "Medium": 18359,
+    "High": 9280
+  },
+  "high_risk_lift_vs_baseline": 3.357057152867614
+}
