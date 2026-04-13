@@ -68,13 +68,13 @@ function riskLevel(probability: number): string {
 function actionSummary(actionLabel: OrganizationRecord["actionLabel"]): string {
   switch (actionLabel) {
     case "Amplify":
-      return "Stronger than most current cases.";
+      return "This looks stronger than most cases in the queue.";
     case "Stabilize":
-      return "Supportable with guardrails.";
+      return "This could move forward if support comes with guardrails.";
     case "Diversify":
-      return "Viable, but too concentrated.";
+      return "This could work, but too much depends on one source of money.";
     case "Deep Review":
-      return "Pause for diligence.";
+      return "This needs a closer check before anyone commits capital.";
   }
 }
 
@@ -94,25 +94,25 @@ function nextMoveLabel(actionLabel: OrganizationRecord["actionLabel"]): string {
 function confidenceSummary(confidenceTier: OrganizationRecord["confidenceTier"]): string {
   switch (confidenceTier) {
     case "High":
-      return "Strong evidence behind the recommendation.";
+      return "The evidence is strong and easy to explain.";
     case "Medium":
-      return "Usable evidence, but it still needs some human checking.";
+      return "The evidence is useful, but someone should still check the filings.";
     case "Low":
-      return "Thin evidence, so advisor judgment should lead.";
+      return "The evidence is thin, so this needs hands-on review before any call.";
   }
 }
 
 function simplifySurfacedReason(organization: OrganizationRecord): string {
   if (organization.actionLabel === "Deep Review") {
-    return "The case is too exposed to move straight to a funding recommendation.";
+    return "There is too much uncertainty to move straight to a recommendation.";
   }
   if (organization.actionLabel === "Diversify") {
-    return "The organization may be viable, but concentration risk still makes the story harder to defend.";
+    return "The organization may be workable, but relying too much on one source still makes the case hard to defend.";
   }
   if (organization.actionLabel === "Stabilize") {
     return "The case is workable if Fairlight is willing to protect the weak spots.";
   }
-  return "The case looks stronger than most peers and may justify faster action.";
+  return "This case looks stronger than most and may justify faster action.";
 }
 
 function buildPressurePoints(organization: OrganizationRecord): string[] {
@@ -122,54 +122,54 @@ function buildPressurePoints(organization: OrganizationRecord): string[] {
   const diversificationGap = parseNumber(organization.benchmark.diversificationGap);
 
   if (marginGap !== null && marginGap < -0.15) {
-    points.push("Operating results are weaker than peers.");
+    points.push("Operating performance looks weaker than similar organizations.");
   }
 
   if (runwayGap !== null && runwayGap < -6) {
-    points.push("Operating runway is weaker than peers.");
+    points.push("The organization has less room for a setback than similar organizations.");
   }
 
   if (diversificationGap !== null && diversificationGap < -0.08) {
-    points.push("Revenue base is too concentrated.");
+    points.push("Too much of the budget appears to depend on one funding source.");
   }
 
   if (organization.stress.largestSourcePct <= 0 || organization.stress.severity25 === "Unavailable") {
-    points.push("Source concentration data is incomplete, so the downside test is only partial.");
+    points.push("The filing does not give enough funding detail for a full stress check.");
   } else if (organization.stress.burnMonths50 !== null && organization.stress.burnMonths50 <= 6) {
-    points.push(`A 50% source shock would compress runway to ${organization.stress.burnMonths50.toFixed(1)} months.`);
+    points.push(`A large funding loss could create pressure within ${organization.stress.burnMonths50.toFixed(1)} months.`);
   }
 
   if (organization.trendDirection.toLowerCase().includes("declin")) {
-    points.push("Recent trend direction is negative.");
+    points.push("The recent direction looks softer rather than stronger.");
   }
 
   return points.length
     ? points.slice(0, 4)
-    : ["No single structural issue dominates the case, but it still deserves normal diligence."];
+    : ["Nothing stands out as an immediate red flag, but it still deserves a normal review."];
 }
 
 function buildSupportSignals(organization: OrganizationRecord): string[] {
   const items: string[] = [];
 
   if (organization.analogs.length > 0) {
-    items.push("Comparable organizations have recovered from a similar position.");
+    items.push("Fairlight has seen similar organizations recover from this kind of pressure.");
   }
 
   if (organization.scenarioCards.some((card) => card.id === "reserve-support")) {
-    items.push("Short-term bridge support looks like the most realistic near-term lever.");
+    items.push("Short-term support could buy the organization time.");
   }
 
   if (organization.scenarioCards.some((card) => card.id === "diversification-improvement")) {
-    items.push("A broader revenue base would materially improve the case.");
+    items.push("Bringing in more than one strong funding source would help a lot.");
   }
 
   if (organization.confidenceTier === "High") {
-    items.push("The current evidence is strong enough to defend in a board conversation.");
+    items.push("The evidence is strong enough to explain clearly in a board conversation.");
   }
 
   return items.length
     ? items.slice(0, 3)
-    : ["There is still a support path here, but it requires tighter diligence than a straightforward case."];
+    : ["There may still be a support path here, but it needs a closer look than a straightforward case."];
 }
 
 function mapScenarioCard(card: ScenarioCard): { title: string; summary: string; effect: string } {
@@ -208,32 +208,150 @@ function buildCaseTagline(organization: OrganizationRecord): string {
   return `${riskLevel(organization.distress.probability)} next-year risk, ${organization.confidenceTier.toLowerCase()} confidence.`;
 }
 
+const LOWERCASE_CONNECTORS = new Set([
+  "a",
+  "an",
+  "and",
+  "at",
+  "by",
+  "de",
+  "del",
+  "du",
+  "for",
+  "in",
+  "la",
+  "le",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+]);
+
+const FORCE_UPPERCASE_TOKENS = new Set([
+  "CBCC",
+  "CCH",
+  "EAH",
+  "KAIST",
+  "MP",
+  "RHF",
+  "UB",
+  "UFCW",
+  "US",
+  "VEBA",
+]);
+
+const TITLECASE_SUFFIXES = new Set([
+  "ASSOCIATION",
+  "CENTER",
+  "CENTRE",
+  "CORP",
+  "CORPORATION",
+  "COUNCIL",
+  "FOUNDATION",
+  "FUND",
+  "GROUP",
+  "HOUSING",
+  "INC",
+  "INSTITUTE",
+  "TRUST",
+  "UNIVERSITY",
+]);
+
+function titleCaseWord(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+function formatSimpleNameToken(token: string, isFirstWord: boolean): string {
+  if (token === "&") {
+    return token;
+  }
+
+  const lettersOnly = token.replace(/[^A-Za-z]/g, "");
+  if (!lettersOnly) {
+    return token;
+  }
+
+  const upper = lettersOnly.toUpperCase();
+  const lower = lettersOnly.toLowerCase();
+
+  if (FORCE_UPPERCASE_TOKENS.has(upper)) {
+    return upper;
+  }
+
+  if (/^[IVXLCDM]+$/.test(upper) && upper.length <= 5) {
+    return upper;
+  }
+
+  if (lettersOnly.length === 1) {
+    return upper;
+  }
+
+  if (LOWERCASE_CONNECTORS.has(lower) && !isFirstWord) {
+    return lower;
+  }
+
+  if (/^[A-Z]{2}$/.test(lettersOnly) && !TITLECASE_SUFFIXES.has(upper)) {
+    return upper;
+  }
+
+  return token.replace(/[A-Za-z]+/, (match) => titleCaseWord(match));
+}
+
+function formatCompositeNameToken(token: string, isFirstWord: boolean): string {
+  return token
+    .split(/([-/])/)
+    .map((part, index) => {
+      if (part === "-" || part === "/") {
+        return part;
+      }
+
+      return formatSimpleNameToken(part, isFirstWord && index === 0);
+    })
+    .join("");
+}
+
 export function formatOrganizationName(value: string): string {
   return value
-    .toLowerCase()
     .split(/\s+/)
-    .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+    .map((part, index) => formatCompositeNameToken(part, index === 0))
     .join(" ");
 }
 
 function formatLargestSource(organization: OrganizationRecord): string {
   if (organization.stress.largestSourcePct <= 0) {
-    return "Not available";
+    return "Awaiting detail";
   }
 
-  return `${organization.stress.largestSourcePct.toFixed(0)}% of revenue`;
+  return `${organization.stress.largestSourcePct.toFixed(0)}% of income`;
 }
 
 function formatShockWindow(organization: OrganizationRecord): string {
   if (organization.stress.burnMonths25 === null) {
-    return "Not available";
+    return "Awaiting detail";
   }
 
   if (organization.stress.burnMonths25 < 1) {
-    return "<1 month";
+    return "Less than 1 month";
   }
 
   return `${organization.stress.burnMonths25.toFixed(1)} months`;
+}
+
+function formatTrendDirection(direction: string): string | null {
+  const normalized = direction.toLowerCase();
+
+  if (normalized.includes("declin")) {
+    return "Recent direction: softening";
+  }
+  if (normalized.includes("improv")) {
+    return "Recent direction: improving";
+  }
+  if (normalized.includes("stabl")) {
+    return "Recent direction: steady";
+  }
+
+  return "Recent direction: unclear";
 }
 
 function computeStabilityIndex(organization: OrganizationRecord): number {
@@ -252,6 +370,14 @@ function computeNorthstarScore(organization: OrganizationRecord): number {
   return Math.round(clamp(100 - organization.distress.probability, 0, 100));
 }
 
+function formatRiskChance(probability: number): string {
+  if (probability < 1) {
+    return "Below 1%";
+  }
+
+  return `${probability.toFixed(1)}%`;
+}
+
 export function getInboxCopy(organization: OrganizationRecord) {
   const pressurePoint = buildPressurePoints(organization)[0];
   const stabilityIndex = computeStabilityIndex(organization);
@@ -260,8 +386,9 @@ export function getInboxCopy(organization: OrganizationRecord) {
   return {
     displayName: formatOrganizationName(organization.orgName),
     nextMove: nextMoveLabel(organization.actionLabel),
-    riskLine: `${riskLevel(organization.distress.probability)} risk next year`,
-    confidenceLine: `${organization.confidenceTier} confidence`,
+    riskLine: formatRiskChance(organization.distress.probability),
+    riskBadge: `${riskLevel(organization.distress.probability)} risk`,
+    confidenceLine: organization.confidenceTier,
     overview: organization.decisionReason,
     whyNow: pressurePoint,
     supportNote: confidenceSummary(organization.confidenceTier),
@@ -270,6 +397,7 @@ export function getInboxCopy(organization: OrganizationRecord) {
     concentrationLabel: formatLargestSource(organization),
     stabilityIndex,
     northstarScore,
+    trendLabel: formatTrendDirection(organization.trendDirection) ?? "Recent direction: unclear",
   };
 }
 
@@ -285,8 +413,8 @@ export function getDecisionLabCopy(organization: OrganizationRecord) {
     thesis: organization.decisionReason,
     surfacedReason: simplifySurfacedReason(organization),
     nextMove: nextMoveLabel(organization.actionLabel),
-    riskLine: `${organization.distress.probability.toFixed(1)}% next-year risk`,
-    riskDetail: `${organization.distress.probability.toFixed(1)}% risk versus ${organization.distress.baseline.toFixed(1)}% portfolio baseline`,
+    riskLine: `${organization.distress.probability.toFixed(1)}% chance of trouble next year`,
+    riskDetail: `${organization.distress.probability.toFixed(1)}% chance of financial stress next year versus ${organization.distress.baseline.toFixed(1)}% across the portfolio`,
     confidenceLine: `${organization.confidenceTier} confidence`,
     confidenceDetail: confidenceSummary(organization.confidenceTier),
     caseTagline: buildCaseTagline(organization),
@@ -295,24 +423,24 @@ export function getDecisionLabCopy(organization: OrganizationRecord) {
     supportSignals: buildSupportSignals(organization),
     peerRead:
       marginGapLabel && runwayGapLabel
-        ? `Peer view: margin ${marginGapLabel}, runway ${runwayGapLabel}.`
-        : "Peer view: weaker than similar organizations.",
+        ? `Compared with similar organizations, margins are ${marginGapLabel} and cash buffer is ${runwayGapLabel}.`
+        : "Compared with similar organizations, this case looks weaker on operating strength and cash buffer.",
     stressRead:
       organization.stress.severity25 === "Unavailable"
-        ? "Stress view: 25% source-shock coverage is incomplete."
-        : `Stress view: 25% source shock leaves ${inboxCopy.shockWindowLabel} of burn window.`,
+        ? "We cannot fully test a downturn because the funding-source data is too thin."
+        : `If the biggest funding source drops by 25%, pressure would show up within ${inboxCopy.shockWindowLabel.toLowerCase()}.`,
     scenarios: organization.scenarioCards.map(mapScenarioCard),
     analogsHeadline:
       organization.analogs.length > 0 ? "Real organizations that improved from similar pressure." : "",
     factCards: [
-      { label: "Northstar score", value: `${inboxCopy.northstarScore}`, detail: "Higher is healthier" },
-      { label: "Stability index", value: `${inboxCopy.stabilityIndex}`, detail: "Derived resilience metric" },
-      { label: "Next-year risk", value: `${organization.distress.probability.toFixed(1)}%`, detail: "Forward distress model" },
-      { label: "Portfolio baseline", value: `${organization.distress.baseline.toFixed(1)}%`, detail: "Reference level" },
-      { label: "25% shock window", value: inboxCopy.shockWindowLabel, detail: "Time before pressure builds" },
-      { label: "Largest source", value: inboxCopy.concentrationLabel, detail: "Revenue concentration" },
+      { label: "Northstar score", value: `${inboxCopy.northstarScore}`, detail: "Main summary score" },
+      { label: "Stability index", value: `${inboxCopy.stabilityIndex}`, detail: "Blend of cash, margins, and funding mix" },
+      { label: "Next-year risk", value: `${organization.distress.probability.toFixed(1)}%`, detail: "Chance of financial stress next year" },
+      { label: "Portfolio baseline", value: `${organization.distress.baseline.toFixed(1)}%`, detail: "Typical risk in this portfolio" },
+      { label: "Cash buffer", value: inboxCopy.shockWindowLabel, detail: "Time before pressure builds" },
+      { label: "Biggest source", value: inboxCopy.concentrationLabel, detail: "How much income depends on one source" },
       { label: "Fiscal year", value: `FY${organization.fiscalYear}`, detail: "Latest filing used" },
-      { label: "Trend", value: organization.trendDirection, detail: "Recent direction" },
+      { label: "Recent direction", value: formatTrendDirection(organization.trendDirection) ?? "Not enough data", detail: "Simple read on recent movement" },
     ],
     caveatNotes: organization.recommendation.caveats.map((caveat) => {
       if (caveat.toLowerCase().includes("medium confidence")) {
@@ -322,7 +450,7 @@ export function getDecisionLabCopy(organization: OrganizationRecord) {
         return "Confidence is low. Use direct diligence before making a call.";
       }
       if (caveat.toLowerCase().includes("stress posture")) {
-        return "Stress-test coverage is incomplete for this case.";
+        return "Funding-source data is too thin to fully test a downturn.";
       }
       return caveat;
     }),

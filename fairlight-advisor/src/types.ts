@@ -70,6 +70,7 @@ export interface OrganizationRecord {
   state: string;
   nteeCategory: string;
   sizeBucket: string;
+  revenueAmount: number | null;
   revenueDisplay: string;
   actionLabel: ActionLabel;
   distressTier: DistressTier;
