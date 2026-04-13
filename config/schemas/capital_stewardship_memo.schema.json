@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CapitalStewardshipMemo",
+  "type": "object",
+  "properties": {
+    "organization_name": {
+      "type": "string"
+    },
+    "peer_cohort": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "confidence_level": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "benchmark_position_vs_peers": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "resilience_gap": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "trend_7_year": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "biggest_financial_constraint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "funding_concentration_profile": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shock_absorption_months": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "stress_test_scenario": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "recovery_analogs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "final_fairlight_recommendation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "plain_english_why": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "organization_name"
+  ],
+  "additionalProperties": true
+}

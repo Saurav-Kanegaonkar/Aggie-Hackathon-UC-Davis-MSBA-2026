@@ -1,24 +1,33 @@
 {
   "id": "task-01",
-  "description": "TBD - hackathon problem statement drops Sunday 12pm",
-  "intent": "TBD - hackathon problem statement drops Sunday 12pm",
+  "description": "Build Fairlight checkpoint 1: the CA+WA cohort, benchmark, resilience-gap, and confidence-tagging layer with fixed comparison outputs.",
+  "intent": "Deliver a reproducible stage-1 checkpoint artifact that lets the team compare branch outputs on cohort quality, benchmark stability, sponsor fit, and interpretability before any stress-test or recommendation logic is added.",
   "mode": "compete",
   "status": "not_started",
-  "notes": "Placeholder task entry for tomorrow's live hackathon. Replace after the problem statement is released.",
+  "notes": "Bootstrap exception replaced the placeholder task definition on an origin/main-aligned bootstrap branch. Build work happens on teammate feature branches, submissions are recorded from main via orchestrator commands, and all branch comparisons must use the fixed shared sample set.",
   "acceptance_checks": [
-    "TBD - acceptance checks will be filled in after the hackathon problem statement drops Sunday 12pm"
+    "Filtered checkpoint-1 panel keeps only CA and WA rows with submitted_on null.",
+    "Checkpoint-1 panel enforces one row per (ein, fiscal_year) after deterministic dedupe.",
+    "Every scoreable row emits size_bucket, cohort_level, cohort_key, cohort_size, and scoreability fields.",
+    "Resilient benchmark output records benchmark_rule, reference_org_count, and benchmark_status for each scored row.",
+    "Row-level resilience_gap is emitted whenever a valid resilient reference set exists.",
+    "data_confidence_tier, cohort_confidence_tier, and checkpoint1_confidence_tier are emitted for the stage-1 output.",
+    "A fixed shared-sample comparison table is produced for branch-to-branch checkpoint review.",
+    "A documented CLI command can regenerate the checkpoint-1 outputs from the checked-in contract."
   ],
   "arbitration": {
     "method": "human_review",
     "criteria": [
-      "correctness",
-      "design_quality",
-      "usability"
+      "outputs",
+      "interpretability",
+      "sponsor_fit",
+      "stability"
     ],
     "weights": {
-      "correctness": 0.4,
-      "design_quality": 0.35,
-      "usability": 0.25
+      "outputs": 0.35,
+      "interpretability": 0.25,
+      "sponsor_fit": 0.2,
+      "stability": 0.2
     }
   },
   "submissions": [],
