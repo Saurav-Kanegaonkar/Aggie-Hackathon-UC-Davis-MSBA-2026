@@ -6,16 +6,17 @@ Stage 0 exists to lock the non-negotiables before anyone builds Stage 1 independ
 
 - `config/checkpoint1_contract.json`
   - fixed CA + WA scope
-  - `submitted_on` must be null
+  - `submitted_on` filter: `include_all` (both GT and IRS-sourced rows are first-class)
   - `(ein, fiscal_year)` dedupe contract
   - fixed size buckets
   - fixed cohort fallback order
   - fixed benchmark fallback order
-  - fixed 7-year benchmark window and fallback thresholds
+  - fixed rolling 7-year benchmark window per EIN (`[Y-6 ... Y]`), scoring years 2023 and 2024
   - fixed metric formulas for operating runway, operating margin, diversification, and shock absorption
+  - revenue diversification null-handling: zero-fill nulls in pct_ columns; all-null rows yield null index
   - fixed confidence tiers, action-label definitions, urgency rule, and recovery-analog sourcing rule
-  - fixed output schema contracts for scored rows, portfolio views, and capital stewardship memos
-  - fixed shared-sample selection rule
+  - fixed output schema contracts for scored rows (28 fields), portfolio views, and capital stewardship memos
+  - curated 11-EIN shared sample set for checkpoint diffing
 - `analysis/build_stage0_contract.py`
   - reproducible CLI for generating the Stage 0 artifacts
 - `outputs/stage0/checkpoint1_shared_samples.csv`
@@ -43,4 +44,6 @@ That means:
 - no branch should change the cohort or benchmark fallback order
 - no branch should reinterpret the benchmark window, core formulas, confidence tiers, or recommendation vocabulary
 - NTEE strengthens cohort precision when present, but it is not a hard gate on scoreability
-- checkpoint comparisons should use `outputs/stage0/checkpoint1_shared_samples.csv`
+- checkpoint comparisons should use `outputs/stage0/checkpoint1_shared_samples.csv` (11 curated EINs)
+- revenue diversification null handling is locked: zero-fill pct_ nulls, all-null rows yield null index, shadow `_renormalized` variant carried for sensitivity
+- Stage 1 output path: `outputs/stage1/scored_rows.parquet` on each builder's branch
