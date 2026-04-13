@@ -81,10 +81,10 @@
     "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy."
   },
   "metric_formulas": {
-    "operating_runway_proxy_months": "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)",
+    "operating_runway_proxy_months": "net_assets_eoy / (total_expenses / 12)",
     "operating_margin": "(total_revenue - total_expenses) / total_revenue",
-    "revenue_diversification_index": "1 - sum(share^2) across non-negative contributions_grants, program_service_revenue, investment_income, and other_revenue after renormalizing over positive components",
-    "shock_absorption_months": "max(0, liquid_assets - largest_revenue_source) / (total_expenses / 12)"
+    "revenue_diversification_index": "1 - (pct_contributions^2 + pct_program_revenue^2 + pct_investment_income^2 + pct_other_revenue^2)",
+    "shock_absorption_months": "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)"
   },
   "confidence_tiers": {
     "High": "Six to seven years present and less than 20 percent missing across the fixed key fields.",
@@ -102,9 +102,10 @@
     "separate_from_action_label": true
   },
   "recovery_analogs": {
-    "source_pool": "Organizations from the resilient reference construction and adjacent recoverable peers within the same benchmark window.",
+    "source_pool": "Full national panel (all states), not limited to CA+WA. 1,278 analogs validated in EDA.",
+    "cohort_filter": "Same ntee_major_category + size_bucket as the target org. State-agnostic. State shown in output for context.",
     "minimum_count_for_positive_signal": 1,
-    "selection_rule": "Prefer same cohort and fallback breadth first, then same state and size bucket if the strict cohort is sparse."
+    "selection_rule": "Prefer same cohort first, then relax to size_bucket only if strict cohort yields zero analogs."
   },
   "shared_sample_selection": {
     "latest_per_ein": true,

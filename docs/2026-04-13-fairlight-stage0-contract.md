@@ -27,7 +27,7 @@ Stage 0 exists to lock the non-negotiables before anyone builds Stage 1 independ
 
 ```bash
 PYTHONPATH=/private/tmp/fairlight-pydeps python3 analysis/build_stage0_contract.py \
-  --input "/Users/amlfarhad/Desktop/MSBA Hackathon/Aggie-Hackathon-UC-Davis-MSBA-2026/data/panel_990_extended_v3.parquet" \
+  --input data/panel_990_extended_v4.parquet \
   --contract config/checkpoint1_contract.json \
   --output-dir outputs/stage0
 ```

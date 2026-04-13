@@ -8,7 +8,9 @@ import pandas as pd
 
 
 DEFAULT_INPUT_CANDIDATES = [
+    Path("data/panel_990_extended_v4.parquet"),
     Path("data/panel_990_extended_v3.parquet"),
+    Path("data/processed/panel_990_extended_v4.parquet"),
     Path("data/processed/panel_990_extended_v3.parquet"),
 ]
 

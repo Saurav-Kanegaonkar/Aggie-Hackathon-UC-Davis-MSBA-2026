@@ -179,10 +179,22 @@ class Stage0ContractTests(unittest.TestCase):
         self.assertEqual(contract["benchmark_window"]["window_years"], 7)
 
         self.assertIn("metric_formulas", contract)
-        self.assertIn("operating_runway_proxy_months", contract["metric_formulas"])
-        self.assertIn("operating_margin", contract["metric_formulas"])
-        self.assertIn("revenue_diversification_index", contract["metric_formulas"])
-        self.assertIn("shock_absorption_months", contract["metric_formulas"])
+        self.assertEqual(
+            contract["metric_formulas"]["operating_runway_proxy_months"],
+            "net_assets_eoy / (total_expenses / 12)",
+        )
+        self.assertEqual(
+            contract["metric_formulas"]["operating_margin"],
+            "(total_revenue - total_expenses) / total_revenue",
+        )
+        self.assertEqual(
+            contract["metric_formulas"]["revenue_diversification_index"],
+            "1 - (pct_contributions^2 + pct_program_revenue^2 + pct_investment_income^2 + pct_other_revenue^2)",
+        )
+        self.assertEqual(
+            contract["metric_formulas"]["shock_absorption_months"],
+            "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)",
+        )
 
         self.assertIn("confidence_tiers", contract)
         self.assertEqual(set(contract["confidence_tiers"].keys()), {"High", "Medium", "Low"})
@@ -195,11 +207,27 @@ class Stage0ContractTests(unittest.TestCase):
 
         self.assertIn("urgency_flag", contract)
         self.assertIn("recovery_analogs", contract)
+        self.assertEqual(
+            contract["recovery_analogs"]["source_pool"],
+            "Full national panel (all states), not limited to CA+WA. 1,278 analogs validated in EDA.",
+        )
+        self.assertEqual(
+            contract["recovery_analogs"]["cohort_filter"],
+            "Same ntee_major_category + size_bucket as the target org. State-agnostic. State shown in output for context.",
+        )
+        self.assertEqual(
+            contract["recovery_analogs"]["selection_rule"],
+            "Prefer same cohort first, then relax to size_bucket only if strict cohort yields zero analogs.",
+        )
         self.assertIn("output_schemas", contract)
         self.assertEqual(
             set(contract["output_schemas"].keys()),
             {"checkpoint1_scored_row", "portfolio_view_row", "capital_stewardship_memo"},
         )
+
+    def test_default_input_candidates_prefer_v4_panel(self):
+        stage0_contract = (ROOT / "analysis" / "stage0_contract.py").read_text()
+        self.assertIn('Path("data/panel_990_extended_v4.parquet")', stage0_contract)
 
     def test_output_schema_files_exist_and_are_valid_json(self):
         contract = json.loads(CHECKED_IN_CONTRACT.read_text())
