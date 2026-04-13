@@ -263,11 +263,20 @@ What we cannot claim:
 
 ## Implementation Stages
 
-The build should happen in **staged parallel development**, not in one shared stream from the start.
+The right build rhythm is **incremental on the high-risk methodology layers, then one integrated stretch for final productization**.
 
-The point is not to split the project into unrelated pieces too early. The point is to let Amal, Saurav, and Vedant each build a serious version of the same core engine up to a controlled comparison stage, then select or merge the best parts with evidence.
+Do **not** have three people build three full end-to-end solutions and pick one winner at the end. That wastes time and delays the important comparisons until too late.
 
-### Stage 0: Lock shared rules before anyone builds
+Do **not** checkpoint every tiny step either. That creates too much coordination overhead.
+
+The right pattern is **checkpointed convergence**:
+
+- build independently up to a real architectural boundary
+- compare outputs, not just code
+- merge the strongest logic into one shared branch
+- continue from that merged checkpoint
+
+### Stage 0: Shared contract before anyone builds
 
 All three builders must align on the non-negotiables:
 
@@ -281,74 +290,87 @@ All three builders must align on the non-negotiables:
 - same confidence-tier definition
 - same action-label definition
 - same output contract for portfolio view and memo
+- same sample nonprofits for checkpoint comparison
 
 This stage exists to prevent fake disagreements caused by inconsistent preprocessing.
 
-### Stage 1: Parallel independent builds
+### Stage 1: Cohort and benchmark checkpoint
 
-Each person builds on their own branch or worktree.
-
-Up to the comparison checkpoint, every person should implement the same minimum core:
+Each person builds only the first core layer on their own branch or worktree:
 
 1. cleaned working panel
 2. peer-cohort assignment
-3. resilient benchmark / resilience-gap logic
-4. funding stress-test logic
-5. recovery-analog retrieval
-6. recommendation mapping
-7. one portfolio view and one memo output
+3. resilient benchmark construction
+4. resilience-gap calculation
+5. confidence tagging
 
-Everyone can make different design choices inside that boundary:
+Compare outputs on:
 
-- different benchmark implementations
-- different fallback logic details
-- different memo formatting
-- different visualization choices
-- different recommendation calibration
+- cohort sizes
+- sparse-cell handling
+- benchmark stability
+- whether the outputs make business sense on the shared sample nonprofits
 
-But everyone must produce the same category of deliverable so the solutions can be compared fairly.
+Then merge the strongest pieces into one shared branch:
 
-### Stage 2: Controlled comparison checkpoint
+- best cohort logic
+- best benchmark fallback behavior
+- best confidence logic
 
-Do not merge to main yet.
+This checkpoint is mandatory because if the cohort or benchmark layer is wrong, everything downstream is contaminated.
 
-At the checkpoint, compare all versions on the same criteria:
+### Stage 2: Stress and recovery checkpoint
 
-- methodological defensibility
-- sponsor fit
-- peer-comparability quality
-- interpretability
-- recovery-analog usefulness
-- demo clarity
-- implementation stability
+Now everyone builds from the merged checkpoint branch and works only on the second major layer:
 
-Use the same sample nonprofits and the same cohort cells when comparing outputs.
+1. funding concentration logic
+2. funding stress-test behavior
+3. shock absorption months
+4. recovery-analog retrieval
+5. same-cohort analog filtering
 
-### Stage 3: Winner-or-merge decision
+Compare outputs on:
 
-There are two acceptable outcomes:
+- whether stress-test outputs are believable
+- whether analogs are actually comparable
+- whether the layer is easy to explain in plain English
 
-1. **Single-winner path**  
-   One version is clearly stronger overall. Promote that implementation to the integration branch.
+Then merge the strongest pieces into the shared branch again.
 
-2. **Best-of-all-worlds path**  
-   One version has the best benchmark logic, another has the best memo output, and another has the strongest stress-test or analog retrieval. In that case, merge the strongest components into one final integration branch.
+This checkpoint is mandatory because this is the second major methodological risk boundary.
 
-This stage should be evidence-based, not ego-based.
+### Stage 3: Recommendation checkpoint
 
-### Stage 4: Final integration branch
+Now build only the recommendation layer:
 
-Once the winner or merged architecture is chosen:
+1. action-label mapping
+2. urgency flag logic
+3. explanation logic for why a nonprofit got that recommendation
 
-- create one integration branch
-- port in the chosen benchmark logic
-- port in the chosen stress-test logic
-- port in the chosen analog logic
-- port in the chosen memo / portfolio presentation layer
-- standardize naming and outputs
-- remove redundant code paths
+Compare outputs on:
 
-Only after this integration pass should the team prepare the final merge to main.
+- whether the action labels feel fair and explainable
+- whether Fairlight would actually find the recommendation useful
+- whether the logic looks rule-based rather than hand-wavy
+
+Then merge the strongest recommendation logic into the shared branch.
+
+This checkpoint can be lighter than the first two, but it should still happen before final polishing.
+
+### Stage 4: One integrated stretch for product and presentation
+
+Once the methodology is locked, stop competing on the engine and move into one integrated build stretch.
+
+This final stretch should cover:
+
+- portfolio view
+- Capital Stewardship Memo
+- demo flow
+- sample nonprofit selection
+- deck alignment
+- presentation-language cleanup
+
+This phase benefits from continuity more than competition. By this point the team should be polishing one shared system, not comparing three rival implementations.
 
 ### Stage 5: Main branch freeze for presentation
 
@@ -361,6 +383,18 @@ Before merging to main:
 - confirm recommendation labels match the documented logic
 - confirm low-confidence cases are handled consistently
 - confirm the presentation language matches the product language
+- confirm the final branch reflects the best merged logic from each checkpoint
+
+### Comparison rule at every checkpoint
+
+At every checkpoint, compare:
+
+- outputs
+- interpretability
+- sponsor fit
+- stability
+
+Do not compare based on whose code is more clever. Compare based on which version produces the strongest, most defensible Fairlight-facing result.
 
 ## What each builder should optimize for
 
@@ -382,7 +416,7 @@ Before merging to main:
 - strongest stress-test framing
 - strongest recovery / intervention logic
 
-This is not about locking people into silos forever. It is about making comparison more useful when the branches come back together.
+This is not about locking people into silos forever. It is about making checkpoint comparisons more useful when the branches come back together.
 
 ## Recovery Analogs Guardrails
 
