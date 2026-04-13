@@ -72,13 +72,13 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
             continue
 
         # --- Diversify: all four conditions must be true ---
-        if (pd.notna(rd_gap) and rd_gap <= -0.5
+        if (pd.notna(rd_gap) and rd_gap <= -0.30
                 and pd.notna(om_gap) and om_gap >= -0.30
                 and s25_sev not in ("severe", "critical")
                 and urg_sev == "none"):
             labels[i] = "Diversify"
             rationales[i] = [
-                "diversify_concentration_gap_below_neg_0_5",
+                "diversify_concentration_gap_below_neg_0_30",
                 "diversify_margin_at_or_above_neg_0_30",
                 "diversify_no_severe_25pct_stress",
                 "diversify_no_urgency",
