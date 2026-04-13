@@ -67,7 +67,7 @@ To reduce merge conflicts and improve reliability, state is split:
   "context_version": 4,
   "created": "2026-04-01T10:00:00Z",
   "last_updated": "2026-04-11T14:30:00Z",
-  "updated_by": "person_a",
+  "updated_by": "Saurav",
   "updated_from_commit": "030e6cc354526e062b03167c09b98ce5a85841fb",
   "tasks": [
     {
@@ -94,8 +94,8 @@ To reduce merge conflicts and improve reliability, state is split:
   "recent_changes": [
     {
       "timestamp": "2026-04-11T13:00:00Z",
-      "author": "person_a",
-      "summary": "Recorded submission for task-02 by person_a"
+      "author": "Saurav",
+      "summary": "Recorded submission for task-02 by Saurav"
     }
   ]
 }
@@ -127,7 +127,7 @@ To reduce merge conflicts and improve reliability, state is split:
   },
   "submissions": [
     {
-      "author": "person_a",
+      "author": "Saurav",
       "branch": "feat/reservoir-sampling-a",
       "status": "submitted",
       "notes": "Array-based approach",
@@ -138,7 +138,7 @@ To reduce merge conflicts and improve reliability, state is split:
       "benchmark_result": "1M rows in 0.81s"
     },
     {
-      "author": "person_b",
+      "author": "Vedant",
       "branch": "feat/reservoir-sampling-b",
       "status": "submitted",
       "notes": "Generator-based approach, memory efficient",
@@ -166,7 +166,7 @@ To reduce merge conflicts and improve reliability, state is split:
   "id": "task-01",
   "intent": "Build a consistent hashing ring with virtual node support",
   "mode": "split",
-  "assigned_to": "person_a",
+  "assigned_to": "Saurav",
   "status": "in_progress",
   "branch": "feat/consistent-hashing",
   "acceptance_checks": ["unit tests pass"]
@@ -192,7 +192,7 @@ To reduce merge conflicts and improve reliability, state is split:
   },
   "submissions": [
     {
-      "author": "person_a",
+      "author": "Saurav",
       "branch": "feat/reservoir-sampling-a",
       "status": "submitted",
       "commit_sha": "...",
@@ -200,7 +200,7 @@ To reduce merge conflicts and improve reliability, state is split:
       "test_result": "pass"
     },
     {
-      "author": "person_b",
+      "author": "Vedant",
       "branch": "feat/reservoir-sampling-b",
       "status": "submitted",
       "commit_sha": "...",
@@ -208,7 +208,7 @@ To reduce merge conflicts and improve reliability, state is split:
       "test_result": "pass"
     },
     {
-      "author": "person_c",
+      "author": "Amal",
       "branch": "feat/reservoir-sampling-c",
       "status": "submitted",
       "commit_sha": "...",
@@ -230,7 +230,7 @@ For compete tasks, the team verbally reviews each submission and runs `set-winne
   "id": "task-03",
   "intent": "Full test coverage including edge cases",
   "mode": "collab",
-  "assigned_to": ["person_a", "person_b", "person_c"],
+  "assigned_to": ["Saurav", "Vedant", "Amal"],
   "status": "in_progress",
   "branch": "feat/integration-tests",
   "notes": "A does setup, B writes cases, C handles edge cases"
@@ -343,14 +343,14 @@ python orchestrator/validate_state.py
 
 ```bash
 python orchestrator/orchestrator.py add-change \
-  --author person_a \
+  --author Saurav \
   --summary "Implemented consistent hashing"
 ```
 
 ```bash
 python orchestrator/orchestrator.py record-submission \
   --task-id task-02 \
-  --author person_a \
+  --author Saurav \
   --branch feat/reservoir-sampling-a \
   --test-command "pytest -q" \
   --test-result "pass" \
@@ -361,14 +361,14 @@ python orchestrator/orchestrator.py record-submission \
 ```bash
 python orchestrator/orchestrator.py set-winner \
   --task-id task-02 \
-  --winner person_b \
+  --winner Vedant \
   --selected-by "team consensus on call" \
   --notes "Generator approach was more memory efficient"
 ```
 
 ```bash
 python orchestrator/orchestrator.py archive-project \
-  --updated-by person_a
+  --updated-by Saurav
 ```
 
 ```bash

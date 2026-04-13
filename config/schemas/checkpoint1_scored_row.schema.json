@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Checkpoint1ScoredRow",
+  "type": "object",
+  "properties": {
+    "ein": {
+      "type": "string"
+    },
+    "fiscal_year": {
+      "type": "integer"
+    },
+    "state": {
+      "type": "string"
+    },
+    "size_bucket": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cohort_level": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cohort_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cohort_size": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "benchmark_rule": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reference_org_count": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "benchmark_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operating_margin": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "operating_runway_proxy_months": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "revenue_diversification_index": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "shock_absorption_months": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "resilience_gap": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Combined normalized resilience gap across all benchmark metrics."
+    },
+    "benchmark_operating_margin_q75": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Top-quartile (Q75) operating margin benchmark value for this org's cohort. Required so two builders can verify they computed the same benchmark for the same cohort."
+    },
+    "benchmark_operating_runway_q75": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Top-quartile (Q75) operating runway benchmark value for this org's cohort."
+    },
+    "benchmark_revenue_diversification_q75": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Top-quartile (Q75) revenue diversification benchmark value for this org's cohort."
+    },
+    "operating_margin_gap": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Per-metric normalized gap: org operating margin minus cohort benchmark, normalized within cohort."
+    },
+    "operating_runway_gap": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Per-metric normalized gap: org operating runway minus cohort benchmark, normalized within cohort."
+    },
+    "revenue_diversification_gap": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Per-metric normalized gap: org revenue diversification minus cohort benchmark, normalized within cohort."
+    },
+    "revenue_diversification_index_renormalized": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Shadow metric: HHI complement computed after dropping null pct_ columns and rescaling remaining shares to sum to 1. Not used for scoring — carried for checkpoint sensitivity comparison."
+    },
+    "confidence_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Human-readable explanation of why checkpoint1_confidence_tier landed where it did, e.g. '4 years in window', 'broadest fallback cohort', 'both'."
+    },
+    "benchmark_fallback_step": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Integer 1-4 indicating which resilient-peer-set fallback rule produced the final benchmark set. 1=strict all-3-for-5-of-7, 2=2-of-3, 3=4-of-7, 4=cohort broadened."
+    },
+    "is_shared_sample": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for rows whose EIN appears in the 11 shared checkpoint sample EINs."
+    },
+    "data_confidence_tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cohort_confidence_tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "checkpoint1_confidence_tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "ein",
+    "fiscal_year",
+    "state"
+  ],
+  "additionalProperties": true
+}
