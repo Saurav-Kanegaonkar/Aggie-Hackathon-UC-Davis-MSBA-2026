@@ -193,7 +193,7 @@ Do not run orchestrator commands while checked out to your feature branch.
 
 The team reviews all branches and decides a winner together. `set-winner` is a
 team action, not an individual one. Only run it after the team has explicitly
-agreed on the winner.
+agreed on the winner. For compete tasks where the team converges on a hybrid merge spec at a checkpoint instead of selecting a single winner, see the checkpointed convergence path in `docs/merge_checklist.md`.
 
 Example:
    ```bash

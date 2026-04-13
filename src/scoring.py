@@ -87,14 +87,16 @@ def _data_tier(row: "pd.Series") -> tuple[str, str]:
 
     low_reasons: list[str] = []
 
+    # not_scoreable short-circuits everything
+    if status == "not_scoreable":
+        return "Low", "not scoreable: null or non-positive revenue / missing expenses"
+
     if years <= 3:
         low_reasons.append(f"{years} years in window")
     if miss >= 0.20:
         low_reasons.append(f"{miss:.0%} missing key fields")
-    if status in ("insufficient_resilient_refs", "no_cohort", "no_scoring_year_data"):
+    if status in ("insufficient_resilient_refs", "no_scoring_year_data"):
         low_reasons.append(status.replace("_", " "))
-    if step == 4:
-        low_reasons.append("benchmark cohort broadened")
 
     if low_reasons:
         return "Low", "; ".join(low_reasons)

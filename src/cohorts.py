@@ -6,14 +6,24 @@ Cohort fallback hierarchy (from contract):
   L2: size_bucket + state + return_type
   L3: size_bucket + state                               (broadest)
 
-Benchmark fallback (within assigned cohort):
-  Step 1: org qualifies in 3-of-3 metrics for 5-of-7 years
-  Step 2: org qualifies in 2-of-3 metrics for 5-of-7 years
-  Step 3: org qualifies in 3-of-3 metrics for 4-of-7 years
-  Step 4: none of the above → benchmark_status = 'insufficient_resilient_refs'
+Cohort key format (contract-pinned):
+  Pipe-delimited key=value pairs, e.g.:
+    ntee_major_category=B|size_bucket=500K-2M|state=CA   (L1)
+    size_bucket=500K-2M|state=CA|return_type=990          (L2)
+    size_bucket=500K-2M|state=CA                          (L3)
+  Empty/null ntee_major_category means the org is UNCLASSIFIED —
+  it cannot be assigned to an L1 cohort and falls directly to L2.
 
-"Qualifies in a year" means org value >= cohort Q75 threshold for that metric-year.
-Benchmark values = Q75 of resilient peers' metrics in the scoring year.
+Benchmark fallback (within assigned cohort, then with cohort broadening):
+  Step 1: strict  — org qualifies on 3-of-3 metrics for 5-of-7 years
+  Step 2: relaxed — org qualifies on 2-of-3 metrics for 5-of-7 years
+  Step 3: cohort broadened — steps 1/2 retried in the next broader cohort level
+  (3-of-3 x 4-of-7 removed — dominated by step 2, never fired in any build)
+
+benchmark_status vocabulary:
+  ok                          — resolved with >= min_reference_orgs resilient peers
+  insufficient_resilient_refs — attempted, failed all steps including broadening
+  not_scoreable               — row ineligible (null/zero revenue, missing expenses)
 """
 from __future__ import annotations
 
@@ -23,19 +33,24 @@ import pandas as pd
 
 from src.features import BENCHMARK_METRICS
 
-# Level label → list of grouping columns
+# Level label -> list of grouping columns
 COHORT_LEVEL_COLS: dict[str, list[str]] = {
     "L1": ["ntee_major_category", "size_bucket", "state"],
     "L2": ["size_bucket", "state", "return_type"],
     "L3": ["size_bucket", "state"],
 }
 
-# Integer step → contract label (for benchmark_rule field)
+# Next broader level when broadening for benchmark purposes
+COHORT_LEVEL_BROADER: dict[str, str] = {
+    "L1": "L2",
+    "L2": "L3",
+}
+
+# benchmark_fallback_step integer -> human-readable label
 STEP_LABEL: dict[int, str] = {
     1: "3-of-3_5-of-7",
     2: "2-of-3_5-of-7",
-    3: "3-of-3_4-of-7",
-    4: "cohort_broadened",
+    3: "cohort_broadened",
 }
 
 _BENCHMARK_KEY: dict[str, str] = {
@@ -50,6 +65,9 @@ _ALL_BM_COLS = _BENCHMARK_COLS + [
     "benchmark_fallback_step",
     "benchmark_rule",
     "benchmark_status",
+    "cohort_iqr_operating_margin",
+    "cohort_iqr_operating_runway_proxy_months",
+    "cohort_iqr_revenue_diversification_index",
 ]
 
 
@@ -73,9 +91,25 @@ def assign_size_bucket_series(revenue: pd.Series, buckets: list[dict]) -> pd.Ser
     return result
 
 
-def _make_key(df: pd.DataFrame, cols: list[str]) -> pd.Series:
-    """Pipe-separated cohort key from multiple columns."""
-    return df[cols].fillna("").astype(str).agg("|".join, axis=1)
+def _make_cohort_key(df: pd.DataFrame, cols: list[str]) -> pd.Series:
+    """
+    Build canonical cohort key: pipe-delimited key=value pairs.
+    Example: ntee_major_category=B|size_bucket=500K-2M|state=CA
+    """
+    parts = [df[c].fillna("").astype(str).apply(lambda v, c=c: f"{c}={v}") for c in cols]
+    return pd.concat(parts, axis=1).agg("|".join, axis=1)
+
+
+def _parse_cohort_key(key: str) -> dict[str, str]:
+    """Parse 'col=val|col=val' back into a dict."""
+    return dict(part.split("=", 1) for part in key.split("|"))
+
+
+def _is_ntee_empty(df: pd.DataFrame) -> pd.Series:
+    """True where ntee_major_category is null or empty string."""
+    if "ntee_major_category" not in df.columns:
+        return pd.Series(True, index=df.index)
+    return df["ntee_major_category"].fillna("").astype(str).str.strip().eq("")
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +124,11 @@ def assign_cohorts(
     """
     Assign cohort_level, cohort_key, cohort_size to each row in *scoring_slice*.
 
-    Cohort sizes are computed from the latest-per-EIN view of *full_panel*
-    (stable across scoring years).
+    Phantom-NTEE fix: rows with empty/null ntee_major_category are ineligible for
+    L1 (ntee+size+state) and fall directly to L2 on first attempt.
+
+    Cohort sizes are counted from the latest-per-EIN view of *full_panel* for
+    stability across scoring years.
     """
     min_cohort = contract["min_cohort_size"]
 
@@ -100,7 +137,7 @@ def assign_cohorts(
     result["cohort_key"] = None
     result["cohort_size"] = pd.NA
 
-    # Latest per EIN from the full panel for stable cohort-size counting
+    # Latest per EIN from full panel for stable cohort-size counting
     latest = (
         full_panel.sort_values(["ein", "fiscal_year"], ascending=[True, False])
         .drop_duplicates(subset=["ein"], keep="first")
@@ -119,8 +156,17 @@ def assign_cohorts(
         if not unassigned.any():
             break
 
-        scoring_keys = _make_key(result, cols)
-        panel_counts = _make_key(latest, cols).value_counts()
+        # Phantom-NTEE fix: L1 uses ntee_major_category — skip orgs with empty NTEE
+        # so they fall through to L2 instead of forming phantom cohorts.
+        if "ntee_major_category" in cols:
+            ntee_empty = _is_ntee_empty(result)
+            unassigned = unassigned & ~ntee_empty
+
+        if not unassigned.any():
+            continue
+
+        scoring_keys = _make_cohort_key(result, cols)
+        panel_counts = _make_cohort_key(latest, cols).value_counts()
         sizes = scoring_keys.map(panel_counts).fillna(0).astype(int)
 
         can_assign = unassigned & (sizes >= min_cohort)
@@ -158,30 +204,30 @@ def build_resilient_benchmark(
     cohort_window: pd.DataFrame,
     scoring_year: int,
     contract: dict,
+    broadened: bool = False,
 ) -> dict:
     """
-    Find resilient peers and return benchmark Q75 values for *scoring_year*.
+    Find resilient peers within *cohort_window* and return benchmark Q75 values.
 
     Parameters
     ----------
-    cohort_window : rows for ONE cohort across the 7-year window
-    scoring_year  : the year being scored (Y)
+    cohort_window : rows for ONE cohort, years [Y-6 ... Y] (pre-filtered)
+    scoring_year  : the fiscal year being scored
+    broadened     : True when this call is a cohort-broadening retry (step 3)
     """
     min_ref = contract["min_reference_orgs"]
-    fallback_order = contract["benchmark_fallback_order"]
+    fallback_order = contract["benchmark_fallback_order"]  # 2 steps only
     window = contract["benchmark_window"]["window_years"]
     year_min = scoring_year - window + 1
 
     metrics = BENCHMARK_METRICS
 
-    # EINs that have a row in the scoring year (only these can be scored)
     scoring_eins = set(
         cohort_window.loc[cohort_window["fiscal_year"] == scoring_year, "ein"]
     )
     if not scoring_eins:
         return _empty_benchmark("no_scoring_year_data")
 
-    # Restrict window
     w = cohort_window[
         (cohort_window["fiscal_year"] >= year_min)
         & (cohort_window["fiscal_year"] <= scoring_year)
@@ -190,27 +236,20 @@ def build_resilient_benchmark(
     if w.empty:
         return _empty_benchmark("no_window_data")
 
-    # Per-year Q75 thresholds across FULL cohort (all EINs in window, not just scored ones)
+    # Per-year Q75 thresholds across full cohort window
     q75_per_year = (
         w.groupby("fiscal_year")[metrics]
         .quantile(0.75)
         .rename(columns={m: f"{m}_q75" for m in metrics})
     )
 
-    # Merge thresholds into window data
     w = w.merge(q75_per_year, on="fiscal_year", how="left")
-
-    # Is each row above Q75 for each metric?
     for m in metrics:
         w[f"{m}_above"] = w[m].notna() & (w[m] >= w[f"{m}_q75"])
 
-    above_cols = [f"{m}_above" for m in metrics]
-    w["n_metrics_above"] = w[above_cols].sum(axis=1)
+    w["n_metrics_above"] = w[[f"{m}_above" for m in metrics]].sum(axis=1)
 
-    # Only consider EINs appearing in scoring year
-    w_scored = w[w["ein"].isin(scoring_eins)].copy()
-
-    # Cohort IQR in scoring year (for gap normalisation, used in scoring.py)
+    # Cohort IQR in scoring year for gap normalisation
     sy_data = w[w["fiscal_year"] == scoring_year]
     cohort_iqrs: dict[str, Optional[float]] = {}
     for m in metrics:
@@ -221,14 +260,15 @@ def build_resilient_benchmark(
         else:
             cohort_iqrs[f"cohort_iqr_{m}"] = None
 
-    # Try each benchmark fallback rule
-    for step_idx, rule in enumerate(fallback_order):
-        min_metrics = rule["min_metrics"]
-        min_years_req = rule["min_years"]
+    w_scored = w[w["ein"].isin(scoring_eins)].copy()
 
-        qualifies = (w_scored["n_metrics_above"] >= min_metrics).rename("q")
-        year_counts = w_scored.assign(q=qualifies).groupby("ein")["q"].sum()
-        resilient_eins = year_counts[year_counts >= min_years_req].index.tolist()
+    for step_idx, rule in enumerate(fallback_order):
+        counts = (
+            w_scored.assign(q=w_scored["n_metrics_above"] >= rule["min_metrics"])
+            .groupby("ein")["q"]
+            .sum()
+        )
+        resilient_eins = counts[counts >= rule["min_years"]].index.tolist()
 
         if len(resilient_eins) >= min_ref:
             res_sy = cohort_window[
@@ -240,7 +280,7 @@ def build_resilient_benchmark(
                 vals = res_sy[m].dropna()
                 bm[_BENCHMARK_KEY[m]] = float(vals.quantile(0.75)) if len(vals) > 0 else None
 
-            step = step_idx + 1
+            step = 3 if broadened else (step_idx + 1)
             bm["reference_org_count"] = len(resilient_eins)
             bm["benchmark_fallback_step"] = step
             bm["benchmark_rule"] = STEP_LABEL[step]
@@ -248,7 +288,7 @@ def build_resilient_benchmark(
             bm.update(cohort_iqrs)
             return bm
 
-    return {**_empty_benchmark("insufficient_resilient_refs", fallback_step=4), **cohort_iqrs}
+    return {**_empty_benchmark("insufficient_resilient_refs"), **cohort_iqrs}
 
 
 # ---------------------------------------------------------------------------
@@ -263,32 +303,37 @@ def score_year(
     """
     Score all EINs that have a row in *scoring_year*.
 
-    Parameters
-    ----------
-    panel        : full deduped CA+WA panel with metrics and size_bucket columns
-    scoring_year : fiscal year to score (2023 or 2024)
-    contract     : parsed checkpoint1_contract.json
+    Pass 1 — compute benchmark within each org's assigned cohort.
+    Pass 2 — for rows still insufficient_resilient_refs, broaden the cohort
+              by one level and retry (benchmark_fallback_step = 3 if resolved).
 
-    Returns
-    -------
-    DataFrame with one row per EIN in *scoring_year*, all cohort + benchmark
-    columns filled.
+    not_scoreable rows (null/zero revenue, missing expenses/net_assets) are
+    included in output with null benchmark fields per contract spec.
     """
     scoring_slice = panel[panel["fiscal_year"] == scoring_year].copy()
     if scoring_slice.empty:
         return scoring_slice
 
-    # Assign cohorts (uses full panel for stable cohort-size counting)
+    # Identify not_scoreable EINs (eligibility check)
+    not_scoreable_mask = (
+        scoring_slice["total_revenue"].isna()
+        | scoring_slice["total_revenue"].le(0)
+        | scoring_slice["total_expenses"].isna()
+        | scoring_slice["net_assets_eoy"].isna()
+    )
+    not_scoreable_eins = set(scoring_slice.loc[not_scoreable_mask, "ein"])
+
+    # Assign cohorts (uses full panel for stable sizing)
     scored = assign_cohorts(scoring_slice, panel, contract)
 
-    # Build window panel (7 years ending at scoring_year)
+    # Window panel for benchmark computation
     window_years = contract["benchmark_window"]["window_years"]
     year_min = scoring_year - window_years + 1
     panel_window = panel[
         (panel["fiscal_year"] >= year_min) & (panel["fiscal_year"] <= scoring_year)
     ].copy()
 
-    # Compute years_in_window and pct_missing_key_fields per EIN (for confidence tiers)
+    # Years-in-window and pct_missing_key_fields per EIN
     key_fields = contract["key_fields"]
     yiw = (
         panel_window.groupby("ein")["fiscal_year"]
@@ -303,44 +348,106 @@ def score_year(
     scored = scored.merge(yiw, on="ein", how="left")
     scored = scored.merge(pmk, on="ein", how="left")
 
-    # Build benchmark cache keyed by (cohort_level, cohort_key)
+    # ----------------------------------------------------------------
+    # Pass 1 — benchmark within each org's assigned cohort
+    # ----------------------------------------------------------------
+    bm_cache: dict[tuple, dict] = {}
     unique_cohorts = (
         scored[scored["cohort_key"].notna()][["cohort_level", "cohort_key"]]
         .drop_duplicates()
     )
 
-    bm_records: list[dict] = []
     for _, crow in unique_cohorts.iterrows():
-        level: str = crow["cohort_level"]
-        key: str = crow["cohort_key"]
+        level: str = str(crow["cohort_level"])
+        key: str = str(crow["cohort_key"])
+        cache_key = (level, key, scoring_year)
+        if cache_key in bm_cache:
+            continue
 
-        level_cols = COHORT_LEVEL_COLS.get(level, ["size_bucket", "state"])
-        key_parts = key.split("|")
-        key_vals = dict(zip(level_cols, key_parts))
-
-        # Filter panel_window to this cohort
+        key_vals = _parse_cohort_key(key)
         mask = pd.Series(True, index=panel_window.index)
         for col, val in key_vals.items():
             if col in panel_window.columns:
                 mask &= panel_window[col].fillna("").astype(str).eq(val)
 
-        cohort_window = panel_window[mask]
-        bm = build_resilient_benchmark(cohort_window, scoring_year, contract)
-        bm["cohort_level"] = level
-        bm["cohort_key"] = key
-        bm_records.append(bm)
+        bm = build_resilient_benchmark(panel_window[mask], scoring_year, contract)
+        bm_cache[cache_key] = {**bm, "cohort_level": level, "cohort_key": key}
 
-    if bm_records:
+    # Merge pass-1 benchmarks
+    if bm_cache:
+        bm_records = [
+            {k: v for k, v in b.items()} for b in bm_cache.values()
+        ]
         bm_df = pd.DataFrame(bm_records)
         scored = scored.merge(bm_df, on=["cohort_level", "cohort_key"], how="left")
     else:
         for col in _ALL_BM_COLS:
             scored[col] = None
 
-    # Fill no-cohort rows
-    no_cohort = scored["cohort_key"].isna()
-    scored.loc[no_cohort, "benchmark_status"] = "no_cohort"
+    # ----------------------------------------------------------------
+    # Pass 2 — cohort broadening for still-insufficient rows
+    # ----------------------------------------------------------------
+    insuff_mask = scored["benchmark_status"].eq("insufficient_resilient_refs")
+
+    if insuff_mask.any():
+        for level, broader_level in COHORT_LEVEL_BROADER.items():
+            targets = scored[insuff_mask & scored["cohort_level"].eq(level)]
+            if targets.empty:
+                continue
+
+            broader_cols = COHORT_LEVEL_COLS[broader_level]
+            broader_keys = _make_cohort_key(targets, broader_cols)
+
+            for bkey in broader_keys.unique():
+                cache_key = (broader_level, bkey, scoring_year)
+                if cache_key not in bm_cache:
+                    key_vals = _parse_cohort_key(bkey)
+                    mask = pd.Series(True, index=panel_window.index)
+                    for col, val in key_vals.items():
+                        if col in panel_window.columns:
+                            mask &= panel_window[col].fillna("").astype(str).eq(val)
+                    bm = build_resilient_benchmark(
+                        panel_window[mask], scoring_year, contract, broadened=True
+                    )
+                    bm_cache[cache_key] = {**bm, "cohort_level": broader_level, "cohort_key": bkey}
+
+            # Assign broader benchmark onto the target rows.
+            # Always mark step=3 (cohort_broadened) regardless of which
+            # persistence rule fired inside the broader cohort.
+            for idx in targets.index:
+                bkey = broader_keys[idx]
+                cache_key = (broader_level, bkey, scoring_year)
+                bm = bm_cache.get(cache_key, {})
+                if bm.get("benchmark_status") == "ok":
+                    for col in _ALL_BM_COLS:
+                        if col in bm:
+                            scored.at[idx, col] = bm[col]
+                    scored.at[idx, "benchmark_fallback_step"] = 3
+                    scored.at[idx, "benchmark_rule"] = STEP_LABEL[3]
+
+    # ----------------------------------------------------------------
+    # Mark not_scoreable rows (override any cohort benchmark we may have set)
+    # ----------------------------------------------------------------
+    ns_mask = scored["ein"].isin(not_scoreable_eins)
+    scored.loc[ns_mask, "benchmark_status"] = "not_scoreable"
+    scored.loc[ns_mask, "reference_org_count"] = 0
+    scored.loc[ns_mask, "benchmark_fallback_step"] = pd.NA
+    for col in _BENCHMARK_COLS + [
+        "cohort_iqr_operating_margin",
+        "cohort_iqr_operating_runway_proxy_months",
+        "cohort_iqr_revenue_diversification_index",
+    ]:
+        if col in scored.columns:
+            scored.loc[ns_mask, col] = None
+
+    # Fill remaining null benchmark_status (no-cohort rows)
+    no_cohort = scored["cohort_key"].isna() & ~ns_mask
+    scored.loc[no_cohort, "benchmark_status"] = "insufficient_resilient_refs"
     scored.loc[no_cohort, "reference_org_count"] = 0
     scored.loc[no_cohort, "benchmark_fallback_step"] = pd.NA
+
+    scored["benchmark_status"] = scored["benchmark_status"].fillna(
+        "insufficient_resilient_refs"
+    )
 
     return scored

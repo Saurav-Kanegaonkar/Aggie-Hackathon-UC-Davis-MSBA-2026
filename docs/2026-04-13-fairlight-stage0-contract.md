@@ -7,10 +7,10 @@ Stage 0 exists to lock the non-negotiables before anyone builds Stage 1 independ
 - `config/checkpoint1_contract.json`
   - fixed CA + WA scope
   - `submitted_on` filter: `include_all` (both GT and IRS-sourced rows are first-class)
-  - `(ein, fiscal_year)` dedupe contract
+  - two-stage dedupe: panel layer on `(ein, tax_period_end)` keeping IRS; scoring layer on `(ein, fiscal_year)` keeping latest `tax_period_end`
   - fixed size buckets
   - fixed cohort fallback order
-  - fixed benchmark fallback order
+  - fixed benchmark fallback order (2 persistence steps + cohort broadening; 3-of-3 × 4-of-7 removed as dominated)
   - fixed rolling 7-year benchmark window per EIN (`[Y-6 ... Y]`), scoring years 2023 and 2024
   - fixed metric formulas for operating runway, operating margin, diversification, and shock absorption
   - revenue diversification null-handling: zero-fill nulls in pct_ columns; all-null rows yield null index
@@ -46,4 +46,6 @@ That means:
 - NTEE strengthens cohort precision when present, but it is not a hard gate on scoreability
 - checkpoint comparisons should use `outputs/stage0/checkpoint1_shared_samples.csv` (11 curated EINs)
 - revenue diversification null handling is locked: zero-fill pct_ nulls, all-null rows yield null index, shadow `_renormalized` variant carried for sensitivity
+- `cohort_key` format is locked: pipe-delimited `key=value` pairs (e.g. `ntee_major_category=B|size_bucket=500K-2M|state=CA`)
+- `benchmark_status` vocabulary is locked: `ok`, `insufficient_resilient_refs`, `not_scoreable` — all three appear in the output parquet; `not_scoreable` rows carry null gaps with eligibility explanation in `confidence_reason` (schema: `config/schemas/checkpoint1_scored_row.schema.json`)
 - Stage 1 output path: `outputs/stage1/scored_rows.parquet` on each builder's branch
