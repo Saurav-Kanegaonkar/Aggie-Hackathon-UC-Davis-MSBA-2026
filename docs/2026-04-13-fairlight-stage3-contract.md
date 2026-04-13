@@ -108,7 +108,7 @@ Allowed rule names:
 - `amplify_diversification_above_benchmark`
 - `amplify_no_severe_25pct_stress`
 - `amplify_no_urgency`
-- `diversify_concentration_gap_below_neg_0_5`
+- `diversify_concentration_gap_below_neg_0_30`
 - `diversify_margin_at_or_above_neg_0_30`
 - `diversify_no_severe_25pct_stress`
 - `diversify_no_urgency`
@@ -246,7 +246,7 @@ Implementation note:
 
 Assign `Diversify` if the row did not already match `Deep Review` or `Amplify` and **all** of the following conditions are true:
 
-- `revenue_diversification_gap <= -0.5`
+- `revenue_diversification_gap <= -0.30`
 - `operating_margin_gap >= -0.30`
 - `stress_25pct_severity not in ('severe', 'critical')`
 - `urgency_severity == 'none'`
@@ -257,7 +257,7 @@ Implementation note:
 
 `action_label_rationale` must be exactly:
 
-- `["diversify_concentration_gap_below_neg_0_5", "diversify_margin_at_or_above_neg_0_30", "diversify_no_severe_25pct_stress", "diversify_no_urgency"]`
+- `["diversify_concentration_gap_below_neg_0_30", "diversify_margin_at_or_above_neg_0_30", "diversify_no_severe_25pct_stress", "diversify_no_urgency"]`
 
 ### Stabilize
 
@@ -323,7 +323,7 @@ Absolute concentration thresholds are rejected because the current dataset is he
 
 The load-bearing Diversify signal is:
 
-- `revenue_diversification_gap <= -0.5`
+- `revenue_diversification_gap <= -0.30`
 
 This is cohort-relative and therefore interpretable across different nonprofit funding models.
 
@@ -573,7 +573,7 @@ Assignment:
 
 - not `Deep Review`
 - not `Amplify` because `operating_runway_gap < 0`
-- not `Diversify` because `revenue_diversification_gap > -0.5`
+- not `Diversify` because `revenue_diversification_gap > -0.30`
 - therefore `Stabilize`
 
 `trend_direction = improving` because `resilience_gap_2024 = -0.735061` and `resilience_gap_2023 = -0.244139`.
