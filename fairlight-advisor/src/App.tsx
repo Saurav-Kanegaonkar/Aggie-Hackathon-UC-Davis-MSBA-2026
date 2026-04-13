@@ -1,4 +1,4 @@
-import { Compass, Pulse, ShieldCheck } from "@phosphor-icons/react";
+import { Compass, Info, Pulse, ShieldCheck } from "@phosphor-icons/react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -8,12 +8,15 @@ import { FundingDecisionPanel } from "./components/FundingDecisionPanel";
 import { PortfolioInbox } from "./components/PortfolioInbox";
 import type { AdvisorDataset, OrganizationRecord } from "./types";
 
+type SortOption = "northstar-desc" | "northstar-asc" | "name-asc";
+
 export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
   const [actionFilter, setActionFilter] = useState<string>("All");
+  const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
@@ -65,7 +68,8 @@ export default function App() {
   const visibleOrganizations = useMemo(() => {
     const normalizedQuery = deferredSearchQuery.trim().toLowerCase();
 
-    return organizations.filter((organization) => {
+    return organizations
+      .filter((organization) => {
       const matchesAction = actionFilter === "All" || organization.actionLabel === actionFilter;
       const matchesQuery =
         normalizedQuery.length === 0 ||
@@ -75,8 +79,19 @@ export default function App() {
         organization.whySurfaced.toLowerCase().includes(normalizedQuery);
 
       return matchesAction && matchesQuery;
-    });
-  }, [actionFilter, deferredSearchQuery, organizations]);
+      })
+      .sort((left, right) => {
+        if (sortOption === "name-asc") {
+          return left.orgName.localeCompare(right.orgName);
+        }
+
+        if (sortOption === "northstar-asc") {
+          return right.distressProbability - left.distressProbability;
+        }
+
+        return left.distressProbability - right.distressProbability;
+      });
+  }, [actionFilter, deferredSearchQuery, organizations, sortOption]);
 
   const handleSelectOrganization = (organization: OrganizationRecord) => {
     startTransition(() => {
@@ -168,44 +183,46 @@ export default function App() {
             layout
             className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]"
           >
-            <div className={`grid gap-6 ${workspaceOpen ? "" : "xl:grid-cols-[1.02fr_0.98fr]"}`}>
+            <div className={`grid gap-6 ${workspaceOpen ? "" : "xl:grid-cols-[1fr_auto]"}`}>
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
                   <Compass size={14} weight="bold" />
                   Fairlight advisor workspace
                 </div>
-
-                <div className="space-y-3">
-                  <h1 className={`font-semibold tracking-[-0.08em] text-slate-950 ${workspaceOpen ? "text-5xl md:text-6xl" : "text-6xl md:text-7xl"}`}>
-                    Northstar
-                  </h1>
-                </div>
+                <h1 className={`northstar-display leading-[0.88] tracking-[-0.09em] text-[#111720] [text-wrap:balance] ${workspaceOpen ? "text-[5.2rem] font-[600] md:text-[6.4rem]" : "text-[6.7rem] font-[600] md:text-[8.8rem]"}`}>
+                  Northstar
+                </h1>
               </div>
 
               {!workspaceOpen ? (
-                <div className="grid gap-3 md:grid-cols-3">
-                  <HeaderSnapshot
-                    icon={<Compass size={16} weight="duotone" />}
-                    label="Cases in review"
-                    value={String(advisorDataset.summary.totalOrganizations)}
-                    detail={`${advisorDataset.summary.states.join(" + ")} portfolio`}
-                    explanation="Organizations currently inside the active review set."
-                  />
-                  <HeaderSnapshot
-                    icon={<Pulse size={16} weight="duotone" />}
-                    label="Typical risk"
-                    value={`${advisorDataset.summary.distressBaselineRate}%`}
-                    detail="Next-year urgency baseline"
-                    explanation="Average next-year distress rate across this portfolio."
-                  />
-                  <HeaderSnapshot
-                    icon={<ShieldCheck size={16} weight="duotone" />}
-                    label="Paused cases"
-                    value={`${advisorDataset.summary.countsByAction["Deep Review"]}`}
-                    detail="Cases currently paused"
-                    explanation="Cases that need diligence before a funding move."
-                  />
-                </div>
+                <SummaryRail
+                  items={[
+                    {
+                      id: "review",
+                      icon: <Compass size={16} weight="duotone" />,
+                      label: "Cases in review",
+                      value: String(advisorDataset.summary.totalOrganizations),
+                      detail: `${advisorDataset.summary.states.join(" + ")} shortlist`,
+                      explanation: "Organizations currently in Fairlight's working shortlist.",
+                    },
+                    {
+                      id: "risk",
+                      icon: <Pulse size={16} weight="duotone" />,
+                      label: "Typical risk",
+                      value: `${advisorDataset.summary.distressBaselineRate}%`,
+                      detail: "Average next-year risk",
+                      explanation: "Average chance of financial stress next year across this shortlist.",
+                    },
+                    {
+                      id: "paused",
+                      icon: <ShieldCheck size={16} weight="duotone" />,
+                      label: "Paused cases",
+                      value: `${advisorDataset.summary.countsByAction["Deep Review"]}`,
+                      detail: "Need more checking",
+                      explanation: "Cases that need extra diligence before anyone can make a confident call.",
+                    },
+                  ]}
+                />
               ) : null}
             </div>
           </motion.header>
@@ -243,7 +260,9 @@ export default function App() {
                   organizations={visibleOrganizations}
                   selectedId={selectedId}
                   actionFilter={actionFilter}
+                  sortOption={sortOption}
                   onActionFilterChange={setActionFilter}
+                  onSortOptionChange={setSortOption}
                   searchQuery={searchQuery}
                   onSearchQueryChange={setSearchQuery}
                   onSelectOrganization={handleSelectOrganization}
@@ -271,54 +290,68 @@ export default function App() {
   );
 }
 
-function HeaderSnapshot({
-  detail,
-  explanation,
-  icon,
-  label,
-  value,
+function SummaryRail({
+  items,
 }: {
-  detail: string;
-  explanation: string;
-  icon: ReactNode;
-  label: string;
-  value: string;
+  items: Array<{
+    id: string;
+    detail: string;
+    explanation: string;
+    icon: ReactNode;
+    label: string;
+    value: string;
+  }>;
 }) {
-  const [flipped, setFlipped] = useState(false);
+  const [activeId, setActiveId] = useState(items[0]?.id ?? "");
+  const activeItem = items.find((item) => item.id === activeId) ?? items[0];
 
   return (
-    <button
-      type="button"
-      onClick={() => setFlipped((current) => !current)}
-      className="h-[150px] rounded-[2rem] border border-black/6 bg-transparent text-left [perspective:1200px]"
-    >
-      <motion.div
-        animate={{ rotateY: flipped ? 180 : 0 }}
-        transition={{ type: "spring", stiffness: 120, damping: 16 }}
-        className="relative h-full w-full rounded-[2rem] [transform-style:preserve-3d]"
-      >
-        <div className="absolute inset-0 rounded-[2rem] border border-black/6 bg-white/84 p-4 text-center shadow-[0_22px_52px_-40px_rgba(15,23,42,0.22)] [backface-visibility:hidden]">
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <div className="rounded-full border border-black/6 bg-[rgba(246,241,232,0.92)] p-3 text-[var(--northstar-accent)]">
-              {icon}
-            </div>
-            <div className="space-y-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">{label}</p>
-              <p className="text-[1.7rem] font-semibold tracking-[-0.06em] text-slate-950">{value}</p>
-              <p className="text-sm leading-relaxed text-slate-500">{detail}</p>
-            </div>
-          </div>
-        </div>
+    <div className="w-full max-w-[34rem] rounded-[2rem] border border-black/6 bg-white/84 p-3 shadow-[0_24px_56px_-42px_rgba(15,23,42,0.22)] xl:min-w-[31rem]">
+      <div className="grid gap-2 sm:grid-cols-3">
+        {items.map((item) => {
+          const active = item.id === activeItem?.id;
 
-        <div className="absolute inset-0 rounded-[2rem] border border-black/6 bg-[rgba(246,241,232,0.96)] p-4 text-center shadow-[0_22px_52px_-40px_rgba(15,23,42,0.18)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">What this means</p>
-            <p className="text-sm leading-relaxed text-slate-700">{explanation}</p>
-            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--northstar-accent)]">Click to flip back</p>
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveId(item.id)}
+              className={`rounded-[1.45rem] border px-4 py-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                active
+                  ? "border-[#30483e]/16 bg-[rgba(246,241,232,0.96)] shadow-[0_18px_36px_-28px_rgba(48,72,62,0.18)]"
+                  : "border-black/6 bg-white/72 hover:bg-white/90"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="rounded-full border border-black/6 bg-white/74 p-2 text-[var(--northstar-accent)]">
+                  {item.icon}
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                  {active ? "Selected" : "Open"}
+                </span>
+              </div>
+              <p className="mt-3 text-[12px] font-medium tracking-[0.03em] text-slate-500">{item.label}</p>
+              <p className="mt-1 text-[1.9rem] font-semibold leading-none tracking-[-0.07em] text-slate-950">{item.value}</p>
+              <p className="mt-2 text-[12px] leading-[1.3] text-slate-600">{item.detail}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 rounded-[1.5rem] border border-black/6 bg-[rgba(246,241,232,0.78)] px-4 py-3">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/6 bg-white/74 text-[#36574a]">
+            <Info size={14} weight="fill" />
+          </div>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
+              {activeItem?.label}
+            </p>
+            <p className="mt-1 text-[13px] leading-[1.45] text-slate-700">{activeItem?.explanation}</p>
           </div>
         </div>
-      </motion.div>
-    </button>
+      </div>
+    </div>
   );
 }
 

@@ -208,11 +208,113 @@ function buildCaseTagline(organization: OrganizationRecord): string {
   return `${riskLevel(organization.distress.probability)} next-year risk, ${organization.confidenceTier.toLowerCase()} confidence.`;
 }
 
+const LOWERCASE_CONNECTORS = new Set([
+  "a",
+  "an",
+  "and",
+  "at",
+  "by",
+  "de",
+  "del",
+  "du",
+  "for",
+  "in",
+  "la",
+  "le",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+]);
+
+const FORCE_UPPERCASE_TOKENS = new Set([
+  "CBCC",
+  "CCH",
+  "EAH",
+  "KAIST",
+  "MP",
+  "RHF",
+  "UB",
+  "UFCW",
+  "US",
+  "VEBA",
+]);
+
+const TITLECASE_SUFFIXES = new Set([
+  "ASSOCIATION",
+  "CENTER",
+  "CENTRE",
+  "CORP",
+  "CORPORATION",
+  "COUNCIL",
+  "FOUNDATION",
+  "FUND",
+  "GROUP",
+  "HOUSING",
+  "INC",
+  "INSTITUTE",
+  "TRUST",
+  "UNIVERSITY",
+]);
+
+function titleCaseWord(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+function formatSimpleNameToken(token: string, isFirstWord: boolean): string {
+  if (token === "&") {
+    return token;
+  }
+
+  const lettersOnly = token.replace(/[^A-Za-z]/g, "");
+  if (!lettersOnly) {
+    return token;
+  }
+
+  const upper = lettersOnly.toUpperCase();
+  const lower = lettersOnly.toLowerCase();
+
+  if (FORCE_UPPERCASE_TOKENS.has(upper)) {
+    return upper;
+  }
+
+  if (/^[IVXLCDM]+$/.test(upper) && upper.length <= 5) {
+    return upper;
+  }
+
+  if (lettersOnly.length === 1) {
+    return upper;
+  }
+
+  if (LOWERCASE_CONNECTORS.has(lower) && !isFirstWord) {
+    return lower;
+  }
+
+  if (/^[A-Z]{2}$/.test(lettersOnly) && !TITLECASE_SUFFIXES.has(upper)) {
+    return upper;
+  }
+
+  return token.replace(/[A-Za-z]+/, (match) => titleCaseWord(match));
+}
+
+function formatCompositeNameToken(token: string, isFirstWord: boolean): string {
+  return token
+    .split(/([-/])/)
+    .map((part, index) => {
+      if (part === "-" || part === "/") {
+        return part;
+      }
+
+      return formatSimpleNameToken(part, isFirstWord && index === 0);
+    })
+    .join("");
+}
+
 export function formatOrganizationName(value: string): string {
   return value
-    .toLowerCase()
     .split(/\s+/)
-    .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+    .map((part, index) => formatCompositeNameToken(part, index === 0))
     .join(" ");
 }
 
