@@ -22,7 +22,10 @@ CHECKED_IN_CONTRACT = ROOT / "config" / "checkpoint1_contract.json"
 def build_contract(path: Path) -> Path:
     contract = {
         "states": ["CA", "WA"],
-        "submitted_on_filter": {"rule": "include_all", "description": "All rows included regardless of submitted_on."},
+        "submitted_on_filter": {
+            "rule": "include_all",
+            "description": "All rows included regardless of submitted_on.",
+        },
         "dedupe_keys": ["ein", "fiscal_year"],
         "size_buckets": [
             {"label": "<500K", "min": None, "max": 500000},
@@ -41,9 +44,34 @@ def build_contract(path: Path) -> Path:
             {"label": "3-of-3_4-of-7", "min_metrics": 3, "min_years": 4},
         ],
         "shared_sample_selection": {
-            "latest_per_ein": True,
-            "strata": ["state", "ntee_present"],
-            "quantiles": [0.33, 0.66],
+            "method": "curated",
+            "count": 11,
+            "description": "Hand-picked 11 EINs covering all 4 size buckets, 9 NTEE categories + 1 unclassified, all 3 confidence tiers, FY2023 and FY2024 scoring years, and both CA and WA. Replaces the prior mechanical quantile-based selection of 8 EINs.",
+            "eins": [
+                "204374795",
+                "237071436",
+                "203812932",
+                "201384250",
+                "061652679",
+                "042800910",
+                "237102713",
+                "020549032",
+                "160470118",
+                "141843628",
+                "956125213",
+            ],
+        },
+        "metric_formulas": {
+            "revenue_diversification_null_handling": {
+                "rule": "Nulls in any of the four pct_ columns are filled with 0 before the HHI formula is applied.",
+                "all_null_edge_case": "If all four pct_ columns are null for a row, set revenue_diversification_index = null.",
+                "shadow_metric": "Each builder also computes revenue_diversification_index_renormalized: drop nulls, rescale remaining shares to sum to 1, apply HHI, take 1 minus.",
+            }
+        },
+        "stage1_output": {
+            "path": "outputs/stage1/scored_rows.parquet",
+            "format": "parquet",
+            "schema": "config/schemas/checkpoint1_scored_row.schema.json",
         },
         "output_files": {
             "shared_samples": "checkpoint1_shared_samples.csv",
@@ -126,6 +154,7 @@ def build_panel_rows():
             "return_type": "990",
         }
     )
+    rows.extend(build_curated_panel_rows())
     return rows
 
 
@@ -229,11 +258,12 @@ def build_latest_row_panel_rows():
             "return_type": "990",
         }
     )
+    rows.extend(build_curated_panel_rows())
     return rows
 
 
 def build_minimal_optional_column_rows():
-    return [
+    rows = [
         {
             "ein": "100000001",
             "state": "CA",
@@ -287,6 +317,8 @@ def build_minimal_optional_column_rows():
             "investment_income": 110000,
         },
     ]
+    rows.extend(build_curated_panel_rows())
+    return rows
 
 
 class Stage0ContractTests(unittest.TestCase):
@@ -409,18 +441,18 @@ class Stage0ContractTests(unittest.TestCase):
 
         pd.testing.assert_frame_equal(first_samples, second_samples)
         self.assertEqual(first_summary, second_summary)
-        self.assertEqual(len(first_samples), 8)
+        self.assertEqual(len(first_samples), 11)
         self.assertEqual(set(first_samples["state"]), {"CA", "WA"})
         self.assertEqual(set(first_samples["ntee_present"]), {False, True})
 
     def test_stage0_cli_uses_latest_row_per_ein(self):
         shared_samples, _ = self.run_cli(rows=build_latest_row_panel_rows())
-        # EIN 100000001 has two rows (2023-12-31 and 2023-11-30).
+        # EIN 204374795 has two rows (2024-12-31 and 2024-11-30).
         # If selected, every sampled instance should reflect the latest row.
-        selected = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "100000001"]
+        selected = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "204374795"]
         self.assertGreater(len(selected), 0)
-        self.assertTrue((selected["tax_period_end"] == "2023-12-31").all())
-        irs_row = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "100000011"]
+        self.assertTrue((selected["tax_period_end"] == "2024-12-31").all())
+        irs_row = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "042800910"]
         self.assertGreater(len(irs_row), 0)
         self.assertTrue((irs_row["submitted_on"] == "2026-01-01T00:00:00Z").all())
 
@@ -445,6 +477,11 @@ class Stage0ContractTests(unittest.TestCase):
             contract["metric_formulas"]["revenue_diversification_index"],
             "1 - (pct_contributions^2 + pct_program_revenue^2 + pct_investment_income^2 + pct_other_revenue^2)",
         )
+        self.assertIn("revenue_diversification_null_handling", contract["metric_formulas"])
+        null_handling = contract["metric_formulas"]["revenue_diversification_null_handling"]
+        self.assertIn("rule", null_handling)
+        self.assertIn("all_null_edge_case", null_handling)
+        self.assertIn("shadow_metric", null_handling)
         self.assertEqual(
             contract["metric_formulas"]["shock_absorption_months"],
             "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)",
@@ -462,6 +499,10 @@ class Stage0ContractTests(unittest.TestCase):
         self.assertIn("submitted_on_filter", contract)
         self.assertEqual(contract["submitted_on_filter"]["rule"], "include_all")
         self.assertNotIn("submitted_on_must_be_null", contract)
+        self.assertIn("stage1_output", contract)
+        self.assertEqual(contract["stage1_output"]["path"], "outputs/stage1/scored_rows.parquet")
+        self.assertEqual(contract["stage1_output"]["format"], "parquet")
+        self.assertEqual(contract["stage1_output"]["schema"], "config/schemas/checkpoint1_scored_row.schema.json")
 
         self.assertEqual(contract["benchmark_window"]["type"], "rolling")
         self.assertEqual(contract["benchmark_window"]["scoring_years"], [2023, 2024])
@@ -485,6 +526,10 @@ class Stage0ContractTests(unittest.TestCase):
             set(contract["output_schemas"].keys()),
             {"checkpoint1_scored_row", "portfolio_view_row", "capital_stewardship_memo"},
         )
+        self.assertIn("shared_sample_selection", contract)
+        self.assertEqual(contract["shared_sample_selection"]["method"], "curated")
+        self.assertEqual(contract["shared_sample_selection"]["count"], 11)
+        self.assertEqual(len(contract["shared_sample_selection"]["eins"]), 11)
 
     def test_default_input_candidates_prefer_v4_panel(self):
         stage0_contract = (ROOT / "analysis" / "stage0_contract.py").read_text()
