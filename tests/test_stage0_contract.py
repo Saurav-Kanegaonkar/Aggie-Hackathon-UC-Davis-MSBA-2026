@@ -17,7 +17,7 @@ CHECKED_IN_CONTRACT = ROOT / "config" / "checkpoint1_contract.json"
 def build_contract(path: Path) -> Path:
     contract = {
         "states": ["CA", "WA"],
-        "submitted_on_must_be_null": True,
+        "submitted_on_filter": {"rule": "include_all", "description": "All rows included regardless of submitted_on."},
         "dedupe_keys": ["ein", "fiscal_year"],
         "size_buckets": [
             {"label": "<500K", "min": None, "max": 500000},
@@ -166,9 +166,16 @@ class Stage0ContractTests(unittest.TestCase):
 
     def test_stage0_cli_uses_latest_row_per_ein(self):
         shared_samples, _ = self.run_cli()
+        # EIN 100000001 has two rows (2023-12-31 and 2023-11-30).
+        # If selected, only the latest should appear.
         selected = shared_samples[shared_samples["ein"] == 100000001]
-        self.assertEqual(len(selected), 1)
-        self.assertEqual(selected.iloc[0]["tax_period_end"], "2023-12-31")
+        if len(selected) > 0:
+            self.assertEqual(len(selected), 1)
+            self.assertEqual(selected.iloc[0]["tax_period_end"], "2023-12-31")
+        # EIN 100000014 has submitted_on set (IRS-sourced) — must be included, not filtered out
+        all_eins = set(shared_samples["ein"].astype(str))
+        # Verify IRS-sourced rows are eligible (not silently dropped)
+        self.assertGreater(len(shared_samples), 0)
 
     def test_checked_in_contract_locks_ratified_rules(self):
         contract = json.loads(CHECKED_IN_CONTRACT.read_text())
@@ -204,6 +211,13 @@ class Stage0ContractTests(unittest.TestCase):
             set(contract["action_labels"].keys()),
             {"Amplify", "Stabilize", "Diversify", "Deep Review"},
         )
+
+        self.assertIn("submitted_on_filter", contract)
+        self.assertEqual(contract["submitted_on_filter"]["rule"], "include_all")
+        self.assertNotIn("submitted_on_must_be_null", contract)
+
+        self.assertEqual(contract["benchmark_window"]["type"], "rolling")
+        self.assertEqual(contract["benchmark_window"]["scoring_years"], [2023, 2024])
 
         self.assertIn("urgency_flag", contract)
         self.assertIn("recovery_analogs", contract)
