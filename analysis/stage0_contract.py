@@ -47,7 +47,7 @@ def resolve_input_path(explicit_path: str | None) -> Path:
 
 def normalize_panel(df: pd.DataFrame) -> pd.DataFrame:
     normalized = df.copy()
-    normalized["ein"] = normalized["ein"].astype(str)
+    normalized["ein"] = normalized["ein"].astype(str).str.zfill(9)
     normalized["state"] = normalized["state"].astype(str).str.upper()
     normalized["return_type"] = normalized.get("return_type", "990").astype(str)
     normalized["tax_period_end"] = normalized["tax_period_end"].astype(str)
@@ -144,7 +144,19 @@ def _choose_quantile_positions(frame: pd.DataFrame, quantiles: list[float]) -> l
 
 
 def select_shared_samples(latest: pd.DataFrame, contract: dict) -> pd.DataFrame:
-    quantiles = contract["shared_sample_selection"]["quantiles"]
+    selection = contract["shared_sample_selection"]
+    if selection.get("method") == "curated":
+        ein_order = [str(ein) for ein in selection["eins"]]
+        ordered = latest_row_per_ein(latest).copy()
+        ordered["ein"] = ordered["ein"].astype(str)
+        curated = ordered[ordered["ein"].isin(ein_order)].copy()
+        curated["_order"] = curated["ein"].map({ein: idx for idx, ein in enumerate(ein_order)})
+        curated["sample_state"] = curated["state"]
+        curated["sample_ntee_present"] = curated["ntee_present"]
+        curated = curated.sort_values(["_order"], kind="mergesort").drop(columns=["_order"])
+        return curated.reset_index(drop=True)
+
+    quantiles = selection["quantiles"]
     selected_frames: list[pd.DataFrame] = []
 
     for state in contract["states"]:

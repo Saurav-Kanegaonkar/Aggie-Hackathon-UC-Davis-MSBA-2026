@@ -124,15 +124,56 @@ def build_panel_rows():
     return rows
 
 
+def build_curated_panel_rows():
+    rows = []
+
+    def add(ein: str, state: str, ntee: str | None, revenue: float, tax_period_end: str = "2024-12-31"):
+        rows.append(
+            {
+                "ein": ein,
+                "state": state,
+                "submitted_on": "",
+                "tax_period_end": tax_period_end,
+                "fiscal_year": 2024,
+                "total_revenue": revenue,
+                "total_expenses": revenue * 0.8,
+                "cash_non_interest_bearing": revenue * 0.1,
+                "savings_temporary_investments": revenue * 0.05,
+                "contributions_grants": revenue * 0.25,
+                "program_service_revenue": revenue * 0.65,
+                "investment_income": revenue * 0.05,
+                "ntee_major_category": ntee or "",
+                "return_type": "990",
+            }
+        )
+
+    add("204374795", "CA", "B", 700000, "2024-11-30")
+    add("204374795", "CA", "B", 720000, "2024-12-31")
+    add("237071436", "CA", "B", 900000)
+    add("203812932", "CA", "B", 1200000)
+    add("201384250", "CA", None, 750000)
+    add("061652679", "CA", None, 950000)
+    add("042800910", "WA", "P", 2500000)
+    add("237102713", "WA", "P", 3500000)
+    add("020549032", "WA", "P", 4500000)
+    add("160470118", "WA", None, 2200000)
+    add("141843628", "WA", None, 3200000)
+    add("956125213", "WA", None, 4200000)
+    return rows
+
+
 class Stage0ContractTests(unittest.TestCase):
-    def run_cli(self):
+    def run_cli(self, contract_path: Path | None = None, rows: list[dict] | None = None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp = Path(tmp_dir)
             input_path = tmp / "panel.csv"
-            contract_path = build_contract(tmp / "checkpoint1_contract.json")
+            if contract_path is None:
+                contract_path = build_contract(tmp / "checkpoint1_contract.json")
             output_dir = tmp / "outputs"
 
-            pd.DataFrame(build_panel_rows()).to_csv(input_path, index=False, quoting=csv.QUOTE_MINIMAL)
+            if rows is None:
+                rows = build_panel_rows()
+            pd.DataFrame(rows).to_csv(input_path, index=False, quoting=csv.QUOTE_MINIMAL)
 
             result = subprocess.run(
                 [
@@ -150,9 +191,26 @@ class Stage0ContractTests(unittest.TestCase):
                 cwd=ROOT,
             )
             self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
-            shared_samples = pd.read_csv(output_dir / "checkpoint1_shared_samples.csv")
+            shared_samples = pd.read_csv(output_dir / "checkpoint1_shared_samples.csv", dtype={"ein": str})
             summary_text = (output_dir / "checkpoint1_stage0_summary.md").read_text()
             return shared_samples, summary_text
+
+    def test_stage0_cli_uses_curated_shared_samples(self):
+        shared_samples, _ = self.run_cli(CHECKED_IN_CONTRACT, build_curated_panel_rows())
+        expected = [
+            "204374795",
+            "237071436",
+            "203812932",
+            "201384250",
+            "061652679",
+            "042800910",
+            "237102713",
+            "020549032",
+            "160470118",
+            "141843628",
+            "956125213",
+        ]
+        self.assertEqual(list(shared_samples["ein"].astype(str)), expected)
 
     def test_stage0_cli_writes_deterministic_shared_samples(self):
         first_samples, first_summary = self.run_cli()
