@@ -221,7 +221,7 @@ To reduce merge conflicts and improve reliability, state is split:
 }
 ```
 
-For compete tasks, the team verbally reviews each submission and runs `set-winner` to record the decision.
+For compete tasks, the team verbally reviews each submission and runs `set-winner` to record the decision. For compete tasks where the team converges on a hybrid merge spec at a checkpoint instead of selecting a single winner, see the checkpointed convergence path in `docs/merge_checklist.md`.
 
 ### `collab` — All work on the same branch together
 
@@ -411,7 +411,7 @@ python orchestrator/orchestrator.py watch --once
 4. Person C creates feat/task-X-c from main
 5. All read state from main at session start
 6. Submission records go on feature branches (orchestrator updates)
-7. After winner is picked via set-winner → winning branch merged to main
+7. After winner is picked via set-winner → winning branch merged to main (or via checkpointed convergence — see docs/merge_checklist.md)
 8. State updated on main with winner info
 ```
 

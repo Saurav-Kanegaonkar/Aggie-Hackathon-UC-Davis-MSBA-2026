@@ -18,7 +18,18 @@ def build_contract(path: Path) -> Path:
     contract = {
         "states": ["CA", "WA"],
         "submitted_on_filter": {"rule": "include_all", "description": "All rows included regardless of submitted_on."},
-        "dedupe_keys": ["ein", "fiscal_year"],
+        "dedupe_rule": {
+            "panel_layer": {
+                "keys": ["ein", "tax_period_end"],
+                "tiebreaker": "IRS version retained over GT when both sources have the same filing.",
+                "description": "Applied during panel build. Resolves source-level conflicts where GT and IRS contain the same filing."
+            },
+            "scoring_layer": {
+                "keys": ["ein", "fiscal_year"],
+                "tiebreaker": "Keep the row with the latest tax_period_end.",
+                "description": "Applied at Stage 1 load time. Resolves cases where an EIN has multiple filings in the same fiscal year (amendments, short-year filings). Latest filing supersedes prior."
+            }
+        },
         "size_buckets": [
             {"label": "<500K", "min": None, "max": 500000},
             {"label": "500K-2M", "min": 500000, "max": 2000000},
@@ -33,7 +44,6 @@ def build_contract(path: Path) -> Path:
         "benchmark_fallback_order": [
             {"label": "3-of-3_5-of-7", "min_metrics": 3, "min_years": 5},
             {"label": "2-of-3_5-of-7", "min_metrics": 2, "min_years": 5},
-            {"label": "3-of-3_4-of-7", "min_metrics": 3, "min_years": 4},
         ],
         "shared_sample_selection": {
             "latest_per_ein": True,
@@ -182,7 +192,8 @@ class Stage0ContractTests(unittest.TestCase):
 
         self.assertIn("benchmark_window", contract)
         self.assertEqual(contract["benchmark_window"]["strict_years_required"], 5)
-        self.assertEqual(contract["benchmark_window"]["relaxed_years_required"], 4)
+        self.assertNotIn("relaxed_years_required", contract["benchmark_window"],
+                         "relaxed_years_required removed — 3-of-3_4-of-7 step is dominated and was dropped")
         self.assertEqual(contract["benchmark_window"]["window_years"], 7)
 
         self.assertIn("metric_formulas", contract)
