@@ -26,17 +26,17 @@ def enrich_stress_fields(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
     # --- Largest revenue source (deterministic tie-break) ---
+    # Per merge decision: null-fill source columns with 0 (soft gate),
+    # consistent with Stage 1's HHI null-fill precedent.
     source_amounts = pd.DataFrame(index=out.index)
     for source_name, col_name in REVENUE_SOURCES:
-        source_amounts[source_name] = pd.to_numeric(out.get(col_name), errors="coerce")
+        source_amounts[source_name] = pd.to_numeric(out.get(col_name), errors="coerce").fillna(0)
 
-    # Any source null → can't determine largest
-    any_null = source_amounts.isna().any(axis=1)
     total_rev = pd.to_numeric(out["total_revenue"], errors="coerce")
     total_exp = pd.to_numeric(out["total_expenses"], errors="coerce")
     net_assets = pd.to_numeric(out["net_assets_eoy"], errors="coerce")
-    cash = pd.to_numeric(out.get("cash_non_interest_bearing", pd.Series(dtype="float64")), errors="coerce").fillna(0)
-    savings = pd.to_numeric(out.get("savings_temporary_investments", pd.Series(dtype="float64")), errors="coerce").fillna(0)
+    cash = pd.to_numeric(out.get("cash_non_interest_bearing", pd.Series(dtype="float64")), errors="coerce")
+    savings = pd.to_numeric(out.get("savings_temporary_investments", pd.Series(dtype="float64")), errors="coerce")
     liquid_reserves = cash + savings
 
     # Find largest source with tie-break: highest amount wins,
@@ -56,10 +56,11 @@ def enrich_stress_fields(df: pd.DataFrame) -> pd.DataFrame:
     largest_amount = source_amounts.values[np.arange(len(source_amounts)), col_indices]
     largest_pct = largest_amount / total_rev.where(total_rev > 0)
 
-    # Computability mask
+    # Computability mask: hard gate on core fields only
+    # Source columns null-filled with 0 (per merge decision, Stage 1 HHI precedent).
+    # Cash/savings null-filled with 0 (null = org reports no liquid reserves).
     can_compute = (
-        ~any_null
-        & total_rev.notna() & (total_rev > 0)
+        total_rev.notna() & (total_rev > 0)
         & total_exp.notna()
         & net_assets.notna()
         & cash.notna()
