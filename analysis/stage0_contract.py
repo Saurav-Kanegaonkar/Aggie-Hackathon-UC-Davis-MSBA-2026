@@ -71,7 +71,12 @@ def normalize_panel(df: pd.DataFrame) -> pd.DataFrame:
 def filter_stage0_panel(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
     filtered = normalize_panel(df)
     filtered = filtered[filtered["state"].isin(contract["states"])].copy()
-    if contract.get("submitted_on_must_be_null", True):
+    # submitted_on filter: include_all (v4 has IRS-sourced rows with submitted_on set)
+    # Legacy support: if old contract still has submitted_on_must_be_null, honor it
+    sub_filter = contract.get("submitted_on_filter", {})
+    if sub_filter.get("rule") == "include_all":
+        pass  # no filtering — both GT and IRS rows included
+    elif contract.get("submitted_on_must_be_null", False):
         filtered = filtered[filtered["submitted_on"].eq("")].copy()
     filtered = filtered.dropna(subset=["ein", "fiscal_year"])
     return filtered
@@ -197,7 +202,7 @@ def build_stage0_artifacts(df: pd.DataFrame, contract: dict) -> dict[str, pd.Dat
             f"- Deduped EIN-year rows: {len(deduped):,}",
             f"- Latest EIN rows considered for sampling: {len(latest):,}",
             f"- Shared checkpoint samples selected: {len(shared_samples):,}",
-            "- Contract rules locked: CA+WA scope, submitted_on null, ein+fiscal_year dedupe, fixed size buckets, fixed cohort fallback order, fixed benchmark fallback order, fixed benchmark window, fixed core formulas, fixed confidence tiers, fixed action labels, fixed urgency rule, and fixed recovery-analog sourcing.",
+            "- Contract rules locked: CA+WA scope, ein+fiscal_year dedupe, fixed size buckets, fixed cohort fallback order, fixed benchmark fallback order, fixed rolling benchmark window, fixed core formulas, fixed confidence tiers, fixed action labels, fixed urgency rule, and fixed recovery-analog sourcing.",
         ]
     )
     return {"shared_samples": shared_samples, "summary_markdown": summary}

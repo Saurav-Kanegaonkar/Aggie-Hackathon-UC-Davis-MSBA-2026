@@ -3,7 +3,10 @@
     "CA",
     "WA"
   ],
-  "submitted_on_must_be_null": true,
+  "submitted_on_filter": {
+    "rule": "include_all",
+    "description": "All rows included regardless of submitted_on. GT rows (submitted_on null) and IRS XML rows (submitted_on set) are both valid. Deduplication by (ein, tax_period_end) is handled in the build pipeline, not at the scoring stage. Prior rule 'submitted_on_must_be_null' was removed because it silently discards 17K FY2024 and all FY2025 IRS-sourced rows added by the v4 expansion."
+  },
   "dedupe_keys": [
     "ein",
     "fiscal_year"
