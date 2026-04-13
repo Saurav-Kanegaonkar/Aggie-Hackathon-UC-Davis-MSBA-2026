@@ -1,0 +1,92 @@
+{
+  "states": [
+    "CA",
+    "WA"
+  ],
+  "submitted_on_must_be_null": true,
+  "dedupe_keys": [
+    "ein",
+    "fiscal_year"
+  ],
+  "key_fields": [
+    "total_revenue",
+    "total_expenses",
+    "cash_non_interest_bearing",
+    "savings_temporary_investments",
+    "contributions_grants",
+    "program_service_revenue",
+    "investment_income"
+  ],
+  "size_buckets": [
+    {
+      "label": "<500K",
+      "min": null,
+      "max": 500000
+    },
+    {
+      "label": "500K-2M",
+      "min": 500000,
+      "max": 2000000
+    },
+    {
+      "label": "2M-10M",
+      "min": 2000000,
+      "max": 10000000
+    },
+    {
+      "label": ">10M",
+      "min": 10000000,
+      "max": null
+    }
+  ],
+  "min_cohort_size": 10,
+  "min_reference_orgs": 5,
+  "cohort_fallback_order": [
+    [
+      "ntee_major_category",
+      "size_bucket",
+      "state"
+    ],
+    [
+      "size_bucket",
+      "state",
+      "return_type"
+    ],
+    [
+      "size_bucket",
+      "state"
+    ]
+  ],
+  "benchmark_fallback_order": [
+    {
+      "label": "3-of-3_5-of-7",
+      "min_metrics": 3,
+      "min_years": 5
+    },
+    {
+      "label": "2-of-3_5-of-7",
+      "min_metrics": 2,
+      "min_years": 5
+    },
+    {
+      "label": "3-of-3_4-of-7",
+      "min_metrics": 3,
+      "min_years": 4
+    }
+  ],
+  "shared_sample_selection": {
+    "latest_per_ein": true,
+    "strata": [
+      "state",
+      "ntee_present"
+    ],
+    "quantiles": [
+      0.33,
+      0.66
+    ]
+  },
+  "output_files": {
+    "shared_samples": "checkpoint1_shared_samples.csv",
+    "summary_markdown": "checkpoint1_stage0_summary.md"
+  }
+}
