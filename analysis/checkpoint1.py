@@ -98,14 +98,15 @@ def dedupe_stage1_panel(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
     deduped = frame.copy()
     deduped["net_assets_eoy"] = _optional_numeric(deduped, "net_assets_eoy")
     stage1_key_fields = list(contract["key_fields"]) + ["net_assets_eoy"]
+    deduped["_net_assets_present"] = deduped["net_assets_eoy"].notna().astype(int)
     deduped["_stage1_null_score"] = deduped[stage1_key_fields].isna().sum(axis=1)
     deduped = deduped.sort_values(
-        ["ein", "fiscal_year", "_stage1_null_score", "tax_period_end"],
-        ascending=[True, True, True, False],
+        ["ein", "fiscal_year", "_net_assets_present", "_stage1_null_score", "tax_period_end"],
+        ascending=[True, True, False, True, False],
         kind="mergesort",
     )
     deduped = deduped.drop_duplicates(subset=["ein", "fiscal_year"], keep="first")
-    return deduped.drop(columns=["_stage1_null_score"])
+    return deduped.drop(columns=["_net_assets_present", "_stage1_null_score"])
 
 
 def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:

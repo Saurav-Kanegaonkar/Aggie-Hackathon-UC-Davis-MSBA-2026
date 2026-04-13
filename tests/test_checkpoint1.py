@@ -71,6 +71,11 @@ def build_fixture_rows() -> list[dict]:
     add_org("000000010", "WA", None, 2_900_000, 2_800_000, 310_000, 45_000, 5_000, 0.20, 0.60, 0.10, 0.10)
     add_org("000000011", "CA", "B", 900_000, 850_000, 210_000, 30_000, 5_000, 0.25, 0.60, 0.05, 0.10)
 
+    for row in rows:
+        if row["ein"] == "000000011" and row["fiscal_year"] == 2023:
+            row["investment_income"] = None
+            break
+
     rows.append(
         {
             "ein": "000000002",
@@ -90,6 +95,29 @@ def build_fixture_rows() -> list[dict]:
             "pct_program_revenue": 0.65,
             "pct_investment_income": 0.05,
             "pct_other_revenue": 0.05,
+            "ntee_major_category": "B",
+            "return_type": "990",
+        }
+    )
+    rows.append(
+        {
+            "ein": "000000011",
+            "state": "CA",
+            "submitted_on": "",
+            "tax_period_end": "2024-01-31",
+            "fiscal_year": 2023,
+            "total_revenue": 900_000,
+            "total_expenses": 850_000,
+            "net_assets_eoy": "not-a-number",
+            "cash_non_interest_bearing": 30_000,
+            "savings_temporary_investments": 5_000,
+            "contributions_grants": 225_000,
+            "program_service_revenue": 585_000,
+            "investment_income": 45_000,
+            "pct_contributions": 0.25,
+            "pct_program_revenue": 0.60,
+            "pct_investment_income": 0.05,
+            "pct_other_revenue": 0.10,
             "ntee_major_category": "B",
             "return_type": "990",
         }
@@ -217,6 +245,13 @@ class Checkpoint1CliTests(unittest.TestCase):
         ].iloc[0]
         self.assertAlmostEqual(float(runway_row["operating_runway_proxy_months"]), 1.92, places=6)
         self.assertAlmostEqual(float(runway_row["net_assets_eoy"]), 160_000.0, places=6)
+
+        tie_row = scored.loc[
+            scored["ein"].astype(str).eq("000000011") & scored["fiscal_year"].astype(int).eq(2023)
+        ].iloc[0]
+        self.assertAlmostEqual(float(tie_row["operating_runway_proxy_months"]), 210_000.0 / (850_000.0 / 12.0), places=6)
+        self.assertAlmostEqual(float(tie_row["net_assets_eoy"]), 210_000.0, places=6)
+        self.assertTrue(pd.isna(tie_row["investment_income"]))
 
         row = scored.loc[scored["ein"].astype(str).eq("000000003")].iloc[0]
         self.assertTrue(pd.notna(row["revenue_diversification_index"]))
