@@ -1,0 +1,135 @@
+{
+  "states": [
+    "CA",
+    "WA"
+  ],
+  "submitted_on_must_be_null": true,
+  "dedupe_keys": [
+    "ein",
+    "fiscal_year"
+  ],
+  "key_fields": [
+    "total_revenue",
+    "total_expenses",
+    "cash_non_interest_bearing",
+    "savings_temporary_investments",
+    "contributions_grants",
+    "program_service_revenue",
+    "investment_income"
+  ],
+  "size_buckets": [
+    {
+      "label": "<500K",
+      "min": null,
+      "max": 500000
+    },
+    {
+      "label": "500K-2M",
+      "min": 500000,
+      "max": 2000000
+    },
+    {
+      "label": "2M-10M",
+      "min": 2000000,
+      "max": 10000000
+    },
+    {
+      "label": ">10M",
+      "min": 10000000,
+      "max": null
+    }
+  ],
+  "min_cohort_size": 10,
+  "min_reference_orgs": 5,
+  "cohort_fallback_order": [
+    [
+      "ntee_major_category",
+      "size_bucket",
+      "state"
+    ],
+    [
+      "size_bucket",
+      "state",
+      "return_type"
+    ],
+    [
+      "size_bucket",
+      "state"
+    ]
+  ],
+  "benchmark_fallback_order": [
+    {
+      "label": "3-of-3_5-of-7",
+      "min_metrics": 3,
+      "min_years": 5
+    },
+    {
+      "label": "2-of-3_5-of-7",
+      "min_metrics": 2,
+      "min_years": 5
+    },
+    {
+      "label": "3-of-3_4-of-7",
+      "min_metrics": 3,
+      "min_years": 4
+    }
+  ],
+  "benchmark_window": {
+    "type": "rolling",
+    "window_years": 7,
+    "description": "For each scored row at fiscal year Y, the benchmark window is the set of available years in [Y-6 ... Y]. Rolling per-EIN, not a fixed global window.",
+    "strict_years_required": 5,
+    "relaxed_years_required": 4,
+    "scoring_years": [2023, 2024],
+    "scoring_year_notes": "FY2023 is fully populated (41,822 CA+WA EINs). FY2024 is 61% complete (26,766 EINs) due to IRS processing lag — usable but flagged.",
+    "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy.",
+    "covid_note": "FY2020-2021 are inside the window for FY2023-2024 scoring. PPP/EIDL inflated margins and runway. Median-based benchmarks dampen this naturally, but implementations should be aware."
+  },
+  "metric_formulas": {
+    "operating_runway_proxy_months": "net_assets_eoy / (total_expenses / 12)",
+    "operating_margin": "(total_revenue - total_expenses) / total_revenue",
+    "revenue_diversification_index": "1 - (pct_contributions^2 + pct_program_revenue^2 + pct_investment_income^2 + pct_other_revenue^2)",
+    "shock_absorption_months": "(cash_non_interest_bearing + savings_temporary_investments) / (total_expenses / 12)"
+  },
+  "confidence_tiers": {
+    "High": "Six to seven years present and less than 20 percent missing across the fixed key fields.",
+    "Medium": "Four to five years present, or fallback cohorts / relaxed benchmark rules with otherwise usable filings.",
+    "Low": "Three or fewer years present, more than 20 percent missing key fields, broadest-cohort fallback, or insufficient resilient references."
+  },
+  "action_labels": {
+    "Amplify": "Top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure.",
+    "Stabilize": "Below benchmark but recoverable, with positive recovery analog evidence and a fixable financial profile.",
+    "Diversify": "Acceptable operating health with elevated concentration risk or stress-test sensitivity.",
+    "Deep Review": "Structurally weak profile, very low confidence, or no clear near-term intervention path."
+  },
+  "urgency_flag": {
+    "rule": "shock_absorption_months < 3 and current_year_operating_margin < 0",
+    "separate_from_action_label": true
+  },
+  "recovery_analogs": {
+    "source_pool": "Full national panel (all states), not limited to CA+WA. 1,278 analogs validated in EDA.",
+    "cohort_filter": "Same ntee_major_category + size_bucket as the target org. State-agnostic. State shown in output for context.",
+    "minimum_count_for_positive_signal": 1,
+    "selection_rule": "Prefer same cohort first, then relax to size_bucket only if strict cohort yields zero analogs."
+  },
+  "shared_sample_selection": {
+    "latest_per_ein": true,
+    "strata": [
+      "state",
+      "ntee_present"
+    ],
+    "quantiles": [
+      0.33,
+      0.66
+    ]
+  },
+  "output_files": {
+    "shared_samples": "checkpoint1_shared_samples.csv",
+    "summary_markdown": "checkpoint1_stage0_summary.md"
+  },
+  "output_schemas": {
+    "checkpoint1_scored_row": "config/schemas/checkpoint1_scored_row.schema.json",
+    "portfolio_view_row": "config/schemas/portfolio_view_row.schema.json",
+    "capital_stewardship_memo": "config/schemas/capital_stewardship_memo.schema.json"
+  }
+}

@@ -1,1 +1,4 @@
 jsonschema
+numpy
+pandas
+pyarrow

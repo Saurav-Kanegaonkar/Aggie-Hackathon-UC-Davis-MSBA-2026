@@ -1,10 +1,10 @@
 {
   "project": "UC Davis MSBA Hackathon",
-  "context_version": 2,
+  "context_version": 3,
   "created": "2026-04-11T23:00:00Z",
-  "last_updated": "2026-04-12T23:46:03Z",
-  "updated_by": "Saurav",
-  "updated_from_commit": "a250b054e7b613887570f3bcd1a4336becb853cb",
+  "last_updated": "2026-04-13T00:58:36Z",
+  "updated_by": "Amal",
+  "updated_from_commit": "45d1005",
   "tasks": [
     {
       "id": "task-01",
@@ -15,12 +15,20 @@
   ],
   "decisions": [
     {
-      "text": "Pure HTML/CSS/vanilla JS, no build tools",
-      "scope": "global"
+      "text": "Fairlight checkpoint 1 is scoped to CA + WA and stops at the cohort, benchmark, resilience-gap, and confidence-tagging layer.",
+      "scope": "assignment"
     },
     {
-      "text": "All state changes via orchestrator commands, never hand-edited",
-      "scope": "global"
+      "text": "Checkpoint 1 uses a fixed contract: submitted_on must be null, rows are deduped on ein + fiscal_year, and NTEE is a cohort booster rather than a gate.",
+      "scope": "assignment"
+    },
+    {
+      "text": "Stage 0 also locks the 7-year benchmark window, the core metric formulas, the confidence tiers, the action-label vocabulary, the urgency flag rule, the recovery-analog sourcing rule, and the output schemas.",
+      "scope": "assignment"
+    },
+    {
+      "text": "All future state changes after this bootstrap go through orchestrator commands from main.",
+      "scope": "assignment"
     }
   ],
   "open_questions": [],
@@ -29,6 +37,16 @@
       "timestamp": "2026-04-12T23:46:03Z",
       "author": "Saurav",
       "summary": "Data phase complete. v2 panel built and validated (3.8M rows, 39 cols). Strategy locked. Moving to NTEE enrichment + build phase."
+    },
+    {
+      "timestamp": "2026-04-13T00:58:36Z",
+      "author": "Amal",
+      "summary": "Bootstrap task-01 replaced placeholder state with the fixed checkpoint-1 Fairlight compete task and comparison contract."
+    },
+    {
+      "timestamp": "2026-04-13T01:26:00Z",
+      "author": "Amal",
+      "summary": "Stage 0 contract expanded to lock benchmark window, formulas, confidence tiers, action labels, urgency rule, recovery-analog sourcing, and output schemas."
     }
   ]
 }
