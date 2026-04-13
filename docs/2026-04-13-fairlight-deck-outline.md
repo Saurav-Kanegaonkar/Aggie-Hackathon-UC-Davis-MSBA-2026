@@ -4,18 +4,26 @@
 **Narrative structure:** Situation → Complication → Key findings → Evidence → How → Product → Call to action
 **Rule:** Every slide title is the conclusion of that slide, not the topic.
 
+**Audience:**
+- **Fairlight Advisors** — the client. This was built for them. Every slide should feel like it's talking to them.
+- **Prof Naik (round 1 judge)** — advanced stats, MSBA founder. Needs to believe the methodology is rigorous and the backtest is honest. Will push on benchmark construction, train/test validity, and whether the rules are defensible. Plain language on slides, full depth in appendix.
+- **Jo (round 1 judge, MSBA alumni)** — practitioner lens. Needs to believe a Fairlight advisor would actually use this. Will push on clarity, usability, and whether the output is something you can hand to a client.
+
+**The tension:** What impresses Naik (technical honesty, caveats, methodology detail) could confuse Jo if not framed right. Solution: one plain-English sentence per caveat on the main slide. Full technical detail in the appendix. Never hide limitations — just translate them.
+
 ---
 
 ## Slide 1 — Opening statement (not a question, a fact)
 
-**Title:** "22,291 nonprofits in California and Washington are showing signs of financial distress. Fairlight has the mandate to act — but not the bandwidth to review them manually."
+**Title:** "22,291 nonprofits in California and Washington need Fairlight's attention. Right now, there is no way to know which ones to call first."
 
-- One number dominates the slide: 22,291 (our Deep Review + urgency count — pull exact from Stage 3 output)
-- One sentence below it: the tension between Fairlight's mandate and their capacity
+- One number dominates the slide: 22,291 (Deep Review + urgency flagged count from Stage 3 — pull exact)
+- Sub-line: "We analyzed every 990 filing in CA and WA. Here is what we found."
 - No bullets. No methodology. No "we built something."
-- Visual: the number large, in red or amber, with a map of CA+WA or a simple org count graphic
+- Visual: the number large, in red or amber, state outline of CA+WA
 
-**Why this works:** A McKinsey partner opens with the client's problem stated as a fact, not a question. Questions feel weak. Facts create urgency. The judge reads this and immediately thinks "okay, what do you have for that?"
+**For Naik:** The number is grounded in our data — it will be questioned. Be ready to say exactly how it is defined (Deep Review label = benchmark_status ok but structurally weak OR low confidence, plus urgency-flagged rows). Have the definition one click away in the appendix.
+**For Jo:** This is the emotional hook. A Fairlight advisor has been manually trying to answer this question for years. The slide says: we have an answer.
 
 ---
 
@@ -57,9 +65,15 @@ This slide is the entire deck compressed. Everything that follows proves one of 
   - **Diversify 12%** — operationally sound but dangerously concentrated in one funding source
   - **Amplify 3%** — resilient, stress-tested, ready for capital from strength
 - Visual: a simple bar or donut chart, color-coded, with the four labels
+- **Critically: add one line per label showing what a Fairlight advisor does next**
+  - Amplify → approach about reserve or endowment management
+  - Stabilize → offer fractional CFO support, cash flow planning
+  - Diversify → strategic advisory on revenue restructuring
+  - Deep Review → hold, request more information, do not deploy capital yet
 - The advisor implication: the engine has already triaged 67,406 orgs — Fairlight opens the inbox and sees their shortlist
 
-*Lead with the so-what: what does Fairlight DO with this information, not how we computed it.*
+**For Naik:** Each label maps to a deterministic rule — not a score, not a weighted average. The appendix has the exact field comparisons and precedence order.
+**For Jo:** This is the slide where she thinks "I could explain this to a nonprofit board in 60 seconds." The label names and the action lines have to be plain enough for that. If she'd need to explain what "Deep Review" means, the language is still too technical.
 
 ---
 
@@ -101,15 +115,16 @@ This slide is the entire deck compressed. Everything that follows proves one of 
 **Title:** "Every recommendation is grounded in four observable financial facts — so any advisor can explain it to a client or board without referencing a black box."
 
 - Now explain the engine — AFTER the findings have earned the audience's attention
-- Four layers, each one line:
-  1. **Peer benchmark** — compare to top-quartile orgs in the same size class, sector, and state
-  2. **Resilience gap** — how far below that benchmark, measured in the same units across all orgs
-  3. **Stress test** — what happens to the org's cash position if its largest revenue source drops 25%
-  4. **Recovery analogs** — which similar orgs have historically recovered from the same constraint
-- Visual: four-step left-to-right pipeline, each step labeled with the actual field name it produces
-- Key message: rules = auditable. Every label can be reproduced by reading the rule. No model required to explain it.
+- Four layers, each one line with a plain English example:
+  1. **Peer benchmark** — "We compare each org only to nonprofits of similar size, in the same sector, in the same state. Not to the average of all 476,000 orgs nationally."
+  2. **Resilience gap** — "We measure how far below the top performers in that peer group this org sits — on operating margin, financial runway, and revenue diversification."
+  3. **Stress test** — "We simulate: if this org's largest revenue source drops 25%, how many months before it runs out of cash?"
+  4. **Recovery analogs** — "We find peer orgs that were in the same position and recovered. We show Fairlight those orgs by name."
+- Visual: four-step left-to-right pipeline
+- Key message: every label traces to a rule you can read out loud. No black box. Advisor can defend any recommendation in a client meeting.
 
-*This is now slide 7, not slide 5. The judge already knows the output works (slide 5 proved it). Now they want to know how.*
+**For Naik:** The benchmark uses a resilient reference set — top quartile on all three metrics for 5 of 7 years — with a documented fallback hierarchy if the cohort is too sparse. Appendix A2 has the full rule chain.
+**For Jo:** The "recovery analogs" point is the one she'll respond to most. "We show you an org by name that was in the same position and got out of it." That is a concrete, human thing an advisor can say to a nonprofit client.
 
 ---
 
@@ -143,18 +158,20 @@ This slide is the entire deck compressed. Everything that follows proves one of 
 
 ---
 
-## Slide 10 — "Fairlight can deploy this against the full CA+WA market today"
+## Slide 10 — "Fairlight can use this to triage 67,406 nonprofits in the time it currently takes to review one"
 
-**Title:** "67,406 nonprofits are already scored. Fairlight's advisory team can open the inbox, filter by sector or urgency, and begin their first data-driven triage this week."
+**Title:** "67,406 CA+WA nonprofits are already scored. Fairlight can open the inbox today and begin their first data-driven advisory triage."
 
-- Three specific deployment statements (not vague roadmap):
-  1. Scored and ready: 67,406 CA+WA orgs across FY2023–2024, labels and distress risk assigned
-  2. Scales nationally: the same pipeline runs on any state's 990 data — no methodology changes required
-  3. Interpretable to clients: every recommendation the advisor delivers can be traced to a specific peer comparison, a specific stress scenario, and a specific historical analog
-- One V2 line only (do not overload): "Next: annual refresh cadence + external nonprofit-facing version with softer language"
-- Close line: **"Fairlight already runs the X-Ray. We built the version that runs at scale."**
+- Three things that are true right now:
+  1. **Every org is scored:** action label, distress risk tier, stress test result, recovery analogs — all pre-computed
+  2. **Every recommendation is defensible:** peer benchmark, gap, stress scenario, and historical analog behind every label
+  3. **Scales without limits:** same pipeline runs on any state's 990 data — same methodology, new geography, no rebuilding required
+- One honest note on what this is and isn't: "This is a decision support system. It surfaces the right orgs and the right questions. Fairlight's advisors make the final call."
+- One V2 line: annual refresh cadence + external nonprofit-facing version with softer language
+- Close: **"Fairlight already runs the X-Ray. We built the version that runs at scale."**
 
-*This is a call to action, not a summary. The client should feel: this is ready, not "this was a cool project."*
+**For Naik:** The "defensible" point is the close anchor for him. Every label traces to an auditable rule. No black box. No model required to explain the recommendation.
+**For Jo:** "Fairlight's advisors make the final call" is the close anchor for her. She needs to hear this is a tool, not an autopilot. The product respects advisor judgment.
 
 ---
 
