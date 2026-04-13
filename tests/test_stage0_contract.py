@@ -193,6 +193,63 @@ def build_latest_row_panel_rows():
     return rows
 
 
+def build_minimal_optional_column_rows():
+    return [
+        {
+            "ein": "100000001",
+            "state": "CA",
+            "tax_period_end": "2023-12-31",
+            "fiscal_year": 2023,
+            "total_revenue": 700000,
+            "total_expenses": 560000,
+            "cash_non_interest_bearing": 70000,
+            "savings_temporary_investments": 35000,
+            "contributions_grants": 175000,
+            "program_service_revenue": 455000,
+            "investment_income": 35000,
+        },
+        {
+            "ein": "100000002",
+            "state": "WA",
+            "tax_period_end": "2023-12-31",
+            "fiscal_year": 2023,
+            "total_revenue": 900000,
+            "total_expenses": 720000,
+            "cash_non_interest_bearing": 90000,
+            "savings_temporary_investments": 45000,
+            "contributions_grants": 225000,
+            "program_service_revenue": 585000,
+            "investment_income": 45000,
+        },
+        {
+            "ein": "100000003",
+            "state": "CA",
+            "tax_period_end": "2023-12-31",
+            "fiscal_year": 2023,
+            "total_revenue": 1200000,
+            "total_expenses": 960000,
+            "cash_non_interest_bearing": 120000,
+            "savings_temporary_investments": 60000,
+            "contributions_grants": 300000,
+            "program_service_revenue": 780000,
+            "investment_income": 60000,
+        },
+        {
+            "ein": "100000004",
+            "state": "WA",
+            "tax_period_end": "2023-12-31",
+            "fiscal_year": 2023,
+            "total_revenue": 2200000,
+            "total_expenses": 1760000,
+            "cash_non_interest_bearing": 220000,
+            "savings_temporary_investments": 110000,
+            "contributions_grants": 550000,
+            "program_service_revenue": 1430000,
+            "investment_income": 110000,
+        },
+    ]
+
+
 class Stage0ContractTests(unittest.TestCase):
     def run_cli(self, contract_path: Path | None = None, rows: list[dict] | None = None):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -271,6 +328,11 @@ class Stage0ContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("missing curated EINs", result.stderr + result.stdout)
+
+    def test_stage0_cli_handles_missing_optional_columns(self):
+        shared_samples, _ = self.run_cli(rows=build_minimal_optional_column_rows())
+        self.assertGreater(len(shared_samples), 0)
+        self.assertTrue(set(shared_samples["sample_state"]).issubset({"CA", "WA"}))
 
     def test_stage0_cli_writes_deterministic_shared_samples(self):
         first_samples, first_summary = self.run_cli()

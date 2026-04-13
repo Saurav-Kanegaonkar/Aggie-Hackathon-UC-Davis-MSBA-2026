@@ -45,15 +45,21 @@ def resolve_input_path(explicit_path: str | None) -> Path:
     raise FileNotFoundError("No default checkpoint input found under data/ or data/processed/.")
 
 
+def _optional_series(df: pd.DataFrame, column: str, default: str = "") -> pd.Series:
+    if column in df.columns:
+        return df[column]
+    return pd.Series([default] * len(df), index=df.index)
+
+
 def normalize_panel(df: pd.DataFrame) -> pd.DataFrame:
     normalized = df.copy()
     normalized["ein"] = normalized["ein"].astype(str).str.zfill(9)
     normalized["state"] = normalized["state"].astype(str).str.upper()
-    normalized["return_type"] = normalized.get("return_type", "990").astype(str)
+    normalized["return_type"] = _optional_series(normalized, "return_type", "990").astype(str)
     normalized["tax_period_end"] = normalized["tax_period_end"].astype(str)
     normalized["fiscal_year"] = pd.to_numeric(normalized["fiscal_year"], errors="coerce").astype("Int64")
-    normalized["ntee_major_category"] = normalized.get("ntee_major_category", "").fillna("").astype(str).str.strip()
-    normalized["submitted_on"] = normalized.get("submitted_on", "").fillna("").astype(str).str.strip()
+    normalized["ntee_major_category"] = _optional_series(normalized, "ntee_major_category").fillna("").astype(str).str.strip()
+    normalized["submitted_on"] = _optional_series(normalized, "submitted_on").fillna("").astype(str).str.strip()
     numeric_cols = [
         "total_revenue",
         "total_expenses",
