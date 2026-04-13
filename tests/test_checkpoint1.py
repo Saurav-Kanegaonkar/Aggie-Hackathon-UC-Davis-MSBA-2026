@@ -26,6 +26,7 @@ def build_fixture_rows() -> list[dict]:
         ntee: str | None,
         revenue: float,
         expenses: float,
+        net_assets_eoy: float,
         cash: float,
         savings: float,
         pct_contributions: float | None,
@@ -43,6 +44,7 @@ def build_fixture_rows() -> list[dict]:
                     "fiscal_year": year,
                     "total_revenue": revenue,
                     "total_expenses": expenses,
+                    "net_assets_eoy": net_assets_eoy,
                     "cash_non_interest_bearing": cash,
                     "savings_temporary_investments": savings,
                     "contributions_grants": revenue * 0.25,
@@ -57,17 +59,17 @@ def build_fixture_rows() -> list[dict]:
                 }
             )
 
-    add_org("000000001", "CA", "B", 1_200_000, 700_000, 200_000, 80_000, 0.25, 0.65, 0.05, 0.05)
-    add_org("000000002", "CA", "B", 1_100_000, 1_000_000, 40_000, 10_000, 0.25, 0.65, 0.05, 0.05)
-    add_org("000000003", "CA", None, 900_000, 850_000, 30_000, 5_000, None, 0.55, 0.10, None)
-    add_org("000000004", "WA", "P", 2_400_000, 1_700_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
-    add_org("000000005", "WA", None, 2_100_000, 1_950_000, 60_000, 15_000, 0.30, 0.55, None, 0.15)
-    add_org("000000006", "WA", "P", 12_000_000, 10_500_000, 2_000_000, 700_000, 0.15, 0.75, 0.05, 0.05)
-    add_org("000000007", "CA", "B", 600_000, 580_000, 20_000, 5_000, 0.35, 0.50, 0.05, 0.10)
-    add_org("000000008", "CA", None, 650_000, 640_000, 15_000, 5_000, 0.40, 0.45, 0.05, 0.10)
-    add_org("000000009", "WA", "P", 3_000_000, 2_500_000, 250_000, 90_000, 0.10, 0.80, 0.05, 0.05)
-    add_org("000000010", "WA", None, 2_900_000, 2_800_000, 45_000, 5_000, 0.20, 0.60, 0.10, 0.10)
-    add_org("000000011", "CA", "B", 900_000, 850_000, 30_000, 5_000, 0.25, 0.60, 0.05, 0.10)
+    add_org("000000001", "CA", "B", 1_200_000, 700_000, 480_000, 200_000, 80_000, 0.25, 0.65, 0.05, 0.05)
+    add_org("000000002", "CA", "B", 1_100_000, 1_000_000, 160_000, 40_000, 10_000, 0.25, 0.65, 0.05, 0.05)
+    add_org("000000003", "CA", None, 900_000, 850_000, 220_000, 30_000, 5_000, None, 0.55, 0.10, None)
+    add_org("000000004", "WA", "P", 2_400_000, 1_700_000, 900_000, 300_000, 120_000, 0.20, 0.70, 0.05, 0.05)
+    add_org("000000005", "WA", None, 2_100_000, 1_950_000, 260_000, 60_000, 15_000, 0.30, 0.55, None, 0.15)
+    add_org("000000006", "WA", "P", 12_000_000, 10_500_000, 4_500_000, 2_000_000, 700_000, 0.15, 0.75, 0.05, 0.05)
+    add_org("000000007", "CA", "B", 600_000, 580_000, 95_000, 20_000, 5_000, 0.35, 0.50, 0.05, 0.10)
+    add_org("000000008", "CA", None, 650_000, 640_000, 85_000, 15_000, 5_000, 0.40, 0.45, 0.05, 0.10)
+    add_org("000000009", "WA", "P", 3_000_000, 2_500_000, 1_150_000, 250_000, 90_000, 0.10, 0.80, 0.05, 0.05)
+    add_org("000000010", "WA", None, 2_900_000, 2_800_000, 310_000, 45_000, 5_000, 0.20, 0.60, 0.10, 0.10)
+    add_org("000000011", "CA", "B", 900_000, 850_000, 210_000, 30_000, 5_000, 0.25, 0.60, 0.05, 0.10)
 
     rows.append(
         {
@@ -78,6 +80,7 @@ def build_fixture_rows() -> list[dict]:
             "fiscal_year": 2023,
             "total_revenue": 1_100_000,
             "total_expenses": 1_020_000,
+            "net_assets_eoy": 170_000,
             "cash_non_interest_bearing": 10_000,
             "savings_temporary_investments": 2_000,
             "contributions_grants": 250_000,
@@ -100,6 +103,7 @@ def build_fixture_rows() -> list[dict]:
             "fiscal_year": 2023,
             "total_revenue": 1_000_000,
             "total_expenses": 900_000,
+            "net_assets_eoy": 260_000,
             "cash_non_interest_bearing": 90_000,
             "savings_temporary_investments": 25_000,
             "contributions_grants": 300_000,

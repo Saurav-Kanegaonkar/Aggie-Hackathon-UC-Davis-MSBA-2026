@@ -101,10 +101,9 @@ def add_stage1_metrics(frame: pd.DataFrame, contract: dict) -> pd.DataFrame:
 
     liquid_assets = scored["cash_non_interest_bearing"].fillna(0) + scored["savings_temporary_investments"].fillna(0)
     net_assets_eoy = _optional_numeric(scored, "net_assets_eoy")
-    runway_numerator = net_assets_eoy.where(net_assets_eoy.notna(), liquid_assets)
     monthly_expenses = scored["total_expenses"] / 12.0
     scored["operating_margin"] = safe_divide(scored["total_revenue"] - scored["total_expenses"], scored["total_revenue"])
-    scored["operating_runway_proxy_months"] = safe_divide(runway_numerator, monthly_expenses)
+    scored["operating_runway_proxy_months"] = safe_divide(net_assets_eoy, monthly_expenses)
     scored["shock_absorption_months"] = safe_divide(liquid_assets, monthly_expenses)
 
     pct_frame = pd.DataFrame({column: _optional_numeric(scored, column) for column in PCT_COLUMNS}, index=scored.index)
