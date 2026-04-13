@@ -53,7 +53,7 @@ def _optional_series(df: pd.DataFrame, column: str, default: str = "") -> pd.Ser
 
 def normalize_panel(df: pd.DataFrame) -> pd.DataFrame:
     normalized = df.copy()
-    normalized["ein"] = normalized["ein"].astype(str).str.zfill(9)
+    normalized["ein"] = normalized["ein"].astype("string").str.zfill(9)
     normalized["state"] = normalized["state"].astype(str).str.upper()
     normalized["return_type"] = _optional_series(normalized, "return_type", "990").astype(str)
     normalized["tax_period_end"] = normalized["tax_period_end"].astype(str)

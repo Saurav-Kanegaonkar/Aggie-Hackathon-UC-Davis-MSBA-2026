@@ -8,8 +8,13 @@ from pathlib import Path
 
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from analysis.stage0_contract import filter_stage0_panel, normalize_panel
+
+
 CLI = ROOT / "analysis" / "build_stage0_contract.py"
 CHECKED_IN_CONTRACT = ROOT / "config" / "checkpoint1_contract.json"
 
@@ -153,7 +158,24 @@ def build_curated_panel_rows():
     add("203812932", "CA", "B", 1200000)
     add("201384250", "CA", None, 750000)
     add("061652679", "CA", None, 950000)
-    add("042800910", "WA", "P", 2500000)
+    rows.append(
+        {
+            "ein": "042800910",
+            "state": "WA",
+            "submitted_on": "2026-01-01T00:00:00Z",
+            "tax_period_end": "2024-12-31",
+            "fiscal_year": 2024,
+            "total_revenue": 2500000,
+            "total_expenses": 2000000,
+            "cash_non_interest_bearing": 250000,
+            "savings_temporary_investments": 125000,
+            "contributions_grants": 625000,
+            "program_service_revenue": 1625000,
+            "investment_income": 125000,
+            "ntee_major_category": "P",
+            "return_type": "990",
+        }
+    )
     add("237102713", "WA", "P", 3500000)
     add("020549032", "WA", "P", 4500000)
     add("160470118", "WA", None, 2200000)
@@ -189,7 +211,24 @@ def build_latest_row_panel_rows():
     add("100000001", "CA", "B", 700000, "2023-12-31")
     add("100000002", "CA", "B", 900000)
     add("100000010", "WA", "P", 2200000)
-    add("100000011", "WA", None, 3200000)
+    rows.append(
+        {
+            "ein": "100000011",
+            "state": "WA",
+            "submitted_on": "2026-01-01T00:00:00Z",
+            "tax_period_end": "2023-12-31",
+            "fiscal_year": 2023,
+            "total_revenue": 3200000,
+            "total_expenses": 2560000,
+            "cash_non_interest_bearing": 320000,
+            "savings_temporary_investments": 160000,
+            "contributions_grants": 800000,
+            "program_service_revenue": 2080000,
+            "investment_income": 160000,
+            "ntee_major_category": "",
+            "return_type": "990",
+        }
+    )
     return rows
 
 
@@ -329,6 +368,36 @@ class Stage0ContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("missing curated EINs", result.stderr + result.stdout)
 
+    def test_normalize_panel_preserves_missing_ein_until_filtering(self):
+        frame = pd.DataFrame(
+            [
+                {
+                    "ein": None,
+                    "state": "CA",
+                    "tax_period_end": "2023-12-31",
+                    "fiscal_year": 2023,
+                    "total_revenue": 700000,
+                    "total_expenses": 560000,
+                    "cash_non_interest_bearing": 70000,
+                    "savings_temporary_investments": 35000,
+                    "contributions_grants": 175000,
+                    "program_service_revenue": 455000,
+                    "investment_income": 35000,
+                }
+            ]
+        )
+        normalized = normalize_panel(frame)
+        self.assertTrue(pd.isna(normalized.iloc[0]["ein"]))
+
+        filtered = filter_stage0_panel(
+            frame,
+            {
+                "states": ["CA"],
+                "submitted_on_filter": {"rule": "include_all"},
+            },
+        )
+        self.assertEqual(len(filtered), 0)
+
     def test_stage0_cli_handles_missing_optional_columns(self):
         shared_samples, _ = self.run_cli(rows=build_minimal_optional_column_rows())
         self.assertGreater(len(shared_samples), 0)
@@ -351,10 +420,9 @@ class Stage0ContractTests(unittest.TestCase):
         selected = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "100000001"]
         self.assertGreater(len(selected), 0)
         self.assertTrue((selected["tax_period_end"] == "2023-12-31").all())
-        # EIN 100000014 has submitted_on set (IRS-sourced) — must be included, not filtered out
-        all_eins = set(shared_samples["ein"].astype(str))
-        # Verify IRS-sourced rows are eligible (not silently dropped)
-        self.assertGreater(len(shared_samples), 0)
+        irs_row = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "100000011"]
+        self.assertGreater(len(irs_row), 0)
+        self.assertTrue((irs_row["submitted_on"] == "2026-01-01T00:00:00Z").all())
 
     def test_checked_in_contract_locks_ratified_rules(self):
         contract = json.loads(CHECKED_IN_CONTRACT.read_text())
