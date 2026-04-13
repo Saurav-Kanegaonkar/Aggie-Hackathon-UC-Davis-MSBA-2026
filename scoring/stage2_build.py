@@ -9,12 +9,13 @@ import json
 import logging
 from pathlib import Path
 import subprocess
+import time
 from typing import Union
 
 import pandas as pd
 
 from scoring.stage2_analogs import enrich_recovery_analogs
-from scoring.stage2_hydrate import hydrate_stage2_inputs
+from scoring.stage2_hydrate import canonicalize_stage2_panel, hydrate_stage2_inputs
 from scoring.stage2_stress import enrich_stress_fields
 from scoring.stage2_urgency import enrich_urgency_fields
 
@@ -26,13 +27,24 @@ logging.basicConfig(
 logger = logging.getLogger("stage2_build")
 
 STAGE1_GIT_REF = "origin/main:outputs/stage1/scored_rows.parquet"
-PANEL_PATH = Path("data/processed/panel_990_extended_v4.parquet")
+PANEL_CANDIDATES = (
+    Path("data/processed/panel_990_extended_v4.parquet"),
+    Path("Data/panel_990_extended_v4.parquet"),
+    Path("data/panel_990_extended_v4.parquet"),
+)
 OUTPUT_PATH = Path("outputs/stage2/scored_rows_enriched.parquet")
 SCHEMA_PATH = Path("config/schemas/checkpoint2_scored_row.schema.json")
 
 
 def load_schema(schema_path: Path = SCHEMA_PATH) -> dict:
     return json.loads(schema_path.read_text())
+
+
+def resolve_panel_path() -> Path:
+    for candidate in PANEL_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return PANEL_CANDIDATES[0]
 
 
 def _as_frame(value: Union[pd.DataFrame, Path, str]) -> pd.DataFrame:
@@ -76,34 +88,58 @@ def ensure_schema_columns(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
 
 def build_stage2(
     stage1_path: Union[pd.DataFrame, Path, str] = STAGE1_GIT_REF,
-    panel_path: Union[pd.DataFrame, Path, str] = PANEL_PATH,
+    panel_path: Union[pd.DataFrame, Path, str] = resolve_panel_path(),
     output_path: Path = OUTPUT_PATH,
     schema_path: Path = SCHEMA_PATH,
 ) -> pd.DataFrame:
+    started = time.perf_counter()
     logger.info("Loading Stage 1 parquet source: %s", stage1_path)
     stage1_df = _as_frame(stage1_path)
+    logger.info("Stage 1 load completed in %.2fs", time.perf_counter() - started)
+
+    started = time.perf_counter()
     logger.info("Loading canonical panel for hydration: %s", panel_path)
     panel_df = _as_frame(panel_path)
+    logger.info("Panel load completed in %.2fs", time.perf_counter() - started)
 
-    hydrated = hydrate_stage2_inputs(stage1_df, panel_df)
+    started = time.perf_counter()
+    canonical_panel = canonicalize_stage2_panel(panel_df)
+    logger.info("Panel canonicalization completed in %.2fs", time.perf_counter() - started)
+
+    started = time.perf_counter()
+    hydrated = hydrate_stage2_inputs(stage1_df, canonical_panel, canonicalized=True)
+    logger.info("Hydration completed in %.2fs", time.perf_counter() - started)
+
+    started = time.perf_counter()
     stressed = enrich_stress_fields(hydrated)
-    analoged = enrich_recovery_analogs(stressed, panel_df)
-    enriched = enrich_urgency_fields(analoged)
+    logger.info("Stress enrichment completed in %.2fs", time.perf_counter() - started)
 
+    started = time.perf_counter()
+    urgency_enriched = enrich_urgency_fields(stressed)
+    logger.info("Urgency enrichment completed in %.2fs", time.perf_counter() - started)
+
+    started = time.perf_counter()
+    analoged = enrich_recovery_analogs(urgency_enriched, canonical_panel, canonicalized=True)
+    logger.info("Analog enrichment completed in %.2fs", time.perf_counter() - started)
+
+    started = time.perf_counter()
     schema = load_schema(schema_path)
-    enriched = ensure_schema_columns(enriched, schema)
-    validate_stage2_output(stage1_df, enriched, schema)
+    analoged = ensure_schema_columns(analoged, schema)
+    validate_stage2_output(stage1_df, analoged, schema)
+    logger.info("Validation completed in %.2fs", time.perf_counter() - started)
 
+    started = time.perf_counter()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    enriched.to_parquet(output_path, index=False)
-    logger.info("Wrote %s rows to %s", len(enriched), output_path)
-    return enriched
+    analoged.to_parquet(output_path, index=False)
+    logger.info("Write completed in %.2fs", time.perf_counter() - started)
+    logger.info("Wrote %s rows to %s", len(analoged), output_path)
+    return analoged
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build Fairlight Stage 2 enriched rows.")
     parser.add_argument("--stage1", default=STAGE1_GIT_REF)
-    parser.add_argument("--panel", default=str(PANEL_PATH))
+    parser.add_argument("--panel", default=str(resolve_panel_path()))
     parser.add_argument("--output", default=str(OUTPUT_PATH))
     parser.add_argument("--schema", default=str(SCHEMA_PATH))
     args = parser.parse_args()

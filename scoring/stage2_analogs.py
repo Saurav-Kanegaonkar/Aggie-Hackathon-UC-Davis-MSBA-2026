@@ -4,13 +4,14 @@ from pathlib import Path
 
 import pandas as pd
 
+from scoring.stage2_hydrate import canonicalize_stage2_panel
+
 
 PRIMARY_GAP_ORDER = [
     ("operating_margin_gap", "low_margin", "operating_margin"),
     ("operating_runway_gap", "low_runway", "operating_runway_proxy_months"),
     ("revenue_diversification_gap", "high_concentration_in_volatile_source", "revenue_diversification_index"),
 ]
-
 PRE_WINDOW_YEARS = range(2014, 2020)
 POST_WINDOW_YEARS = range(2020, 2025)
 
@@ -19,33 +20,6 @@ def _as_frame(value: pd.DataFrame | str | Path) -> pd.DataFrame:
     if isinstance(value, pd.DataFrame):
         return value.copy()
     return pd.read_parquet(Path(value))
-
-
-def _canonicalize_panel(panel: pd.DataFrame) -> pd.DataFrame:
-    frame = panel.copy()
-    if "ein" not in frame.columns:
-        frame["ein"] = pd.Series(dtype="object")
-    if "fiscal_year" not in frame.columns:
-        frame["fiscal_year"] = pd.Series(dtype="Int64")
-    for column in ["state", "size_bucket", "ntee_major_category", "org_name"]:
-        if column not in frame.columns:
-            frame[column] = pd.Series(dtype="object")
-    frame["ein"] = frame["ein"].astype(str)
-    frame["fiscal_year"] = pd.to_numeric(frame["fiscal_year"], errors="coerce").astype("Int64")
-    frame["state"] = frame["state"].fillna("").astype(str).str.upper()
-    frame["size_bucket"] = frame["size_bucket"].fillna("").astype(str)
-    frame["ntee_major_category"] = frame["ntee_major_category"].fillna("").astype(str)
-    frame["org_name"] = frame["org_name"].fillna("").astype(str)
-    if "tax_period_end" in frame.columns:
-        frame["tax_period_end"] = frame["tax_period_end"].fillna("").astype(str)
-    else:
-        frame["tax_period_end"] = ""
-    frame = frame.sort_values(
-        ["ein", "fiscal_year", "tax_period_end"],
-        ascending=[True, True, False],
-        kind="mergesort",
-    )
-    return frame.drop_duplicates(subset=["ein", "fiscal_year"], keep="first").reset_index(drop=True)
 
 
 def _derive_operating_margin(row: pd.Series) -> float | None:
@@ -144,7 +118,12 @@ def _candidate_pool(panel: pd.DataFrame, target: pd.Series, kind: str) -> pd.Dat
     return panel[mask & (panel["ein"] != str(target["ein"]))].copy()
 
 
-def _qualifying_candidates(pool: pd.DataFrame, target: pd.Series, kind: str) -> list[dict]:
+def _qualifying_candidates(
+    pool: pd.DataFrame,
+    target: pd.Series,
+    kind: str,
+    valid_history_eins: set[str],
+) -> list[dict]:
     if pool.empty:
         return []
 
@@ -158,9 +137,7 @@ def _qualifying_candidates(pool: pd.DataFrame, target: pd.Series, kind: str) -> 
     if pool.empty:
         return []
 
-    history_sizes = pool.groupby("ein")["fiscal_year"].nunique()
-    valid_eins = set(history_sizes[history_sizes >= 5].index.astype(str))
-    pool = pool[pool["ein"].isin(valid_eins)]
+    pool = pool[pool["ein"].isin(valid_history_eins)]
     if pool.empty:
         return []
 
@@ -241,28 +218,17 @@ def _qualifying_candidates(pool: pd.DataFrame, target: pd.Series, kind: str) -> 
     return candidates[:3]
 
 
-def _select_analogs_for_row(panel: pd.DataFrame, target: pd.Series) -> tuple[str, str | None, list[dict]]:
-    benchmark_status = target.get("benchmark_status")
-    if benchmark_status in {"not_scoreable", "insufficient_resilient_refs"}:
-        return "not_applicable", None, []
-
-    pool = _candidate_pool(panel, target, "strict")
-    candidates = _qualifying_candidates(pool, target, "strict")
-    if not candidates:
-        pool = _candidate_pool(panel, target, "fallback")
-        candidates = _qualifying_candidates(pool, target, "fallback")
-
-    if not candidates:
-        primary_label, _ = _primary_constraint(target)
-        return "none_in_cohort", primary_label, []
-
-    primary_label, _ = _primary_constraint(target)
-    return "found", primary_label, candidates
-
-
-def enrich_recovery_analogs(df: pd.DataFrame, panel: pd.DataFrame | str | Path) -> pd.DataFrame:
+def enrich_recovery_analogs(
+    df: pd.DataFrame,
+    panel: pd.DataFrame | str | Path,
+    *,
+    canonicalized: bool = False,
+) -> pd.DataFrame:
     frame = df.copy()
-    panel_frame = _canonicalize_panel(_as_frame(panel))
+    panel_frame = _as_frame(panel) if canonicalized else canonicalize_stage2_panel(panel)
+    valid_history_eins = set(
+        panel_frame.groupby("ein")["fiscal_year"].nunique().loc[lambda s: s >= 5].index.astype(str)
+    )
 
     recovery_eins: list[list[str]] = []
     recovery_count: list[int] = []
@@ -271,9 +237,32 @@ def enrich_recovery_analogs(df: pd.DataFrame, panel: pd.DataFrame | str | Path) 
     recovery_status: list[str] = []
 
     for _, target in frame.iterrows():
-        status, constraint, candidates = _select_analogs_for_row(panel_frame, target)
-        recovery_status.append(status)
-        recovery_constraint.append(constraint)
+        benchmark_status = target.get("benchmark_status")
+        if benchmark_status in {"not_scoreable", "insufficient_resilient_refs"}:
+            recovery_status.append("not_applicable")
+            recovery_constraint.append(None)
+            recovery_eins.append([])
+            recovery_count.append(0)
+            recovery_evidence.append([])
+            continue
+
+        pool = _candidate_pool(panel_frame, target, "strict")
+        candidates = _qualifying_candidates(pool, target, "strict", valid_history_eins)
+        if not candidates:
+            pool = _candidate_pool(panel_frame, target, "fallback")
+            candidates = _qualifying_candidates(pool, target, "fallback", valid_history_eins)
+
+        primary_label, _ = _primary_constraint(target)
+        if not candidates:
+            recovery_status.append("none_in_cohort")
+            recovery_constraint.append(primary_label)
+            recovery_eins.append([])
+            recovery_count.append(0)
+            recovery_evidence.append([])
+            continue
+
+        recovery_status.append("found")
+        recovery_constraint.append(primary_label)
         recovery_eins.append([candidate["ein"] for candidate in candidates])
         recovery_count.append(len(candidates))
         recovery_evidence.append(
