@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("stage2_build")
 
-STAGE1_GIT_REF = "origin/feat/task-01-a:outputs/stage1/scored_rows.parquet"
+STAGE1_GIT_REF = "origin/main:outputs/stage1/scored_rows.parquet"
 PANEL_PATH = Path("data/processed/panel_990_extended_v4.parquet")
 OUTPUT_PATH = Path("outputs/stage2/scored_rows_enriched.parquet")
 SCHEMA_PATH = Path("config/schemas/checkpoint2_scored_row.schema.json")
