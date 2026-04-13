@@ -327,6 +327,8 @@ The load-bearing Diversify signal is:
 
 This is cohort-relative and therefore interpretable across different nonprofit funding models.
 
+The fixed `-0.30` threshold was calibrated on the April 13 merged Stage 2 parquet by sweeping candidate cutoffs across the post-`Deep Review`, post-`Amplify` eligible pool and selecting the smallest value that produced a final `Diversify` share inside the intended `10% - 15%` range after precedence application. The contract therefore freezes the measured `-0.30` cutoff rather than treating Diversify as an intuition-based threshold.
+
 ## Trend Methodology
 
 `trend_direction` is memo support metadata only. It is not a hard gate for any action label.
@@ -659,18 +661,18 @@ Builders must also report full-dataset label counts and shares.
 
 These are diagnostics, not quotas.
 
-For the April 13 merged Stage 2 parquet and the ratified Stage 3 rules, the baseline dry-run distribution is approximately:
+For the April 13 merged Stage 2 parquet and the ratified Stage 3 rules, the post-calibration baseline dry-run distribution is approximately:
 
 - `Amplify`: `3.35%`
-- `Diversify`: `0.53%`
-- `Stabilize`: `63.21%`
-- `Deep Review`: `32.91%`
+- `Diversify`: `12.28%`
+- `Stabilize`: `51.30%`
+- `Deep Review`: `33.07%`
 
 Sanity-check ranges for this rule shape are:
 
 - `Amplify`: `2% - 6%`
-- `Diversify`: `0% - 2%`
-- `Stabilize`: `55% - 70%`
+- `Diversify`: `10% - 15%`
+- `Stabilize`: `45% - 60%`
 - `Deep Review`: `25% - 40%`
 
 Outputs far outside these ranges should be investigated before submission, but the ranges are not acceptance criteria by themselves.
