@@ -75,10 +75,15 @@
     }
   ],
   "benchmark_window": {
+    "type": "rolling",
     "window_years": 7,
+    "description": "For each scored row at fiscal year Y, the benchmark window is the set of available years in [Y-6 ... Y]. Rolling per-EIN, not a fixed global window.",
     "strict_years_required": 5,
     "relaxed_years_required": 4,
-    "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy."
+    "scoring_years": [2023, 2024],
+    "scoring_year_notes": "FY2023 is fully populated (41,822 CA+WA EINs). FY2024 is 61% complete (26,766 EINs) due to IRS processing lag — usable but flagged.",
+    "top_quartile_rule": "Benchmark metrics are evaluated within cohort-year and traced through the documented fallback hierarchy.",
+    "covid_note": "FY2020-2021 are inside the window for FY2023-2024 scoring. PPP/EIDL inflated margins and runway. Median-based benchmarks dampen this naturally, but implementations should be aware."
   },
   "metric_formulas": {
     "operating_runway_proxy_months": "net_assets_eoy / (total_expenses / 12)",
