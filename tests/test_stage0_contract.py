@@ -162,6 +162,37 @@ def build_curated_panel_rows():
     return rows
 
 
+def build_latest_row_panel_rows():
+    rows = []
+
+    def add(ein: str, state: str, ntee: str | None, revenue: float, tax_period_end: str = "2023-12-31"):
+        rows.append(
+            {
+                "ein": ein,
+                "state": state,
+                "submitted_on": "",
+                "tax_period_end": tax_period_end,
+                "fiscal_year": 2023,
+                "total_revenue": revenue,
+                "total_expenses": revenue * 0.8,
+                "cash_non_interest_bearing": revenue * 0.1,
+                "savings_temporary_investments": revenue * 0.05,
+                "contributions_grants": revenue * 0.25,
+                "program_service_revenue": revenue * 0.65,
+                "investment_income": revenue * 0.05,
+                "ntee_major_category": ntee or "",
+                "return_type": "990",
+            }
+        )
+
+    add("100000001", "CA", "B", 650000, "2023-11-30")
+    add("100000001", "CA", "B", 700000, "2023-12-31")
+    add("100000002", "CA", "B", 900000)
+    add("100000010", "WA", "P", 2200000)
+    add("100000011", "WA", None, 3200000)
+    return rows
+
+
 class Stage0ContractTests(unittest.TestCase):
     def run_cli(self, contract_path: Path | None = None, rows: list[dict] | None = None):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -212,6 +243,35 @@ class Stage0ContractTests(unittest.TestCase):
         ]
         self.assertEqual(list(shared_samples["ein"].astype(str)), expected)
 
+    def test_stage0_cli_errors_on_missing_curated_ein(self):
+        rows = build_curated_panel_rows()
+        rows = [row for row in rows if row["ein"] != "956125213"]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp = Path(tmp_dir)
+            input_path = tmp / "panel.csv"
+            output_dir = tmp / "outputs"
+            pd.DataFrame(rows).to_csv(input_path, index=False, quoting=csv.QUOTE_MINIMAL)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "--input",
+                    str(input_path),
+                    "--contract",
+                    str(CHECKED_IN_CONTRACT),
+                    "--output-dir",
+                    str(output_dir),
+                ],
+                capture_output=True,
+                text=True,
+                cwd=ROOT,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing curated EINs", result.stderr + result.stdout)
+
     def test_stage0_cli_writes_deterministic_shared_samples(self):
         first_samples, first_summary = self.run_cli()
         second_samples, second_summary = self.run_cli()
@@ -223,13 +283,12 @@ class Stage0ContractTests(unittest.TestCase):
         self.assertEqual(set(first_samples["ntee_present"]), {False, True})
 
     def test_stage0_cli_uses_latest_row_per_ein(self):
-        shared_samples, _ = self.run_cli()
+        shared_samples, _ = self.run_cli(rows=build_latest_row_panel_rows())
         # EIN 100000001 has two rows (2023-12-31 and 2023-11-30).
-        # If selected, only the latest should appear.
-        selected = shared_samples[shared_samples["ein"] == 100000001]
-        if len(selected) > 0:
-            self.assertEqual(len(selected), 1)
-            self.assertEqual(selected.iloc[0]["tax_period_end"], "2023-12-31")
+        # If selected, every sampled instance should reflect the latest row.
+        selected = shared_samples[shared_samples["ein"].astype(str).str.zfill(9) == "100000001"]
+        self.assertGreater(len(selected), 0)
+        self.assertTrue((selected["tax_period_end"] == "2023-12-31").all())
         # EIN 100000014 has submitted_on set (IRS-sourced) — must be included, not filtered out
         all_eins = set(shared_samples["ein"].astype(str))
         # Verify IRS-sourced rows are eligible (not silently dropped)

@@ -149,6 +149,9 @@ def select_shared_samples(latest: pd.DataFrame, contract: dict) -> pd.DataFrame:
         ein_order = [str(ein) for ein in selection["eins"]]
         ordered = latest_row_per_ein(latest).copy()
         ordered["ein"] = ordered["ein"].astype(str)
+        missing_eins = [ein for ein in ein_order if ein not in set(ordered["ein"])]
+        if missing_eins:
+            raise ValueError(f"missing curated EINs in panel: {', '.join(missing_eins)}")
         curated = ordered[ordered["ein"].isin(ein_order)].copy()
         curated["_order"] = curated["ein"].map({ein: idx for idx, ein in enumerate(ein_order)})
         curated["sample_state"] = curated["state"]
