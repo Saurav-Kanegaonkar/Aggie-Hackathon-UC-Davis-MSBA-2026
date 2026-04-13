@@ -14,11 +14,20 @@ from analysis.checkpoint1 import (
     load_stage1_inputs,
     write_checkpoint1_outputs,
 )
+from analysis.stage0_contract import DEFAULT_INPUT_CANDIDATES
 
 
 def resolve_repo_path(path: str | Path | None, default: str | Path) -> Path:
     resolved = Path(path or default)
     return resolved if resolved.is_absolute() else ROOT / resolved
+
+
+def resolve_default_input_path() -> Path:
+    for candidate in DEFAULT_INPUT_CANDIDATES:
+        resolved = ROOT / candidate
+        if resolved.exists():
+            return resolved
+    raise FileNotFoundError("No default checkpoint input found under data/ or data/processed/.")
 
 
 def parse_args() -> argparse.Namespace:
@@ -39,7 +48,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    input_path = resolve_repo_path(args.input, "data/panel_990_extended_v4.parquet")
+    input_path = resolve_repo_path(args.input, args.input) if args.input else resolve_default_input_path()
     contract_path = resolve_repo_path(args.contract, "config/checkpoint1_contract.json")
     output_dir = resolve_repo_path(args.output_dir, "outputs/stage1")
 
