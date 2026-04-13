@@ -326,6 +326,39 @@ def evaluate_model(y_true: pd.Series, probs: np.ndarray, decision_threshold: flo
     return metrics
 
 
+def summarize_tier_outcomes(test_frame: pd.DataFrame) -> dict:
+    grouped = (
+        test_frame.groupby("distress_tier")
+        .agg(n=("target", "size"), urgency_rate=("target", "mean"))
+        .reset_index()
+    )
+    summary = {
+        row["distress_tier"]: {"n": int(row["n"]), "urgency_rate": float(row["urgency_rate"])}
+        for _, row in grouped.iterrows()
+    }
+    high = summary.get("High", {})
+    low = summary.get("Low", {})
+    high_rate = high.get("urgency_rate")
+    low_rate = low.get("urgency_rate")
+    summary_payload = {
+        "tiers": summary,
+        "high_vs_low_outcome_lift": float(high_rate / low_rate) if high_rate is not None and low_rate not in (None, 0) else None,
+        "high_vs_baseline_outcome_lift": float(high_rate / float(test_frame["target"].mean())) if high_rate is not None else None,
+    }
+
+    yearly = {}
+    for year, year_df in test_frame.groupby("fiscal_year"):
+        year_grouped = year_df.groupby("distress_tier")["target"].mean()
+        if "High" in year_grouped.index and "Low" in year_grouped.index and year_grouped["Low"] > 0:
+            yearly[str(int(year))] = {
+                "high_rate": float(year_grouped["High"]),
+                "low_rate": float(year_grouped["Low"]),
+                "lift": float(year_grouped["High"] / year_grouped["Low"]),
+            }
+    summary_payload["yearly"] = yearly
+    return summary_payload
+
+
 def _plot_roc(y_true: pd.Series, probs: np.ndarray, path: Path) -> None:
     fpr, tpr, _ = roc_curve(y_true, probs)
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -434,6 +467,11 @@ def train_and_score(panel_path: Path = PANEL_PATH, stage2_path: Path = STAGE2_PA
     _plot_pr(y_test, test_probs, PR_CURVE_PATH)
     _plot_calibration(y_test, test_probs, CALIBRATION_PATH)
 
+    test_scored = test[["ein", "fiscal_year", "target"]].copy()
+    test_scored["distress_prob"] = test_probs
+    test_scored["distress_tier"] = assign_distress_tiers(pd.Series(test_probs, index=test_scored.index), medium_cutoff, high_cutoff)
+    tier_outcomes = summarize_tier_outcomes(test_scored)
+
     stage2 = pd.read_parquet(stage2_path, columns=["ein", "fiscal_year"])
     scoring = prepare_stage2_scoring_frame(stage2, panel)
     score_features = normalize_feature_dtypes(scoring[DISTRESS_NUMERIC_FEATURES + DISTRESS_CATEGORICAL_FEATURES])
@@ -462,6 +500,10 @@ def train_and_score(panel_path: Path = PANEL_PATH, stage2_path: Path = STAGE2_PA
         "stage2_scored_rows": int(len(scoring_output)),
         "stage2_tier_counts": {k: int(v) for k, v in scoring_output["distress_tier"].value_counts().to_dict().items()},
         "high_risk_lift_vs_baseline": lift,
+        "test_tier_outcomes": tier_outcomes["tiers"],
+        "test_high_vs_low_outcome_lift": tier_outcomes["high_vs_low_outcome_lift"],
+        "test_high_vs_baseline_outcome_lift": tier_outcomes["high_vs_baseline_outcome_lift"],
+        "test_yearly_high_vs_low_outcome_lift": tier_outcomes["yearly"],
     }
     METRICS_PATH.write_text(json.dumps(metrics_payload, indent=2))
     logger.info("Wrote predictions to %s", PREDICTIONS_PATH)
