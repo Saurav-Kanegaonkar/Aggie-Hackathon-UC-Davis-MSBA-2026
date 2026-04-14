@@ -18,6 +18,23 @@ STAGE3_PATH = ROOT / "outputs" / "stage3" / "scored_rows_with_actions.parquet"
 STAGE4_PATH = ROOT / "outputs" / "stage4" / "distress_predictions.parquet"
 RAW_PANEL_PATH = ROOT / "Data" / "panel_990_extended_v4.parquet"
 METRICS_PATH = ROOT / "outputs" / "stage4" / "distress_model_metrics.json"
+RAW_PANEL_COLUMNS = [
+    "ein",
+    "fiscal_year",
+    "tax_period_end",
+    "org_name",
+    "ntee_major_category",
+    "state",
+    "total_revenue",
+    "total_expenses",
+    "net_assets_eoy",
+    "cash_non_interest_bearing",
+    "savings_temporary_investments",
+    "pct_contributions",
+    "pct_program_revenue",
+    "pct_investment_income",
+    "pct_other_revenue",
+]
 
 ACTION_QUOTAS = {
     "Deep Review": 30,
@@ -48,23 +65,35 @@ SOURCE_LABELS = {
 }
 
 
-def _read_stage_data() -> pd.DataFrame:
+def _read_raw_panel() -> pd.DataFrame:
+    raw = pd.read_parquet(RAW_PANEL_PATH, columns=RAW_PANEL_COLUMNS)
+    raw["tax_period_end"] = pd.to_datetime(raw["tax_period_end"], errors="coerce")
+    return raw.sort_values(["ein", "fiscal_year", "tax_period_end"]).drop_duplicates(["ein", "fiscal_year"], keep="last")
+
+
+def _read_stage_data(raw: pd.DataFrame) -> pd.DataFrame:
     stage3 = pd.read_parquet(STAGE3_PATH)
     stage4 = pd.read_parquet(STAGE4_PATH)
-    raw = pd.read_parquet(
-        RAW_PANEL_PATH,
-        columns=["ein", "fiscal_year", "tax_period_end", "org_name", "ntee_major_category", "total_revenue", "state"],
-    )
-    raw["tax_period_end"] = pd.to_datetime(raw["tax_period_end"], errors="coerce")
-    raw = raw.sort_values(["ein", "fiscal_year", "tax_period_end"]).drop_duplicates(["ein", "fiscal_year"], keep="last")
 
     merged = stage3.merge(stage4, on=["ein", "fiscal_year"], how="left", validate="one_to_one")
+    filing_history = (
+        raw.dropna(subset=["ein", "fiscal_year"])
+        .drop_duplicates(["ein", "fiscal_year"])
+        .groupby("ein", as_index=False)
+        .agg(
+            filing_years_observed=("fiscal_year", "nunique"),
+            first_filing_year=("fiscal_year", "min"),
+            latest_filing_year=("fiscal_year", "max"),
+        )
+    )
+
     merged = merged.merge(
         raw[["ein", "fiscal_year", "org_name", "ntee_major_category", "total_revenue"]],
         on=["ein", "fiscal_year"],
         how="left",
         validate="one_to_one",
     )
+    merged = merged.merge(filing_history, on="ein", how="left", validate="many_to_one")
     merged = merged.sort_values(["ein", "fiscal_year"]).groupby("ein", as_index=False).tail(1).reset_index(drop=True)
     return merged
 
@@ -100,6 +129,87 @@ def _format_percent(value: Any) -> str:
 def _format_delta(value: Any) -> str:
     numeric = _optional_float(value, 0.0)
     return "{:+.2f}".format(numeric)
+
+
+def _safe_ratio(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
+    denominator = pd.to_numeric(denominator, errors="coerce")
+    numerator = pd.to_numeric(numerator, errors="coerce")
+    return numerator.where(denominator.abs() > 1e-9) / denominator.where(denominator.abs() > 1e-9)
+
+
+def _build_history_support(
+    raw: pd.DataFrame,
+    target_eins: set[str],
+    target_peer_keys: set[tuple[str, str]],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, str], list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
+    panel = raw[raw["ein"].astype(str).isin(target_eins)].copy()
+    panel["total_revenue"] = pd.to_numeric(panel["total_revenue"], errors="coerce")
+    panel["total_expenses"] = pd.to_numeric(panel["total_expenses"], errors="coerce")
+    panel["net_assets_eoy"] = pd.to_numeric(panel["net_assets_eoy"], errors="coerce")
+    panel["cash_non_interest_bearing"] = pd.to_numeric(panel["cash_non_interest_bearing"], errors="coerce")
+    panel["savings_temporary_investments"] = pd.to_numeric(panel["savings_temporary_investments"], errors="coerce")
+    panel["operating_margin_ratio"] = _safe_ratio(panel["total_revenue"] - panel["total_expenses"], panel["total_revenue"])
+    panel["liquid_reserves"] = panel["cash_non_interest_bearing"].fillna(0) + panel["savings_temporary_investments"].fillna(0)
+
+    history_lookup: dict[str, list[dict[str, Any]]] = {}
+    composition_lookup: dict[str, list[dict[str, Any]]] = {}
+
+    for ein, group in panel.groupby("ein", sort=False):
+        ordered = group.sort_values("fiscal_year")
+        history_lookup[str(ein)] = [
+            {
+                "fiscalYear": int(row.fiscal_year),
+                "revenue": round(_optional_float(row.total_revenue), 2),
+                "expenses": round(_optional_float(row.total_expenses), 2),
+                "netAssets": round(_optional_float(row.net_assets_eoy), 2),
+                "liquidReserves": round(_optional_float(row.liquid_reserves), 2),
+                "operatingMargin": round(_optional_float(row.operating_margin_ratio) * 100.0, 1),
+            }
+            for row in ordered.itertuples()
+        ]
+        composition_lookup[str(ein)] = [
+            {
+                "fiscalYear": int(row.fiscal_year),
+                "contributionsPct": round(_optional_float(row.pct_contributions) * 100.0, 1),
+                "programPct": round(_optional_float(row.pct_program_revenue) * 100.0, 1),
+                "investmentPct": round(_optional_float(row.pct_investment_income) * 100.0, 1),
+                "otherPct": round(_optional_float(row.pct_other_revenue) * 100.0, 1),
+            }
+            for row in ordered.itertuples()
+        ]
+
+    peer_lookup: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    peer_keys_df = pd.DataFrame(sorted(target_peer_keys), columns=["state", "ntee_major_category"])
+    peer_source = raw.merge(peer_keys_df, on=["state", "ntee_major_category"], how="inner").copy()
+    peer_source["total_revenue"] = pd.to_numeric(peer_source["total_revenue"], errors="coerce")
+    peer_source["total_expenses"] = pd.to_numeric(peer_source["total_expenses"], errors="coerce")
+    peer_source["operating_margin_ratio"] = _safe_ratio(
+        peer_source["total_revenue"] - peer_source["total_expenses"],
+        peer_source["total_revenue"],
+    )
+
+    peer_history = (
+        peer_source.dropna(subset=["state", "ntee_major_category", "fiscal_year", "operating_margin_ratio"])
+        .groupby(["state", "ntee_major_category", "fiscal_year"], as_index=False)
+        .agg(
+            peerMarginQ25=("operating_margin_ratio", lambda values: round(float(values.quantile(0.25) * 100.0), 1)),
+            peerMarginMedian=("operating_margin_ratio", lambda values: round(float(values.quantile(0.50) * 100.0), 1)),
+            peerMarginQ75=("operating_margin_ratio", lambda values: round(float(values.quantile(0.75) * 100.0), 1)),
+        )
+    )
+
+    for (state, ntee), group in peer_history.groupby(["state", "ntee_major_category"], sort=False):
+        peer_lookup[(str(state), str(ntee))] = [
+            {
+                "fiscalYear": int(row.fiscal_year),
+                "peerMarginQ25": round(_optional_float(row.peerMarginQ25), 1),
+                "peerMarginMedian": round(_optional_float(row.peerMarginMedian), 1),
+                "peerMarginQ75": round(_optional_float(row.peerMarginQ75), 1),
+            }
+            for row in group.sort_values("fiscal_year").itertuples()
+        ]
+
+    return history_lookup, peer_lookup, composition_lookup
 
 
 def _humanize_action_reason(row: pd.Series) -> str:
@@ -183,6 +293,48 @@ def _stress_summary(row: pd.Series) -> dict[str, Any]:
         "severity50": _optional_str(row.get("stress_50pct_severity"), "unavailable").title(),
         "burnMonths25": None if pd.isna(row.get("stress_25pct_burn_months")) else round(float(row["stress_25pct_burn_months"]), 1),
         "burnMonths50": None if pd.isna(row.get("stress_50pct_burn_months")) else round(float(row["stress_50pct_burn_months"]), 1),
+    }
+
+
+def _confidence_score(confidence_tier: str) -> float:
+    return {"High": 95.0, "Medium": 75.0, "Low": 52.0}.get(confidence_tier, 75.0)
+
+
+def _operating_margin_score(margin_pct: float) -> float:
+    if margin_pct >= 12:
+        return 92.0
+    if margin_pct >= 6:
+        return 80.0
+    if margin_pct >= 0:
+        return 64.0
+    if margin_pct >= -8:
+        return 40.0
+    return 18.0
+
+
+def _revenue_mix_score(diversification_index: float) -> float:
+    if diversification_index >= 0.5:
+        return 90.0
+    if diversification_index >= 0.35:
+        return 74.0
+    if diversification_index >= 0.2:
+        return 58.0
+    if diversification_index >= 0.05:
+        return 38.0
+    return 20.0
+
+
+def _score_drivers(row: pd.Series) -> dict[str, float]:
+    distress_protection = round(max(0.0, 100.0 - (_optional_float(row.get("distress_prob")) * 100.0)), 1)
+    operating_margin = round(_optional_float(row.get("operating_margin")) * 100.0, 1)
+    revenue_mix = round(_optional_float(row.get("revenue_diversification_index")), 3)
+    confidence_tier = _optional_str(row.get("checkpoint1_confidence_tier"), "Medium")
+
+    return {
+        "distressProtection": distress_protection,
+        "operatingMargin": _operating_margin_score(operating_margin),
+        "revenueMix": _revenue_mix_score(revenue_mix),
+        "evidenceQuality": _confidence_score(confidence_tier),
     }
 
 
@@ -288,20 +440,32 @@ def _curated_shortlist(df: pd.DataFrame) -> pd.DataFrame:
     return selected
 
 
-def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]:
+def _organization_record(
+    row: pd.Series,
+    baseline_rate: float,
+    history_lookup: dict[str, list[dict[str, Any]]],
+    peer_lookup: dict[tuple[str, str], list[dict[str, Any]]],
+    composition_lookup: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
     distress_prob = _optional_float(row["distress_prob"])
     recommendation_caveats = [
         _confidence_note(row),
         f"Stress posture: {_optional_str(row.get('stress_25pct_severity'), 'unavailable').title()} under a 25% source shock.",
     ]
+    ein = _optional_str(row["ein"])
+    state = _optional_str(row["state"])
+    ntee_category = _optional_str(row.get("ntee_major_category"), "Unclassified") or "Unclassified"
 
     return {
         "id": f"{row['ein']}-{int(row['fiscal_year'])}",
-        "ein": _optional_str(row["ein"]),
+        "ein": ein,
         "orgName": _optional_str(row["org_name"], "Unknown organization"),
         "fiscalYear": int(row["fiscal_year"]),
-        "state": _optional_str(row["state"]),
-        "nteeCategory": _optional_str(row.get("ntee_major_category"), "Unclassified") or "Unclassified",
+        "filingYearsObserved": int(_optional_float(row.get("filing_years_observed"), 1)),
+        "firstFilingYear": int(_optional_float(row.get("first_filing_year"), row["fiscal_year"])),
+        "latestFilingYear": int(_optional_float(row.get("latest_filing_year"), row["fiscal_year"])),
+        "state": state,
+        "nteeCategory": ntee_category,
         "sizeBucket": _optional_str(row.get("size_bucket"), "Unknown"),
         "revenueAmount": None if pd.isna(row.get("total_revenue")) else round(float(row["total_revenue"]), 2),
         "revenueDisplay": _format_currency(row.get("total_revenue")),
@@ -316,6 +480,10 @@ def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]
         "confidenceNote": _confidence_note(row),
         "trendDirection": _optional_str(row.get("trend_direction"), "unavailable"),
         "memoText": _optional_str(row["memo_text"]),
+        "historicalFinancials": history_lookup.get(ein, []),
+        "peerOperatingMarginHistory": peer_lookup.get((state, ntee_category), []),
+        "revenueCompositionHistory": composition_lookup.get(ein, []),
+        "scoreDrivers": _score_drivers(row),
         "benchmark": {
             "headline": f"{_optional_str(row['action_label'])} vs peer benchmark",
             "operatingMarginGap": _format_delta(row.get("operating_margin_gap")),
@@ -348,9 +516,19 @@ def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]
 
 def export_dataset(output_path: Path) -> dict[str, Any]:
     baseline_rate = _load_baseline_rate()
-    curated = _curated_shortlist(_read_stage_data())
+    raw_panel = _read_raw_panel()
+    curated = _curated_shortlist(_read_stage_data(raw_panel))
+    target_eins = {str(ein) for ein in curated["ein"].astype(str).tolist()}
+    target_peer_keys = {
+        (str(state), str(category))
+        for state, category in curated[["state", "ntee_major_category"]].itertuples(index=False, name=None)
+    }
+    history_lookup, peer_lookup, composition_lookup = _build_history_support(raw_panel, target_eins, target_peer_keys)
 
-    organizations = [_organization_record(row, baseline_rate) for _, row in curated.iterrows()]
+    organizations = [
+        _organization_record(row, baseline_rate, history_lookup, peer_lookup, composition_lookup)
+        for _, row in curated.iterrows()
+    ]
     payload = {
         "generatedAt": datetime.now(UTC).isoformat(),
         "summary": {

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { DecisionLab } from "./components/DecisionLab";
-import { FundingDecisionPanel } from "./components/FundingDecisionPanel";
 import { PortfolioInbox } from "./components/PortfolioInbox";
 import { getInboxCopy } from "./lib/advisorLanguage";
 import type { AdvisorDataset, OrganizationRecord } from "./types";
@@ -20,7 +19,6 @@ export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [recommendationOpen, setRecommendationOpen] = useState(false);
   const [actionFilter, setActionFilter] = useState<string>("All");
   const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [sizeBucketFilter, setSizeBucketFilter] = useState<string>("All");
@@ -117,14 +115,12 @@ export default function App() {
   const handleSelectOrganization = (organization: OrganizationRecord) => {
     startTransition(() => {
       setSelectedId(organization.id);
-      setRecommendationOpen(false);
     });
   };
 
   const handleReturnToPortfolio = () => {
     startTransition(() => {
       setSelectedId(null);
-      setRecommendationOpen(false);
     });
   };
 
@@ -196,9 +192,11 @@ export default function App() {
         <div className="pointer-events-none fixed inset-0">
           <div className="absolute left-[-6rem] top-[-4rem] h-[28rem] w-[28rem] rounded-full bg-white/70 blur-3xl" />
           <div className="absolute right-[-8rem] top-[6rem] h-[30rem] w-[30rem] rounded-full bg-emerald-100/30 blur-3xl" />
+          <div className="northstar-halftone northstar-halftone--top" />
+          <div className="northstar-halftone northstar-halftone--bottom" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
           <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
             <div className={`grid gap-6 ${workspaceOpen ? "" : "xl:grid-cols-[1fr_auto]"}`}>
               <div className="space-y-4">
@@ -254,7 +252,6 @@ export default function App() {
                   <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
                     <DecisionLab
                       organization={selectedOrganization}
-                      onPrepareRecommendation={() => setRecommendationOpen(true)}
                       onReturnToPortfolio={handleReturnToPortfolio}
                     />
                   </div>
@@ -287,18 +284,6 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          <AnimatePresence initial={false}>
-            {workspaceOpen && selectedOrganization && recommendationOpen ? (
-              <motion.div
-                key="funding-decision-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <FundingDecisionPanel organization={selectedOrganization} onClose={() => setRecommendationOpen(false)} />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </main>
   );

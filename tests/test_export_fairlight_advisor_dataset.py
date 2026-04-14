@@ -28,11 +28,21 @@ class ExportFairlightAdvisorDatasetTests(unittest.TestCase):
                 "confidenceTier",
                 "memoText",
                 "scenarioCards",
+                "historicalFinancials",
+                "peerOperatingMarginHistory",
+                "revenueCompositionHistory",
+                "scoreDrivers",
             ]:
                 self.assertIn(key, first)
 
             self.assertEqual(len(first["scenarioCards"]), 3)
             self.assertIn(first["distressTier"], {"Low", "Medium", "High"})
+            self.assertGreaterEqual(len(first["historicalFinancials"]), 5)
+            self.assertGreaterEqual(len(first["peerOperatingMarginHistory"]), 3)
+            self.assertEqual(
+                {"distressProtection", "operatingMargin", "revenueMix", "evidenceQuality"},
+                set(first["scoreDrivers"].keys()),
+            )
 
             reloaded = json.loads(output_path.read_text())
             self.assertEqual(reloaded["summary"]["totalOrganizations"], payload["summary"]["totalOrganizations"])
