@@ -66,8 +66,8 @@ function ExpandedMixChart({
   color: string;
   values: number[];
 }) {
-  const width = 920;
-  const height = 320;
+  const width = 1120;
+  const height = 470;
   const max = Math.max(...values, 100);
   const min = 0;
   const span = Math.max(1, max - min);
@@ -77,21 +77,21 @@ function ExpandedMixChart({
   const yTicks = [max, Math.round(max / 2), 0];
 
   return (
-    <div className="space-y-5">
-      <div className="overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-5">
-        <svg viewBox={`0 0 ${width + 60} ${height + 40}`} className="w-full">
+    <div className="flex h-full min-h-0 flex-col gap-5">
+      <div className="flex-1 overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-5">
+        <svg viewBox={`0 0 ${width + 68} ${height + 58}`} className="h-full w-full">
           {yTicks.map((tick) => {
-            const y = 20 + height - ((tick - min) / span) * height;
+            const y = 24 + height - ((tick - min) / span) * height;
             return (
               <g key={tick}>
-                <line x1="52" y1={y} x2={width + 52} y2={y} className="decision-gridline" />
+                <line x1="58" y1={y} x2={width + 58} y2={y} className="decision-gridline" />
                 <text x="0" y={y + 4} className="fill-slate-400 text-[11px] tracking-[0.12em] uppercase">
                   {`${Math.round(tick)}%`}
                 </text>
               </g>
             );
           })}
-          <g transform="translate(52 20)">
+          <g transform="translate(58 24)">
             {values.map((value, index) => {
               const x = index * (barWidth + 10);
               const h = ((value - min) / span) * height;
@@ -106,7 +106,7 @@ function ExpandedMixChart({
               return (
                 <g key={`mix-point-${index}`}>
                   <circle cx={x} cy={y} r="5.5" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="2.5" />
-                  <text x={x} y={Math.max(14, y - 12)} textAnchor="middle" className="fill-slate-500 text-[11px] tracking-[0.08em] uppercase">
+                  <text x={x} y={Math.max(16, y - 14)} textAnchor="middle" className="fill-slate-500 text-[11px] tracking-[0.08em] uppercase">
                     {`${Math.round(value)}%`}
                   </text>
                 </g>
@@ -116,8 +116,8 @@ function ExpandedMixChart({
           {keyLabelIndexes.map((index) => (
             <text
               key={labels[index]}
-              x={52 + index * (barWidth + 10) + barWidth / 2}
-              y={height + 52}
+              x={58 + index * (barWidth + 10) + barWidth / 2}
+              y={height + 66}
               textAnchor="middle"
               className="fill-slate-400 text-[10px] tracking-[0.12em] uppercase"
             >
@@ -125,6 +125,14 @@ function ExpandedMixChart({
             </text>
           ))}
         </svg>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {keyPointIndexes.map((index) => (
+          <div key={`mix-summary-${index}`} className="rounded-[1.2rem] border border-black/6 bg-white/78 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{labels[index]}</p>
+            <p className="mt-2 text-lg font-semibold tracking-[-0.04em] text-slate-950">{`${Math.round(values[index])}%`}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

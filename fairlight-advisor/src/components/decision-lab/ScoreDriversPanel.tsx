@@ -59,7 +59,7 @@ function driverNote(label: string, value: number) {
 export function ScoreDriversPanel({ model }: { model: DecisionLabModel }) {
   return (
     <PanelShell
-      title="Why the score lands here"
+      title="Score breakdown"
       guideTitle="How to read this panel"
       guideBullets={[
         "Each row shows one ingredient feeding the Northstar Score on a 0 to 100 scale.",
@@ -67,7 +67,7 @@ export function ScoreDriversPanel({ model }: { model: DecisionLabModel }) {
         "Use this panel to explain the score in plain language, not as a second recommendation.",
       ]}
     >
-      <div className="grid gap-3">
+      <div className="grid gap-3 overflow-hidden">
         {model.scoreDrivers.map((driver) => {
           const tone = toneForValue(driver.value);
 

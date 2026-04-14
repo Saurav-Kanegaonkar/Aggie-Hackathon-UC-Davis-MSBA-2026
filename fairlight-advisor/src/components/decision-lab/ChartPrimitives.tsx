@@ -131,7 +131,7 @@ export function PanelShell({
 
   return (
     <section
-      className={`decision-chart-surface rounded-[2.2rem] border border-black/6 p-6 transition-shadow duration-200 hover:shadow-[0_30px_70px_-44px_rgba(15,23,42,0.2)] ${canFlip ? "cursor-pointer" : ""}`}
+      className={`decision-chart-surface overflow-hidden rounded-[2.2rem] border border-black/6 p-6 transition-shadow duration-200 hover:shadow-[0_30px_70px_-44px_rgba(15,23,42,0.2)] ${canFlip ? "cursor-pointer" : ""}`}
       onClick={canFlip ? () => setShowGuide((value) => !value) : undefined}
       role={canFlip ? "button" : undefined}
       tabIndex={canFlip ? 0 : undefined}
@@ -509,14 +509,14 @@ export function ChartDetailModal({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(243,239,231,0.5)] p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(243,239,231,0.54)] p-6 backdrop-blur-md">
       <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail" />
-      <section className="relative z-[1] h-[min(84vh,880px)] w-[min(88vw,1280px)] rounded-[2.6rem] border border-black/6 bg-[rgba(255,253,248,0.98)] p-2 shadow-[0_46px_120px_-48px_rgba(15,23,42,0.28)]">
-        <div className="flex h-full flex-col rounded-[calc(2.6rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(250,246,240,0.94))] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <section className="relative z-[1] h-[min(88vh,940px)] w-[min(92vw,1380px)] rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.98)] p-2 shadow-[0_46px_120px_-48px_rgba(15,23,42,0.28)]">
+        <div className="flex h-full flex-col rounded-[calc(2.8rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(250,246,240,0.94))] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-[2.1rem] font-semibold tracking-[-0.06em] text-slate-950">{title}</h4>
-              {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">{subtitle}</p> : null}
+              {subtitle ? <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">{subtitle}</p> : null}
             </div>
             <div className="flex items-center gap-3">
               {guideTitle && guideBullets?.length ? (
@@ -545,7 +545,7 @@ export function ChartDetailModal({
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
             >
-              <div className="h-full overflow-hidden rounded-[1.9rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-5">{children}</div>
+              <div className="h-full overflow-hidden rounded-[1.9rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-6">{children}</div>
             </div>
 
             {guideTitle && guideBullets?.length ? (
