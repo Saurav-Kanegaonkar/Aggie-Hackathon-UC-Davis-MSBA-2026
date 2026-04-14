@@ -13,6 +13,23 @@ describe("Fairlight advisor workspace", () => {
     expect(screen.queryByRole("heading", { name: /funding decision/i })).not.toBeInTheDocument();
   });
 
+  it("shows the redesigned inbox controls and compact row metrics", async () => {
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /cases for review/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /revenue bucket/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /filter/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^sort/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /state/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /refine/i })).not.toBeInTheDocument();
+
+    expect(screen.getAllByText(/operating margin/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/revenue mix/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/confidence/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/northstar score/i).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/stability index/i)).toHaveLength(0);
+  });
+
   it("reveals the decision lab inline after selecting an organization", async () => {
     const user = userEvent.setup();
     render(<App />);

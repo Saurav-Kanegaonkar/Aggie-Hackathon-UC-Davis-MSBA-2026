@@ -366,8 +366,80 @@ function computeStabilityIndex(organization: OrganizationRecord): number {
   return Math.round(marginScore * 0.4 + runwayScore * 0.35 + diversificationScore * 0.25);
 }
 
+function confidenceScore(confidenceTier: OrganizationRecord["confidenceTier"]): number {
+  switch (confidenceTier) {
+    case "High":
+      return 95;
+    case "Medium":
+      return 75;
+    case "Low":
+      return 52;
+  }
+}
+
+function operatingMarginScore(organization: OrganizationRecord): number {
+  const margin = organization.operatingMargin;
+
+  if (margin >= 12) {
+    return 92;
+  }
+  if (margin >= 6) {
+    return 80;
+  }
+  if (margin >= 0) {
+    return 64;
+  }
+  if (margin >= -8) {
+    return 40;
+  }
+  return 18;
+}
+
+function concentrationScore(organization: OrganizationRecord): number {
+  const diversification = organization.revenueDiversificationIndex;
+
+  if (diversification >= 0.5) {
+    return 90;
+  }
+  if (diversification >= 0.35) {
+    return 74;
+  }
+  if (diversification >= 0.2) {
+    return 58;
+  }
+  if (diversification >= 0.05) {
+    return 38;
+  }
+  return 20;
+}
+
 function computeNorthstarScore(organization: OrganizationRecord): number {
-  return Math.round(clamp(100 - organization.distress.probability, 0, 100));
+  const distressProtection = clamp(100 - organization.distress.probability, 0, 100);
+  const marginStrength = operatingMarginScore(organization);
+  const concentrationStrength = concentrationScore(organization);
+  const evidenceStrength = confidenceScore(organization.confidenceTier);
+
+  let score =
+    distressProtection * 0.65 +
+    marginStrength * 0.2 +
+    concentrationStrength * 0.1 +
+    evidenceStrength * 0.05;
+
+  if (organization.distress.probability >= 70) {
+    score = Math.min(score, 32);
+  } else if (organization.distress.probability >= 60) {
+    score = Math.min(score, 42);
+  } else if (organization.distress.probability >= 50) {
+    score = Math.min(score, 55);
+  } else if (organization.distress.probability >= 35) {
+    score = Math.min(score, 70);
+  }
+
+  if (organization.confidenceTier === "Low") {
+    score = Math.min(score, 72);
+  }
+
+  return Math.round(clamp(score, 0, 100));
 }
 
 function formatRiskChance(probability: number): string {
@@ -393,6 +465,7 @@ export function getInboxCopy(organization: OrganizationRecord) {
     whyNow: pressurePoint,
     supportNote: confidenceSummary(organization.confidenceTier),
     revenueLabel: organization.revenueDisplay,
+    operatingMarginLabel: `${organization.operatingMargin >= 0 ? "+" : ""}${organization.operatingMargin.toFixed(1)}%`,
     shockWindowLabel: formatShockWindow(organization),
     concentrationLabel: formatLargestSource(organization),
     stabilityIndex,

@@ -324,6 +324,9 @@ def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]
             "peerCohort": _optional_str(row.get("cohort_key")),
             "benchmarkRule": _optional_str(row.get("benchmark_rule")),
         },
+        "operatingRunwayMonths": round(_optional_float(row.get("operating_runway_proxy_months")), 2),
+        "operatingMargin": round(_optional_float(row.get("operating_margin")) * 100.0, 1),
+        "revenueDiversificationIndex": round(_optional_float(row.get("revenue_diversification_index")), 3),
         "stress": _stress_summary(row),
         "distress": {
             "headline": f"{round(distress_prob * 100.0, 1)}% risk vs. {round(baseline_rate * 100.0, 1)}% baseline",

@@ -72,6 +72,9 @@ export interface OrganizationRecord {
   sizeBucket: string;
   revenueAmount: number | null;
   revenueDisplay: string;
+  operatingRunwayMonths: number;
+  operatingMargin: number;
+  revenueDiversificationIndex: number;
   actionLabel: ActionLabel;
   distressTier: DistressTier;
   distressProbability: number;

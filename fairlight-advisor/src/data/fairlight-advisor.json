@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T22:16:25.009801+00:00",
+  "generatedAt": "2026-04-14T01:36:28.501712+00:00",
   "summary": {
     "totalOrganizations": 120,
     "distressBaselineRate": 18.2,
@@ -54,6 +54,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 682528.9,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.428,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -158,6 +161,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 639622.11,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -262,6 +268,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 493644.0,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.006,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -366,6 +375,9 @@
         "peerCohort": "ntee_major_category=S|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 452886.5,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -470,6 +482,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 451720.8,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.031,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -574,6 +589,9 @@
         "peerCohort": "ntee_major_category=O|size_bucket=>10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 350419.55,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.006,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -653,6 +671,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 319988.0,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -757,6 +778,9 @@
         "peerCohort": "ntee_major_category=U|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 313387.41,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -836,6 +860,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 303181.2,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -940,6 +967,9 @@
         "peerCohort": "ntee_major_category=C|size_bucket=2M-10M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 241614.16,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.035,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -1019,6 +1049,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 189353.73,
+      "operatingMargin": 99.8,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -1123,6 +1156,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 138283.83,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -1227,6 +1263,9 @@
         "peerCohort": "ntee_major_category=A|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 106640.27,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.019,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -1331,6 +1370,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=>10M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 101415.51,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.22,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -1435,6 +1477,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 85012.81,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -1539,6 +1584,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 85780.43,
+      "operatingMargin": 99.0,
+      "revenueDiversificationIndex": 0.119,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -1643,6 +1691,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": -86522.05,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -1747,6 +1798,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 74272.35,
+      "operatingMargin": 99.8,
+      "revenueDiversificationIndex": 0.317,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -1851,6 +1905,9 @@
         "peerCohort": "ntee_major_category=J|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 72312.89,
+      "operatingMargin": 99.0,
+      "revenueDiversificationIndex": 0.103,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -1955,6 +2012,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 67366.35,
+      "operatingMargin": 99.8,
+      "revenueDiversificationIndex": 0.03,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -2059,6 +2119,9 @@
         "peerCohort": "ntee_major_category=Q|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 61558.29,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.002,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -2163,6 +2226,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=500K-2M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 58199.1,
+      "operatingMargin": 99.6,
+      "revenueDiversificationIndex": 0.118,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -2267,6 +2333,9 @@
         "peerCohort": "ntee_major_category=A|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 47275.82,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.149,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -2371,6 +2440,9 @@
         "peerCohort": "ntee_major_category=G|size_bucket=500K-2M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 46608.02,
+      "operatingMargin": 99.5,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -2450,6 +2522,9 @@
         "peerCohort": "ntee_major_category=S|size_bucket=>10M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 45575.74,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -2529,6 +2604,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 42383.85,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.14,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -2633,6 +2711,9 @@
         "peerCohort": "size_bucket=>10M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 43881.53,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.3,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -2737,6 +2818,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=2M-10M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 39093.02,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.031,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -2841,6 +2925,9 @@
         "peerCohort": "ntee_major_category=F|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 38236.24,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.364,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -2945,6 +3032,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 39344.02,
+      "operatingMargin": 98.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -3049,6 +3139,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 36964.82,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -3153,6 +3246,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=>10M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 31379.03,
+      "operatingMargin": 99.8,
+      "revenueDiversificationIndex": 0.028,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -3257,6 +3353,9 @@
         "peerCohort": "ntee_major_category=G|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 31203.2,
+      "operatingMargin": 99.2,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -3361,6 +3460,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 28340.54,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -3465,6 +3567,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=>10M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 27311.86,
+      "operatingMargin": 99.8,
+      "revenueDiversificationIndex": 0.253,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -3569,6 +3674,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 25783.79,
+      "operatingMargin": 100.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -3673,6 +3781,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=>10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 24034.71,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.058,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -3752,6 +3863,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": -23571.69,
+      "operatingMargin": 89.2,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -3856,6 +3970,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 24453.79,
+      "operatingMargin": 97.4,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -3960,6 +4077,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 22213.94,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.007,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -4064,6 +4184,9 @@
         "peerCohort": "ntee_major_category=A|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 20468.16,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.046,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -4168,6 +4291,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 19982.78,
+      "operatingMargin": 99.7,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -4272,6 +4398,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 19978.79,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -4376,6 +4505,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 21776.97,
+      "operatingMargin": 99.2,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -4480,6 +4612,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=500K-2M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 21901.36,
+      "operatingMargin": 99.6,
+      "revenueDiversificationIndex": 0.371,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -4584,6 +4719,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 18825.68,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -4688,6 +4826,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 18461.54,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -4792,6 +4933,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=>10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 18222.71,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.024,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -4896,6 +5040,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 18549.05,
+      "operatingMargin": 98.2,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -5000,6 +5147,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 18278.96,
+      "operatingMargin": 97.8,
+      "revenueDiversificationIndex": 0.491,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5104,6 +5254,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 12407.52,
+      "operatingMargin": 98.7,
+      "revenueDiversificationIndex": 0.297,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -5208,6 +5361,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 11798.0,
+      "operatingMargin": 99.6,
+      "revenueDiversificationIndex": 0.033,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5312,6 +5468,9 @@
         "peerCohort": "size_bucket=500K-2M|state=WA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 11509.97,
+      "operatingMargin": 96.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5416,6 +5575,9 @@
         "peerCohort": "size_bucket=<500K|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": -10061.55,
+      "operatingMargin": 96.5,
+      "revenueDiversificationIndex": 0.057,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5520,6 +5682,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 8908.0,
+      "operatingMargin": 97.6,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -5624,6 +5789,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 9044.47,
+      "operatingMargin": 99.4,
+      "revenueDiversificationIndex": 0.181,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -5728,6 +5896,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 7686.89,
+      "operatingMargin": 97.8,
+      "revenueDiversificationIndex": 0.265,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5832,6 +6003,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=2M-10M|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 8402.1,
+      "operatingMargin": 96.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -5936,6 +6110,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 6822.55,
+      "operatingMargin": 94.5,
+      "revenueDiversificationIndex": 0.013,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -6040,6 +6217,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 6845.46,
+      "operatingMargin": 93.3,
+      "revenueDiversificationIndex": 0.286,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -6144,6 +6324,9 @@
         "peerCohort": "size_bucket=2M-10M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 7617.9,
+      "operatingMargin": 94.5,
+      "revenueDiversificationIndex": -0.423,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -6248,6 +6431,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 5729.63,
+      "operatingMargin": 99.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -6352,6 +6538,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 5637.89,
+      "operatingMargin": 95.4,
+      "revenueDiversificationIndex": 0.23,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -6456,6 +6645,9 @@
         "peerCohort": "size_bucket=<500K|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 5530.66,
+      "operatingMargin": 98.4,
+      "revenueDiversificationIndex": 0.141,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -6560,6 +6752,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": -5380.6,
+      "operatingMargin": 96.9,
+      "revenueDiversificationIndex": 0.055,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -6664,6 +6859,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4677.75,
+      "operatingMargin": 94.7,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -6768,6 +6966,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4269.46,
+      "operatingMargin": 98.5,
+      "revenueDiversificationIndex": 0.1,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -6872,6 +7073,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4365.55,
+      "operatingMargin": 90.2,
+      "revenueDiversificationIndex": 0.165,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -6976,6 +7180,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4292.65,
+      "operatingMargin": 98.2,
+      "revenueDiversificationIndex": 0.04,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -7080,6 +7287,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 5473.6,
+      "operatingMargin": 96.9,
+      "revenueDiversificationIndex": 0.475,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -7184,6 +7394,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4380.52,
+      "operatingMargin": 99.6,
+      "revenueDiversificationIndex": 0.044,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -7288,6 +7501,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 3775.51,
+      "operatingMargin": 98.0,
+      "revenueDiversificationIndex": 0.284,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -7392,6 +7608,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 5638.84,
+      "operatingMargin": 98.7,
+      "revenueDiversificationIndex": 0.319,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -7496,6 +7715,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 3723.19,
+      "operatingMargin": -127.0,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -7600,6 +7822,9 @@
         "peerCohort": "ntee_major_category=Z|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 3521.24,
+      "operatingMargin": 98.0,
+      "revenueDiversificationIndex": 0.38,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -7704,6 +7929,9 @@
         "peerCohort": "size_bucket=<500K|state=WA|return_type=990",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4056.91,
+      "operatingMargin": 94.8,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -7808,6 +8036,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2835.69,
+      "operatingMargin": 96.8,
+      "revenueDiversificationIndex": 0.073,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -7912,6 +8143,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 4098.69,
+      "operatingMargin": 90.5,
+      "revenueDiversificationIndex": 0.01,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -8016,6 +8250,9 @@
         "peerCohort": "size_bucket=>10M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2566.57,
+      "operatingMargin": 97.0,
+      "revenueDiversificationIndex": 0.005,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -8120,6 +8357,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2953.2,
+      "operatingMargin": 99.0,
+      "revenueDiversificationIndex": 0.085,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -8224,6 +8464,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 3444.34,
+      "operatingMargin": 85.5,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -8328,6 +8571,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2270.39,
+      "operatingMargin": 87.1,
+      "revenueDiversificationIndex": 0.154,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -8432,6 +8678,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2405.35,
+      "operatingMargin": 94.9,
+      "revenueDiversificationIndex": -0.054,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -8536,6 +8785,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2157.38,
+      "operatingMargin": 12.3,
+      "revenueDiversificationIndex": 0.429,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -8640,6 +8892,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2221.58,
+      "operatingMargin": 99.4,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -8744,6 +8999,9 @@
         "peerCohort": "size_bucket=<500K|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2208.73,
+      "operatingMargin": 91.9,
+      "revenueDiversificationIndex": 0.265,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -8848,6 +9106,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2808.56,
+      "operatingMargin": 86.9,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -8952,6 +9213,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1743.48,
+      "operatingMargin": 98.1,
+      "revenueDiversificationIndex": 0.183,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -9056,6 +9320,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2048.17,
+      "operatingMargin": 98.6,
+      "revenueDiversificationIndex": 0.153,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -9160,6 +9427,9 @@
         "peerCohort": "ntee_major_category=A|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2794.3,
+      "operatingMargin": 70.1,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -9264,6 +9534,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2004.38,
+      "operatingMargin": 90.3,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -9368,6 +9641,9 @@
         "peerCohort": "size_bucket=2M-10M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2719.81,
+      "operatingMargin": 91.8,
+      "revenueDiversificationIndex": 0.012,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "program revenue",
@@ -9472,6 +9748,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1704.35,
+      "operatingMargin": 96.7,
+      "revenueDiversificationIndex": 0.138,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -9576,6 +9855,9 @@
         "peerCohort": "ntee_major_category=A|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1800.14,
+      "operatingMargin": 97.4,
+      "revenueDiversificationIndex": 0.252,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -9680,6 +9962,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2814.44,
+      "operatingMargin": 72.0,
+      "revenueDiversificationIndex": -0.008,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -9784,6 +10069,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2477.16,
+      "operatingMargin": 93.8,
+      "revenueDiversificationIndex": 0.021,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -9888,6 +10176,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1925.95,
+      "operatingMargin": 98.3,
+      "revenueDiversificationIndex": -0.067,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -9992,6 +10283,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1882.55,
+      "operatingMargin": 84.8,
+      "revenueDiversificationIndex": 0.026,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -10096,6 +10390,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2183.68,
+      "operatingMargin": 95.5,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -10200,6 +10497,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2165.79,
+      "operatingMargin": 90.6,
+      "revenueDiversificationIndex": 0.0,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -10304,6 +10604,9 @@
         "peerCohort": "size_bucket=500K-2M|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2001.6,
+      "operatingMargin": 91.6,
+      "revenueDiversificationIndex": 0.048,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -10408,6 +10711,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2679.14,
+      "operatingMargin": 33.3,
+      "revenueDiversificationIndex": 0.491,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -10512,6 +10818,9 @@
         "peerCohort": "ntee_major_category=P|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2205.62,
+      "operatingMargin": 96.0,
+      "revenueDiversificationIndex": 0.328,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -10616,6 +10925,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2441.37,
+      "operatingMargin": 96.8,
+      "revenueDiversificationIndex": 0.292,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -10720,6 +11032,9 @@
         "peerCohort": "ntee_major_category=Q|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2360.89,
+      "operatingMargin": 71.9,
+      "revenueDiversificationIndex": 0.476,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -10824,6 +11139,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1896.94,
+      "operatingMargin": 90.2,
+      "revenueDiversificationIndex": 0.476,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -10928,6 +11246,9 @@
         "peerCohort": "size_bucket=<500K|state=CA|return_type=990",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2316.86,
+      "operatingMargin": 88.8,
+      "revenueDiversificationIndex": 0.627,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -11032,6 +11353,9 @@
         "peerCohort": "ntee_major_category=B|size_bucket=<500K|state=CA",
         "benchmarkRule": "3-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2279.91,
+      "operatingMargin": 78.8,
+      "revenueDiversificationIndex": 0.469,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -11136,6 +11460,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2396.38,
+      "operatingMargin": 94.4,
+      "revenueDiversificationIndex": 0.496,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -11240,6 +11567,9 @@
         "peerCohort": "ntee_major_category=Y|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 2382.82,
+      "operatingMargin": 95.8,
+      "revenueDiversificationIndex": 0.405,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -11344,6 +11674,9 @@
         "peerCohort": "ntee_major_category=E|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1869.52,
+      "operatingMargin": 93.5,
+      "revenueDiversificationIndex": 0.364,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -11448,6 +11781,9 @@
         "peerCohort": "ntee_major_category=X|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1825.71,
+      "operatingMargin": 95.6,
+      "revenueDiversificationIndex": 0.426,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -11552,6 +11888,9 @@
         "peerCohort": "ntee_major_category=J|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1643.97,
+      "operatingMargin": 92.9,
+      "revenueDiversificationIndex": 0.5,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -11656,6 +11995,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=<500K|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1239.67,
+      "operatingMargin": 76.6,
+      "revenueDiversificationIndex": 0.499,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -11760,6 +12102,9 @@
         "peerCohort": "ntee_major_category=T|size_bucket=>10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1397.0,
+      "operatingMargin": 94.3,
+      "revenueDiversificationIndex": 0.429,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "contributions",
@@ -11864,6 +12209,9 @@
         "peerCohort": "ntee_major_category=C|size_bucket=<500K|state=WA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1470.56,
+      "operatingMargin": 83.5,
+      "revenueDiversificationIndex": 0.493,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
@@ -11968,6 +12316,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1186.29,
+      "operatingMargin": 86.8,
+      "revenueDiversificationIndex": 0.511,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "other revenue",
@@ -12072,6 +12423,9 @@
         "peerCohort": "ntee_major_category=F|size_bucket=500K-2M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1315.86,
+      "operatingMargin": 79.9,
+      "revenueDiversificationIndex": 0.488,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -12176,6 +12530,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1140.29,
+      "operatingMargin": 86.8,
+      "revenueDiversificationIndex": 0.487,
       "stress": {
         "headline": "Unavailable under 25% source shock",
         "largestSource": "largest revenue source",
@@ -12280,6 +12637,9 @@
         "peerCohort": "ntee_major_category=L|size_bucket=2M-10M|state=CA",
         "benchmarkRule": "2-of-3_5-of-7"
       },
+      "operatingRunwayMonths": 1222.76,
+      "operatingMargin": 64.9,
+      "revenueDiversificationIndex": 0.515,
       "stress": {
         "headline": "None under 25% source shock",
         "largestSource": "investment income",
