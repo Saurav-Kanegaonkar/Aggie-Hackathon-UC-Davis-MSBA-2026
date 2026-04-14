@@ -509,14 +509,14 @@ export function ChartDetailModal({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(243,239,231,0.54)] p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-5">
       <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail" />
-      <section className="relative z-[1] h-[min(88vh,940px)] w-[min(92vw,1380px)] rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.98)] p-2 shadow-[0_46px_120px_-48px_rgba(15,23,42,0.28)]">
-        <div className="flex h-full flex-col rounded-[calc(2.8rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(250,246,240,0.94))] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <section className="relative z-[1] h-[min(96dvh,1180px)] w-[min(98vw,1760px)] rounded-[3rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]">
+        <div className="flex h-full flex-col rounded-[calc(3rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h4 className="text-[2.1rem] font-semibold tracking-[-0.06em] text-slate-950">{title}</h4>
-              {subtitle ? <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">{subtitle}</p> : null}
+              <h4 className="text-[2.35rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.9rem]">{title}</h4>
+              {subtitle ? <p className="mt-3 max-w-5xl text-[15px] leading-relaxed text-slate-600 md:text-[16px]">{subtitle}</p> : null}
             </div>
             <div className="flex items-center gap-3">
               {guideTitle && guideBullets?.length ? (
@@ -539,32 +539,32 @@ export function ChartDetailModal({
               </button>
             </div>
           </div>
-          <div className="relative mt-6 min-h-0 flex-1">
+          <div className="relative mt-8 min-h-0 flex-1">
             <div
               className={`absolute inset-0 rounded-[1.9rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
             >
-              <div className="h-full overflow-hidden rounded-[1.9rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-6">{children}</div>
+              <div className="h-full overflow-hidden rounded-[2.2rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-6 md:p-8">{children}</div>
             </div>
 
             {guideTitle && guideBullets?.length ? (
               <div
-                className={`absolute inset-0 rounded-[1.9rem] border border-black/6 bg-[rgba(246,241,232,0.92)] p-7 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
+                className={`absolute inset-0 rounded-[2.2rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-8 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-10 ${
                   showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
                 }`}
               >
                 <div className="flex h-full flex-col">
-                  <p className="text-[1.5rem] font-medium tracking-[-0.04em] text-slate-950">{guideTitle}</p>
-                  <ul className="mt-6 max-w-3xl space-y-5">
+                  <p className="text-[1.7rem] font-medium tracking-[-0.045em] text-slate-950 md:text-[2rem]">{guideTitle}</p>
+                  <ul className="mt-8 max-w-4xl space-y-6">
                     {guideBullets.map((bullet) => (
-                      <li key={bullet} className="flex gap-3 text-[1.02rem] leading-relaxed text-slate-700">
-                        <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
+                      <li key={bullet} className="flex gap-4 text-[1.08rem] leading-relaxed text-slate-700 md:text-[1.15rem]">
+                        <span className="mt-2.5 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
                         <span>{bullet}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-auto pt-6 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return to the chart</div>
+                  <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return to the chart</div>
                 </div>
               </div>
             ) : null}
