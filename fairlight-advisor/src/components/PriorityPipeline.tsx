@@ -170,33 +170,33 @@ export function PriorityPipeline({ data }: { data: PipelineDataset }) {
                     transition={{ delay: i * 0.02 }}
                   >
                     {/* Rank */}
-                    <td className="px-6 py-4 text-[12px] font-semibold text-slate-300 w-8">{i + 1}</td>
+                    <td className="px-6 py-3 text-[13px] font-semibold text-slate-300 w-8">{i + 1}</td>
 
                     {/* Org name + state */}
-                    <td className="px-3 py-4">
-                      <p className="text-[13px] font-semibold text-slate-900 leading-snug">{org.orgName}</p>
+                    <td className="px-3 py-3">
+                      <p className="text-[15px] font-semibold text-slate-900 leading-snug">{org.orgName}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">{org.state}</span>
-                        <span className="text-[10px] text-slate-400">FY {org.fiscalYear}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{org.state}</span>
+                        <span className="text-[11px] text-slate-400">FY {org.fiscalYear}</span>
                       </div>
                     </td>
 
                     {/* Sector */}
-                    <td className="px-3 py-4 hidden md:table-cell">
-                      <p className="text-[12px] text-slate-500 max-w-[180px] leading-snug">{org.sector}</p>
+                    <td className="px-3 py-3 hidden md:table-cell">
+                      <p className="text-[14px] text-slate-500 max-w-[180px] leading-snug">{org.sector}</p>
                     </td>
 
                     {/* Revenue */}
-                    <td className="px-3 py-4 text-right">
-                      <span className="text-[13px] font-semibold text-slate-800">{org.revenueDisplay}</span>
+                    <td className="px-3 py-3 text-right">
+                      <span className="text-[15px] font-semibold text-slate-800">{org.revenueDisplay}</span>
                     </td>
 
                     {/* RDI bar + label */}
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-3">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[11px] font-semibold ${rdiColor(org.rdi)}`}>{org.rdiLabel}</span>
-                          <span className="text-[10px] text-slate-400">{(org.rdi * 100).toFixed(0)}%</span>
+                          <span className={`text-[12px] font-semibold ${rdiColor(org.rdi)}`}>{org.rdiLabel}</span>
+                          <span className="text-[11px] text-slate-400">{(org.rdi * 100).toFixed(0)}%</span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                           <motion.div
@@ -211,20 +211,20 @@ export function PriorityPipeline({ data }: { data: PipelineDataset }) {
                     </td>
 
                     {/* Operating margin */}
-                    <td className="px-3 py-4 text-right hidden lg:table-cell">
-                      <span className={`text-[12px] font-semibold ${marginColor(org.operatingMargin)}`}>
+                    <td className="px-3 py-3 text-right hidden lg:table-cell">
+                      <span className={`text-[14px] font-semibold ${marginColor(org.operatingMargin)}`}>
                         {formatMargin(org.operatingMargin)}
                       </span>
                     </td>
 
                     {/* Trend */}
-                    <td className="px-6 py-4 text-right hidden lg:table-cell">
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    <td className="px-6 py-3 text-right hidden lg:table-cell">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                         org.marginTrend === "improving"
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
+                          : "bg-amber-100 text-amber-700"
                       }`}>
-                        {org.marginTrend === "improving" ? "Improving" : "Stable"}
+                        {org.marginTrend === "improving" ? "Improving" : "Plateaued"}
                       </span>
                     </td>
                   </motion.tr>

@@ -1,0 +1,68 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+:root {
+  --northstar-ink: #202933;
+  --northstar-muted: #667180;
+  --northstar-surface: #fffdf8;
+  --northstar-shell: rgba(255, 252, 246, 0.74);
+  --northstar-line: rgba(38, 48, 56, 0.08);
+  --northstar-accent: #375246;
+  color: var(--northstar-ink);
+  background: #f6f1e8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: #f6f1e8;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--northstar-ink);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 30%),
+    radial-gradient(circle at top right, rgba(220, 227, 220, 0.34), transparent 28%),
+    radial-gradient(circle at 18% 78%, rgba(232, 216, 189, 0.16), transparent 26%),
+    linear-gradient(180deg, #f8f4ee 0%, #f3eee6 46%, #ece7df 100%);
+  font-family: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.northstar-display {
+  font-family: "Outfit", "Plus Jakarta Sans", "Avenir Next", sans-serif;
+  font-feature-settings: "ss01" 1;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(32, 41, 51, 0.045) 0.6px, transparent 0.6px);
+  background-size: 18px 18px;
+  opacity: 0.26;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(55, 82, 70, 0.16);
+  color: var(--northstar-ink);
+}
