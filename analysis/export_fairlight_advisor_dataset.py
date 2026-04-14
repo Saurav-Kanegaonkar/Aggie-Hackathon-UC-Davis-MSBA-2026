@@ -31,6 +31,8 @@ ACTION_PRIORITY = {
     "Diversify": 2,
     "Amplify": 1,
 }
+FAIRLIGHT_REVENUE_MIN = 250_000
+FAIRLIGHT_REVENUE_MAX = 100_000_000
 TIER_PRIORITY = {"High": 3, "Medium": 2, "Low": 1}
 URGENCY_PRIORITY = {"acute": 3, "flagged": 2, "none": 1}
 CONSTRAINT_LABELS = {
@@ -86,6 +88,8 @@ def _optional_float(value: Any, default: float = 0.0) -> float:
 
 def _format_currency(value: Any) -> str:
     amount = _optional_float(value, 0.0)
+    if abs(amount) < 1_000:
+        return "Unavailable"
     return "${:,.0f}".format(amount)
 
 
@@ -263,6 +267,11 @@ def _build_priority(row: pd.Series) -> float:
 
 def _curated_shortlist(df: pd.DataFrame) -> pd.DataFrame:
     ranked = df.copy()
+    ranked = ranked[
+        ranked["total_revenue"].notna()
+        & (ranked["total_revenue"] >= FAIRLIGHT_REVENUE_MIN)
+        & (ranked["total_revenue"] < FAIRLIGHT_REVENUE_MAX)
+    ].copy()
     ranked["priority_score"] = ranked.apply(_build_priority, axis=1)
     ranked = ranked.sort_values(
         ["action_label", "priority_score", "distress_prob", "total_revenue", "ein"],
@@ -294,6 +303,7 @@ def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]
         "state": _optional_str(row["state"]),
         "nteeCategory": _optional_str(row.get("ntee_major_category"), "Unclassified") or "Unclassified",
         "sizeBucket": _optional_str(row.get("size_bucket"), "Unknown"),
+        "revenueAmount": None if pd.isna(row.get("total_revenue")) else round(float(row["total_revenue"]), 2),
         "revenueDisplay": _format_currency(row.get("total_revenue")),
         "actionLabel": _optional_str(row["action_label"]),
         "distressTier": _optional_str(row["distress_tier"]),
@@ -314,6 +324,9 @@ def _organization_record(row: pd.Series, baseline_rate: float) -> dict[str, Any]
             "peerCohort": _optional_str(row.get("cohort_key")),
             "benchmarkRule": _optional_str(row.get("benchmark_rule")),
         },
+        "operatingRunwayMonths": round(_optional_float(row.get("operating_runway_proxy_months")), 2),
+        "operatingMargin": round(_optional_float(row.get("operating_margin")) * 100.0, 1),
+        "revenueDiversificationIndex": round(_optional_float(row.get("revenue_diversification_index")), 3),
         "stress": _stress_summary(row),
         "distress": {
             "headline": f"{round(distress_prob * 100.0, 1)}% risk vs. {round(baseline_rate * 100.0, 1)}% baseline",
