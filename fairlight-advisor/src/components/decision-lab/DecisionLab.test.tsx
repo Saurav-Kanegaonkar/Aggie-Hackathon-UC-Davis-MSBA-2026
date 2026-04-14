@@ -1,11 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 
 import dataset from "../../data/fairlight-advisor.json";
 import { buildDecisionLabModel } from "../../lib/decisionLabModel";
 import type { OrganizationRecord } from "../../types";
 import { DecisionLab } from "../DecisionLab";
 import { FinancialTrajectoryPanel } from "./FinancialTrajectoryPanel";
+import { OperatingQualityPanel } from "./OperatingQualityPanel";
 import { RecoveryAnalogsPanel } from "./RecoveryAnalogsPanel";
 import { RevenueCompositionPanel } from "./RevenueCompositionPanel";
 import { ScoreDriversPanel } from "./ScoreDriversPanel";
@@ -195,5 +197,37 @@ describe("Decision Lab visual panels", () => {
 
     expect(columnStack).toBeDefined();
     expect((columnStack as HTMLElement).querySelectorAll("section").length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("shows an explicit fallback when peer margin history is unavailable", () => {
+    const sparsePeerOrganization = dataset.organizations.find(
+      (organization) => organization.id === "946171311-2024",
+    ) as OrganizationRecord;
+    const model = buildDecisionLabModel(sparsePeerOrganization);
+
+    render(<OperatingQualityPanel model={model} />);
+
+    expect(screen.getByText(/margin read from filing history/i)).toBeInTheDocument();
+    expect(screen.getByText(/peer band unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/latest reported margin/i).parentElement?.textContent).toMatch(/[+-]?\d{1,3}\.\d%/);
+    expect(screen.queryByText(/\+9650\.0%/)).not.toBeInTheDocument();
+  });
+
+  it("does not emit duplicate react key warnings for short-history charts", () => {
+    const shortHistoryOrganization = dataset.organizations.find(
+      (organization) => organization.id === "993105642-2024",
+    ) as OrganizationRecord;
+    const model = buildDecisionLabModel(shortHistoryOrganization);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <>
+        <FinancialTrajectoryPanel model={model} onOpenDetail={() => {}} />
+        <RevenueCompositionPanel model={model} onOpenDetail={() => {}} />
+      </>,
+    );
+
+    expect(consoleError.mock.calls.some((call) => String(call[0]).includes("same key"))).toBe(false);
+    consoleError.mockRestore();
   });
 });

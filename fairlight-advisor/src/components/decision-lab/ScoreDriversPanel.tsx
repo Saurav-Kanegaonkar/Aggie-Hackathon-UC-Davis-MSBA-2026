@@ -27,30 +27,36 @@ function toneForValue(value: number) {
 
 function driverNote(label: string, value: number) {
   switch (label) {
-    case "Distress protection":
+    case "Distress readiness":
       return value >= 75
-        ? "Projected stress risk is low enough to support the overall call."
+        ? "Projected stress risk is low enough that Fairlight can prioritize the case without leading with repair."
         : value >= 45
-          ? "Projected stress risk is manageable, but it is not a non-issue."
-          : "Projected stress risk is still materially weighing on the case.";
+          ? "Projected stress risk is manageable, but it still limits how aggressively the case should move."
+          : "Projected stress risk is still materially holding the case back.";
     case "Operating margin":
       return value >= 75
-        ? "The operating profile is adding real support to the score."
+        ? "The operating profile gives Fairlight room to work on structure rather than immediate damage control."
         : value >= 45
-          ? "Operating performance is acceptable, but not a standout strength."
-          : "Operating performance is too thin to comfortably support the case.";
-    case "Revenue mix":
+          ? "Operating performance is workable, but still needs careful guardrails."
+          : "Operating performance is too thin to comfortably support a first-call recommendation.";
+    case "Diversification opportunity":
       return value >= 75
-        ? "Funding looks well spread, which improves resilience."
+        ? "Revenue is concentrated enough that diversification support could create clear advisory value."
         : value >= 45
-          ? "Revenue concentration is workable, but still worth monitoring."
-          : "Revenue still depends too heavily on a narrow set of streams.";
+          ? "Revenue concentration is present, but not severe enough to dominate the call order by itself."
+          : "Funding is already relatively spread out, so diversification is not the main reason to call first.";
     case "Evidence quality":
       return value >= 75
         ? "The filing record is strong enough to support a clean read."
-        : value >= 45
+      : value >= 45
           ? "The filing history is usable, but not airtight."
           : "The evidence base is too thin to treat this as a confident call.";
+    case "Priority lane":
+      return value >= 75
+        ? "This lands in Fairlight's highest-priority recommendation lane."
+        : value >= 45
+          ? "This sits in a workable middle lane, but it is not the first call out of the deck."
+          : "This recommendation lane is intentionally lower-priority for outreach.";
     default:
       return "This factor is one of the inputs shaping the final score.";
   }
@@ -64,7 +70,7 @@ export function ScoreDriversPanel({ model }: { model: DecisionLabModel }) {
       guideBullets={[
         "Each row shows one ingredient feeding the Northstar Score on a 0 to 100 scale.",
         "The status chip tells you whether that ingredient is clearly helping, neutral, or holding the case back.",
-        "Use this panel to explain the score in plain language, not as a second recommendation.",
+        "This is an outreach-priority read, so concentrated but viable diversify cases can score well on purpose.",
       ]}
       bodyMode="auto"
     >

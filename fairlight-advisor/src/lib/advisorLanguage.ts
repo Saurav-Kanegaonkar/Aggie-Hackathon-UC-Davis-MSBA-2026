@@ -395,51 +395,287 @@ function operatingMarginScore(organization: OrganizationRecord): number {
   return 18;
 }
 
-function concentrationScore(organization: OrganizationRecord): number {
+function diversificationOpportunityScore(organization: OrganizationRecord): number {
   const diversification = organization.revenueDiversificationIndex;
 
   if (diversification >= 0.5) {
-    return 90;
+    return 18;
   }
   if (diversification >= 0.35) {
-    return 74;
+    return 34;
   }
   if (diversification >= 0.2) {
     return 58;
   }
   if (diversification >= 0.05) {
-    return 38;
+    return 82;
   }
-  return 20;
+  return 92;
+}
+
+function actionPriorityScore(actionLabel: OrganizationRecord["actionLabel"]): number {
+  switch (actionLabel) {
+    case "Diversify":
+      return 95;
+    case "Stabilize":
+      return 74;
+    case "Amplify":
+      return 28;
+    case "Deep Review":
+      return 22;
+  }
+}
+
+export function getNorthstarScoreDrivers(organization: OrganizationRecord) {
+  return {
+    distressProtection: clamp(100 - organization.distress.probability, 0, 100),
+    operatingMargin: operatingMarginScore(organization),
+    revenueMix: diversificationOpportunityScore(organization),
+    evidenceQuality: confidenceScore(organization.confidenceTier),
+    recommendationPriority: actionPriorityScore(organization.actionLabel),
+  };
+}
+
+function scoreWithinBand(signal: number, minimum: number, maximum: number): number {
+  const normalized = clamp(signal, 0, 100) / 100;
+  return minimum + normalized * (maximum - minimum);
+}
+
+const northstarScoreCache = new Map<string, number>();
+
+function northstarBand(actionLabel: OrganizationRecord["actionLabel"]): { min: number; max: number } {
+  switch (actionLabel) {
+    case "Diversify":
+      return { min: 72, max: 94 };
+    case "Stabilize":
+      return { min: 48, max: 72 };
+    case "Amplify":
+      return { min: 18, max: 42 };
+    case "Deep Review":
+      return { min: 8, max: 28 };
+  }
+}
+
+function operatingSupportSignal(organization: OrganizationRecord): number {
+  return clamp(((organization.operatingMargin + 20) / 40) * 100, 0, 100);
+}
+
+function operatingStressSignal(organization: OrganizationRecord): number {
+  return 100 - operatingSupportSignal(organization);
+}
+
+function diversificationNeedSignal(organization: OrganizationRecord): number {
+  const rdi = clamp(organization.revenueDiversificationIndex, 0, 1);
+  const concentrationBase = (1 - rdi) * 100;
+  const largestSourcePct =
+    organization.stress.largestSourcePct > 0 ? clamp(organization.stress.largestSourcePct, 0, 100) : concentrationBase;
+  const diversificationGap = parseNumber(organization.benchmark.diversificationGap);
+  const benchmarkPressure =
+    diversificationGap === null ? concentrationBase : clamp((Math.max(-diversificationGap, 0) / 0.5) * 100, 0, 100);
+
+  return concentrationBase * 0.45 + largestSourcePct * 0.3 + benchmarkPressure * 0.25;
+}
+
+function stressSeveritySignal(severity: string): number {
+  switch (severity.toLowerCase()) {
+    case "severe":
+      return 95;
+    case "moderate":
+      return 74;
+    case "mild":
+      return 48;
+    case "none":
+      return 16;
+    default:
+      return 36;
+  }
+}
+
+function stressVulnerabilitySignal(organization: OrganizationRecord): number {
+  const severityBase = stressSeveritySignal(organization.stress.severity25);
+  const burnMonths = organization.stress.burnMonths25;
+  const burnBase =
+    burnMonths === null ? severityBase : clamp(((24 - Math.min(burnMonths, 24)) / 24) * 100, 0, 100);
+
+  return severityBase * 0.4 + burnBase * 0.6;
+}
+
+function riskPrioritySignal(organization: OrganizationRecord): number {
+  switch (organization.actionLabel) {
+    case "Diversify":
+      return clamp(100 - organization.distress.probability, 0, 100);
+    case "Stabilize":
+      return clamp(organization.distress.probability, 0, 100);
+    case "Amplify":
+      return clamp(100 - organization.distress.probability, 0, 100);
+    case "Deep Review":
+      return clamp(organization.distress.probability, 0, 100);
+  }
+}
+
+function computeNorthstarStructuralSignal(organization: OrganizationRecord): number {
+  const {
+    evidenceQuality: evidenceStrength,
+  } = getNorthstarScoreDrivers(organization);
+  const operatingSupport = operatingSupportSignal(organization);
+  const operatingStress = operatingStressSignal(organization);
+  const diversificationNeed = diversificationNeedSignal(organization);
+  const stressVulnerability = stressVulnerabilitySignal(organization);
+
+  switch (organization.actionLabel) {
+    case "Diversify": {
+      return (
+        diversificationNeed * 0.45 +
+        operatingSupport * 0.25 +
+        stressVulnerability * 0.1 +
+        evidenceStrength * 0.2
+      );
+    }
+    case "Stabilize": {
+      return (
+        stressVulnerability * 0.35 +
+        operatingStress * 0.2 +
+        diversificationNeed * 0.15 +
+        evidenceStrength * 0.3
+      );
+    }
+    case "Amplify": {
+      return (
+        diversificationNeed * 0.45 +
+        stressVulnerability * 0.2 +
+        operatingStress * 0.2 +
+        (100 - evidenceStrength) * 0.15
+      );
+    }
+    case "Deep Review": {
+      return (
+        (100 - evidenceStrength) * 0.6 +
+        stressVulnerability * 0.25 +
+        diversificationNeed * 0.15
+      );
+    }
+  }
+
+  return 0;
 }
 
 function computeNorthstarScore(organization: OrganizationRecord): number {
-  const distressProtection = clamp(100 - organization.distress.probability, 0, 100);
-  const marginStrength = operatingMarginScore(organization);
-  const concentrationStrength = concentrationScore(organization);
-  const evidenceStrength = confidenceScore(organization.confidenceTier);
+  const band = northstarBand(organization.actionLabel);
+  const blendedSignal = computeNorthstarStructuralSignal(organization) * 0.7 + riskPrioritySignal(organization) * 0.3;
+  return applyNorthstarRiskCeiling(organization, Math.round(scoreWithinBand(blendedSignal, band.min, band.max)));
+}
 
-  let score =
-    distressProtection * 0.65 +
-    marginStrength * 0.2 +
-    concentrationStrength * 0.1 +
-    evidenceStrength * 0.05;
-
-  if (organization.distress.probability >= 70) {
-    score = Math.min(score, 32);
-  } else if (organization.distress.probability >= 60) {
-    score = Math.min(score, 42);
-  } else if (organization.distress.probability >= 50) {
-    score = Math.min(score, 55);
-  } else if (organization.distress.probability >= 35) {
-    score = Math.min(score, 70);
+function applyNorthstarRiskCeiling(organization: OrganizationRecord, score: number): number {
+  switch (organization.actionLabel) {
+    case "Diversify":
+      if (organization.distress.probability >= 70) {
+        return Math.min(score, 68);
+      }
+      if (organization.distress.probability >= 65) {
+        return Math.min(score, 72);
+      }
+      if (organization.distress.probability >= 55) {
+        return Math.min(score, 78);
+      }
+      if (organization.distress.probability >= 40) {
+        return Math.min(score, 86);
+      }
+      return score;
+    case "Stabilize":
+      if (organization.distress.probability < 15) {
+        return Math.min(score, 56);
+      }
+      if (organization.distress.probability < 25) {
+        return Math.min(score, 62);
+      }
+      if (organization.distress.probability < 35) {
+        return Math.min(score, 68);
+      }
+      return score;
+    case "Amplify":
+      if (organization.distress.probability >= 50) {
+        return Math.min(score, 18);
+      }
+      if (organization.distress.probability >= 35) {
+        return Math.min(score, 24);
+      }
+      if (organization.distress.probability >= 25) {
+        return Math.min(score, 30);
+      }
+      if (organization.distress.probability >= 15) {
+        return Math.min(score, 36);
+      }
+      return score;
+    case "Deep Review":
+      if (organization.distress.probability >= 60) {
+        return Math.min(score, 16);
+      }
+      if (organization.distress.probability >= 40) {
+        return Math.min(score, 20);
+      }
+      if (organization.distress.probability >= 25) {
+        return Math.min(score, 24);
+      }
+      return score;
   }
 
-  if (organization.confidenceTier === "Low") {
-    score = Math.min(score, 72);
+  return score;
+}
+
+export function resetNorthstarScoreCache(): void {
+  northstarScoreCache.clear();
+}
+
+export function primeNorthstarScores(organizations: OrganizationRecord[]): void {
+  resetNorthstarScoreCache();
+
+  const byAction = new Map<OrganizationRecord["actionLabel"], OrganizationRecord[]>();
+  for (const organization of organizations) {
+    const bucket = byAction.get(organization.actionLabel) ?? [];
+    bucket.push(organization);
+    byAction.set(organization.actionLabel, bucket);
   }
 
-  return Math.round(clamp(score, 0, 100));
+  for (const [actionLabel, rows] of byAction.entries()) {
+    const band = northstarBand(actionLabel);
+    const scored = rows
+      .map((organization) => ({
+        id: organization.id,
+        structuralSignal: computeNorthstarStructuralSignal(organization),
+        riskSignal: riskPrioritySignal(organization),
+      }))
+      .sort((left, right) => left.structuralSignal - right.structuralSignal);
+
+      if (scored.length === 1) {
+        northstarScoreCache.set(
+          scored[0].id,
+          applyNorthstarRiskCeiling(
+            rows[0],
+            Math.round(band.min + (band.max - band.min) * (0.5 * 0.7 + (scored[0].riskSignal / 100) * 0.3)),
+          ),
+        );
+        continue;
+      }
+
+    let index = 0;
+    while (index < scored.length) {
+      let groupEnd = index;
+      while (groupEnd + 1 < scored.length && scored[groupEnd + 1].structuralSignal === scored[index].structuralSignal) {
+        groupEnd += 1;
+      }
+
+      const structuralPercentile = ((index + groupEnd) / 2) / (scored.length - 1);
+
+      for (let cursor = index; cursor <= groupEnd; cursor += 1) {
+        const blendedPercentile = structuralPercentile * 0.7 + (scored[cursor].riskSignal / 100) * 0.3;
+        const organization = rows.find((row) => row.id === scored[cursor].id);
+        const rawScore = Math.round(band.min + blendedPercentile * (band.max - band.min));
+        northstarScoreCache.set(scored[cursor].id, applyNorthstarRiskCeiling(organization ?? rows[0], rawScore));
+      }
+
+      index = groupEnd + 1;
+    }
+  }
 }
 
 function formatRiskChance(probability: number): string {
@@ -523,7 +759,7 @@ function buildInboxAdvisoryNote(organization: OrganizationRecord): string {
 
 export function getInboxCopy(organization: OrganizationRecord) {
   const stabilityIndex = computeStabilityIndex(organization);
-  const northstarScore = computeNorthstarScore(organization);
+  const northstarScore = northstarScoreCache.get(organization.id) ?? computeNorthstarScore(organization);
 
   return {
     displayName: formatOrganizationName(organization.orgName),

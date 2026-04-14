@@ -160,7 +160,7 @@ function ExpandedSeriesChart({
     })
     .join(" ");
   const area = `${path} L ${width} ${height} L 0 ${height} Z`;
-  const keyLabelIndexes = [0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1];
+  const keyLabelIndexes = [...new Set([0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1])];
   const keyPointIndexes = [...new Set([0, Math.round((labels.length - 1) / 2), labels.length - 1])];
   const yTicks = [max, min + span * 0.5, min];
   const summaries = keyPointIndexes.map((index) => ({
@@ -210,7 +210,7 @@ function ExpandedSeriesChart({
           </g>
           {keyLabelIndexes.map((index) => (
             <text
-              key={labels[index]}
+              key={`${labels[index]}-${index}`}
               x={plotLeft + stepX * index}
               y={height + plotTop + 52}
               textAnchor="middle"
@@ -225,8 +225,8 @@ function ExpandedSeriesChart({
         </svg>
       </div>
       <div className="grid gap-3 lg:grid-rows-[repeat(3,minmax(0,1fr))]">
-        {summaries.map((summary) => (
-          <div key={`summary-${summary.label}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
+        {summaries.map((summary, index) => (
+          <div key={`summary-${summary.label}-${index}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{summary.label}</p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{summary.value}</p>
           </div>
