@@ -85,7 +85,7 @@ function ExpandedMixChart({
   const min = 0;
   const span = Math.max(1, max - min);
   const barWidth = width / values.length - 10;
-  const keyLabelIndexes = [0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1];
+  const keyLabelIndexes = [...new Set([0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1])];
   const keyPointIndexes = [...new Set([0, Math.round((labels.length - 1) / 2), labels.length - 1])];
   const yTicks = [max, Math.round(max / 2), 0];
   const summaries = keyPointIndexes.map((index) => ({
@@ -140,7 +140,7 @@ function ExpandedMixChart({
           </g>
           {keyLabelIndexes.map((index) => (
             <text
-              key={labels[index]}
+              key={`${labels[index]}-${index}`}
               x={plotLeft + index * (barWidth + 10) + barWidth / 2}
               y={height + plotTop + 52}
               textAnchor="middle"
@@ -155,8 +155,8 @@ function ExpandedMixChart({
         </svg>
       </div>
       <div className="grid gap-3 lg:grid-rows-[repeat(3,minmax(0,1fr))]">
-        {summaries.map((summary) => (
-          <div key={`mix-summary-${summary.label}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
+        {summaries.map((summary, index) => (
+          <div key={`mix-summary-${summary.label}-${index}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{summary.label}</p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{summary.value}</p>
           </div>

@@ -5,7 +5,7 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 import { DecisionLab } from "./components/DecisionLab";
 import { PortfolioInbox } from "./components/PortfolioInbox";
 import { PriorityPipeline } from "./components/PriorityPipeline";
-import { getInboxCopy } from "./lib/advisorLanguage";
+import { getInboxCopy, primeNorthstarScores } from "./lib/advisorLanguage";
 import type { AdvisorDataset, OrganizationRecord, PriorityPipelineDataset } from "./types";
 
 type SortOption = "northstar-desc" | "northstar-asc" | "name-asc";
@@ -42,6 +42,7 @@ export default function App() {
         if (isMounted) {
           const dataset = advisorModule.default as AdvisorDataset;
           const pipelineDataset = pipelineModule.default as PriorityPipelineDataset;
+          primeNorthstarScores(dataset.organizations);
           if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const requestedOrganization = params.get("org");

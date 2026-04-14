@@ -33,6 +33,15 @@ describe("Fairlight advisor workspace", () => {
     expect(screen.queryAllByText(/stability index/i)).toHaveLength(0);
   });
 
+  it("shows the operating margin formula in the inbox metric hover copy", async () => {
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /cases for review/i })).toBeInTheDocument();
+    expect(
+      screen.getAllByLabelText(/operating margin: .*operating margin = \(revenue - expenses\) \/ revenue/i).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("switches into the priority pipeline workspace", async () => {
     const user = userEvent.setup();
     render(<App />);

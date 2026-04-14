@@ -55,7 +55,7 @@ export function OrganizationCard({
           <MetricColumn
             label="Operating margin"
             value={inboxCopy.operatingMarginLabel}
-            description="Operating surplus or deficit as a share of revenue. Positive is healthier."
+            description="Operating margin = (revenue - expenses) / revenue. Positive means revenue is covering expenses."
           />
           <MetricColumn
             label="Revenue mix"
@@ -70,7 +70,7 @@ export function OrganizationCard({
           <MetricColumn
             label="Northstar Score"
             value={`${inboxCopy.northstarScore}`}
-            description="Composite fundability score built from next-year risk, operating margin, revenue mix, and evidence quality. Higher is better."
+            description="Composite outreach-priority score built from next-year risk, diversification need, operating margin, evidence quality, and recommendation lane. Higher means stronger reason to call first."
             tone={scoreTone}
           />
 

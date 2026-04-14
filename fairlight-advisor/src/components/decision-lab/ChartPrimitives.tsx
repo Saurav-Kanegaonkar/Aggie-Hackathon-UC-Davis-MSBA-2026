@@ -523,6 +523,7 @@ export function RevenueMixTrendGrid({
         const bounds = computeBounds([item.values], 0.18);
         const line = linePath(item.values, width, height, bounds.min, bounds.max);
         const area = areaUnderLine(item.values, width, height, bounds.min, bounds.max);
+        const pointIndexes = [...new Set([0, Math.round((item.values.length - 1) / 2), item.values.length - 1])];
         return (
           <FlipGuideCard
             key={item.label}
@@ -552,7 +553,7 @@ export function RevenueMixTrendGrid({
                     </defs>
                     <path d={area} fill={`url(#mix-fill-${sanitizeId(item.label)}-${sanitizeId(reactId)})`} />
                     <path d={line} fill="none" stroke={item.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                    {[0, Math.round((item.values.length - 1) / 2), item.values.length - 1].map((index) => {
+                    {pointIndexes.map((index) => {
                       const value = item.values[index];
                       const x = item.values.length > 1 ? (width / (item.values.length - 1)) * index : width / 2;
                       const ratio = (value - bounds.min) / (bounds.max - bounds.min || 1);

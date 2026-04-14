@@ -12,6 +12,6 @@ describe("buildDecisionLabModel", () => {
     expect(model.revenueComposition.length).toBe(model.financialTrajectory.length);
     expect(model.peerPosition.length).toBe(3);
     expect(model.statusTone).toMatch(/Strong|Mixed|Fragile/);
-    expect(model.scoreDrivers.length).toBe(4);
+    expect(model.scoreDrivers.length).toBe(5);
   });
 });
