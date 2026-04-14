@@ -417,6 +417,76 @@ def _build_priority(row: pd.Series) -> float:
     return action_score * 100 + tier_score * 20 + urgency_score * 10 + stress_score * 5 + analog_score + magnitude
 
 
+def _allocate_constraint_quotas(label_rows: pd.DataFrame, quota: int) -> dict[str, int]:
+    constraint_counts = (
+        label_rows["recovery_analog_constraint"]
+        .dropna()
+        .astype(str)
+        .value_counts()
+        .to_dict()
+    )
+    if not constraint_counts:
+        return {}
+
+    ordered_constraints = sorted(
+        constraint_counts,
+        key=lambda constraint: (-constraint_counts[constraint], constraint),
+    )
+    quotas = {constraint: 0 for constraint in ordered_constraints}
+
+    # Give each available constraint at least one slot when room allows.
+    for constraint in ordered_constraints[: min(quota, len(ordered_constraints))]:
+        quotas[constraint] += 1
+
+    remaining = quota - sum(quotas.values())
+    if remaining <= 0:
+        return quotas
+
+    total = sum(constraint_counts.values())
+    weighted_targets = {
+        constraint: (constraint_counts[constraint] / total) * remaining
+        for constraint in ordered_constraints
+    }
+
+    for constraint in ordered_constraints:
+        quotas[constraint] += int(weighted_targets[constraint])
+
+    assigned = sum(int(weighted_targets[constraint]) for constraint in ordered_constraints)
+    leftovers = remaining - assigned
+    remainder_order = sorted(
+        ordered_constraints,
+        key=lambda constraint: (
+            -(weighted_targets[constraint] - int(weighted_targets[constraint])),
+            -constraint_counts[constraint],
+            constraint,
+        ),
+    )
+    for constraint in remainder_order[:leftovers]:
+        quotas[constraint] += 1
+
+    overflow = 0
+    for constraint in ordered_constraints:
+        if quotas[constraint] > constraint_counts[constraint]:
+            overflow += quotas[constraint] - constraint_counts[constraint]
+            quotas[constraint] = constraint_counts[constraint]
+
+    while overflow > 0:
+        candidates = [
+            constraint
+            for constraint in ordered_constraints
+            if quotas[constraint] < constraint_counts[constraint]
+        ]
+        if not candidates:
+            break
+        for constraint in candidates:
+            if overflow <= 0:
+                break
+            quotas[constraint] += 1
+            overflow -= 1
+
+    return quotas
+
+
 def _curated_shortlist(df: pd.DataFrame) -> pd.DataFrame:
     ranked = df.copy()
     ranked = ranked[
@@ -432,8 +502,21 @@ def _curated_shortlist(df: pd.DataFrame) -> pd.DataFrame:
 
     selected_parts = []
     for label, quota in ACTION_QUOTAS.items():
-        label_rows = ranked[ranked["action_label"] == label].head(quota)
-        selected_parts.append(label_rows)
+        label_rows = ranked[ranked["action_label"] == label].copy()
+        selected_label_parts: list[pd.DataFrame] = []
+        selected_indices: set[int] = set()
+
+        for constraint, constraint_quota in _allocate_constraint_quotas(label_rows, quota).items():
+            constrained_rows = label_rows[label_rows["recovery_analog_constraint"] == constraint].head(constraint_quota)
+            selected_label_parts.append(constrained_rows)
+            selected_indices.update(constrained_rows.index.tolist())
+
+        selected_count = sum(len(part) for part in selected_label_parts)
+        if selected_count < quota:
+            backfill_rows = label_rows.loc[~label_rows.index.isin(selected_indices)].head(quota - selected_count)
+            selected_label_parts.append(backfill_rows)
+
+        selected_parts.append(pd.concat(selected_label_parts, ignore_index=False))
 
     selected = pd.concat(selected_parts, ignore_index=True)
     selected = selected.sort_values(["priority_score", "distress_prob", "org_name"], ascending=[False, False, True]).reset_index(drop=True)

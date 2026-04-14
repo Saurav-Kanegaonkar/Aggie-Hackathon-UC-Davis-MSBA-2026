@@ -1,4 +1,4 @@
-import { Info, ArrowClockwise, X } from "@phosphor-icons/react";
+import { Info, ArrowClockwise, ArrowUpRight, X } from "@phosphor-icons/react";
 import { useId, useState, type ReactNode } from "react";
 
 function clamp(value: number, min: number, max: number) {
@@ -118,6 +118,7 @@ export function PanelShell({
   children,
   guideMode = "panel",
   headerHint,
+  bodyMode = "fixed",
 }: {
   title: string;
   guideTitle: string;
@@ -125,18 +126,21 @@ export function PanelShell({
   children: ReactNode;
   guideMode?: "panel" | "none";
   headerHint?: string;
+  bodyMode?: "fixed" | "auto";
 }) {
   const [showGuide, setShowGuide] = useState(false);
   const canFlip = guideMode === "panel";
+  const usesFixedBody = bodyMode === "fixed";
+  const interactiveSurface = canFlip && usesFixedBody;
 
   return (
     <section
-      className={`decision-chart-surface overflow-hidden rounded-[2.2rem] border border-black/6 p-6 transition-shadow duration-200 hover:shadow-[0_30px_70px_-44px_rgba(15,23,42,0.2)] ${canFlip ? "cursor-pointer" : ""}`}
-      onClick={canFlip ? () => setShowGuide((value) => !value) : undefined}
-      role={canFlip ? "button" : undefined}
-      tabIndex={canFlip ? 0 : undefined}
+      className={`decision-chart-surface overflow-hidden rounded-[2.2rem] border border-black/6 p-6 transition-shadow duration-200 hover:shadow-[0_30px_70px_-44px_rgba(15,23,42,0.2)] ${interactiveSurface ? "cursor-pointer" : ""}`}
+      onClick={interactiveSurface ? () => setShowGuide((value) => !value) : undefined}
+      role={interactiveSurface ? "button" : undefined}
+      tabIndex={interactiveSurface ? 0 : undefined}
       onKeyDown={
-        canFlip
+        interactiveSurface
           ? (event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
@@ -171,37 +175,158 @@ export function PanelShell({
         ) : null}
       </div>
 
-      <div className="relative mt-6 min-h-[23rem]">
-        <div
-          className={`absolute inset-0 rounded-[1.6rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
-            canFlip && showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
-          }`}
-        >
-          <div className="flex h-full min-h-[23rem] flex-col">{children}</div>
-        </div>
-
-        {canFlip ? (
+      {usesFixedBody ? (
+        <div className="relative mt-6 min-h-[23rem]">
           <div
-            className={`absolute inset-0 rounded-[1.6rem] border border-black/6 bg-[rgba(246,241,232,0.88)] p-5 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
-              showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
+            className={`absolute inset-0 rounded-[1.6rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
+              canFlip && showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
             }`}
           >
-            <div className="flex min-h-[23rem] h-full flex-col">
-              <p className="text-lg font-medium tracking-[-0.04em] text-slate-950">{guideTitle}</p>
-              <ul className="mt-4 space-y-3">
-                {guideBullets.map((bullet) => (
-                  <li key={bullet} className="flex gap-3 text-sm leading-relaxed text-slate-700">
-                    <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
-                    <span>{bullet}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto pt-5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Tap again to return</div>
+            <div className="flex h-full min-h-[23rem] flex-col">{children}</div>
+          </div>
+
+          {canFlip ? (
+            <div
+              className={`absolute inset-0 rounded-[1.6rem] border border-black/6 bg-[rgba(246,241,232,0.88)] p-5 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
+                showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
+              }`}
+            >
+              <div className="flex min-h-[23rem] h-full flex-col">
+                <p className="text-lg font-medium tracking-[-0.04em] text-slate-950">{guideTitle}</p>
+                <ul className="mt-4 space-y-3">
+                  {guideBullets.map((bullet) => (
+                    <li key={bullet} className="flex gap-3 text-sm leading-relaxed text-slate-700">
+                      <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Tap again to return</div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-6">
+          {canFlip && showGuide ? (
+            <div className="rounded-[1.6rem] border border-black/6 bg-[rgba(246,241,232,0.88)] p-5">
+              <div className="flex flex-col">
+                <p className="text-lg font-medium tracking-[-0.04em] text-slate-950">{guideTitle}</p>
+                <ul className="mt-4 space-y-3">
+                  {guideBullets.map((bullet) => (
+                    <li key={bullet} className="flex gap-3 text-sm leading-relaxed text-slate-700">
+                      <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col">{children}</div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FlipGuideCard({
+  title,
+  value,
+  accentColor,
+  toneTint,
+  openLabel,
+  guideBullets,
+  onOpenDetail,
+  frontVisual,
+}: {
+  title: string;
+  value: string;
+  accentColor: string;
+  toneTint: string;
+  openLabel: string;
+  guideBullets: string[];
+  onOpenDetail?: () => void;
+  frontVisual: ReactNode;
+}) {
+  const [showGuide, setShowGuide] = useState(false);
+
+  return (
+    <article className="relative min-h-[17.5rem] overflow-hidden rounded-[1.45rem] [perspective:1600px]">
+      <div
+        className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
+          showGuide ? "[transform:rotateY(180deg)]" : "[transform:rotateY(0deg)]"
+        }`}
+      >
+        <div className="absolute inset-0 flex min-h-[17.5rem] flex-col rounded-[1.45rem] border border-black/6 bg-white/78 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] [backface-visibility:hidden]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{title}</p>
+              <p className="mt-2 text-[1.45rem] font-semibold tracking-[-0.05em] text-slate-950">{value}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGuide(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-[rgba(248,244,236,0.9)] text-slate-500 transition-colors hover:bg-white"
+              aria-label={`How to read ${title}`}
+            >
+              <Info size={13} />
+            </button>
+          </div>
+          <div className="mt-4 flex-1">{frontVisual}</div>
+          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">Open detail</p>
+            <button
+              type="button"
+              onClick={onOpenDetail}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/6 px-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-[1px] hover:border-black/10 hover:shadow-[0_20px_40px_-30px_rgba(15,23,42,0.18)]"
+              style={{ backgroundColor: toneTint }}
+              aria-label={openLabel}
+            >
+              <span>View</span>
+              <span
+                className="inline-flex h-5.5 w-5.5 items-center justify-center rounded-full border border-white/55"
+                style={{ color: accentColor, backgroundColor: "rgba(255,255,255,0.72)" }}
+              >
+                <ArrowUpRight size={11} weight="bold" />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="absolute inset-0 rounded-[1.45rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-4 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="flex min-h-[17.5rem] h-full flex-col">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{title}</p>
+                <p className="mt-2 text-base font-semibold tracking-[-0.04em] text-slate-950">How to read this chart</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGuide(false)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-white/74 text-slate-500 transition-colors hover:bg-white"
+                aria-label={`Back to ${title} chart`}
+              >
+                <ArrowClockwise size={12} />
+              </button>
+            </div>
+            <ul className="mt-4 space-y-2.5">
+              {guideBullets.map((bullet) => (
+                <li key={bullet} className="flex gap-3 text-sm leading-relaxed text-slate-700">
+                  <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+              Open full detail from the chart side when you want the large view
             </div>
           </div>
-        ) : null}
+        </div>
       </div>
-    </section>
+    </article>
   );
 }
 
@@ -212,6 +337,7 @@ export function TrendSparkCard({
   values,
   color,
   tint,
+  guideBullets,
   onOpenDetail,
 }: {
   label: string;
@@ -220,6 +346,7 @@ export function TrendSparkCard({
   values: number[];
   color: string;
   tint: string;
+  guideBullets: string[];
   onOpenDetail?: () => void;
 }) {
   const reactId = useId();
@@ -232,46 +359,46 @@ export function TrendSparkCard({
   const pointIndexes = [...new Set([0, Math.round((values.length - 1) / 2), values.length - 1])];
 
   return (
-    <button
-      type="button"
-      onClick={onOpenDetail}
-      className="group cursor-pointer rounded-[1.7rem] border border-black/6 bg-white/78 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-[1px] hover:shadow-[0_24px_50px_-34px_rgba(15,23,42,0.18)]"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{label}</p>
-          <p className="mt-2 text-[1.85rem] font-semibold tracking-[-0.06em] text-slate-950">{value}</p>
-        </div>
-        <span
-          className="rounded-full border border-black/6 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em]"
-          style={{ backgroundColor: tint, color }}
-        >
-          {delta}
-        </span>
-      </div>
-      <div className="mt-4 overflow-hidden rounded-[1.2rem]" style={{ background: tint }}>
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-28 w-full">
-          <defs>
-            <linearGradient id={fillId} x1="0%" x2="0%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-              <stop offset="100%" stopColor={color} stopOpacity="0.03" />
-            </linearGradient>
-          </defs>
-          <path d={area} fill={`url(#${fillId})`} />
-          <path d={line} fill="none" stroke={color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-          {pointIndexes.map((index) => {
-            const value = values[index];
-            const x = values.length > 1 ? (width / (values.length - 1)) * index : width / 2;
-            const ratio = (value - bounds.min) / (bounds.max - bounds.min || 1);
-            const y = height - ratio * height;
-            return <circle key={`${label}-${index}`} cx={x} cy={clamp(y, 0, height)} r="3.7" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="1.5" />;
-          })}
-        </svg>
-      </div>
-      <div className="mt-3 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 transition-colors duration-200 group-hover:text-slate-500">
-        Open detail
-      </div>
-    </button>
+    <FlipGuideCard
+      title={label}
+      value={value}
+      accentColor={color}
+      toneTint={tint}
+      openLabel={`Open ${label} detail`}
+      guideBullets={guideBullets}
+      onOpenDetail={onOpenDetail}
+      frontVisual={
+        <>
+          <div className="flex items-start justify-end">
+            <span
+              className="rounded-full border border-black/6 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em]"
+              style={{ backgroundColor: tint, color }}
+            >
+              {delta}
+            </span>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-[1.05rem]" style={{ background: tint }}>
+            <svg viewBox={`0 0 ${width} ${height}`} className="h-24 w-full">
+              <defs>
+                <linearGradient id={fillId} x1="0%" x2="0%" y1="0%" y2="100%">
+                  <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0.03" />
+                </linearGradient>
+              </defs>
+              <path d={area} fill={`url(#${fillId})`} />
+              <path d={line} fill="none" stroke={color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+              {pointIndexes.map((index) => {
+                const pointValue = values[index];
+                const x = values.length > 1 ? (width / (values.length - 1)) * index : width / 2;
+                const ratio = (pointValue - bounds.min) / (bounds.max - bounds.min || 1);
+                const y = height - ratio * height;
+                return <circle key={`${label}-${index}`} cx={x} cy={clamp(y, 0, height)} r="3.7" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="1.5" />;
+              })}
+            </svg>
+          </div>
+        </>
+      }
+    />
   );
 }
 
@@ -388,51 +515,55 @@ export function RevenueMixTrendGrid({
 }) {
   const reactId = useId();
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
       {series.map((item) => {
         const latest = item.values.at(-1) ?? 0;
-        const width = 220;
-        const height = 84;
+        const width = 248;
+        const height = 96;
         const bounds = computeBounds([item.values], 0.18);
         const line = linePath(item.values, width, height, bounds.min, bounds.max);
         const area = areaUnderLine(item.values, width, height, bounds.min, bounds.max);
         return (
-          <button
+          <FlipGuideCard
             key={item.label}
-            type="button"
-            onClick={() => onOpenDetail?.(item.label)}
-            className="group cursor-pointer rounded-[1.35rem] border border-black/6 bg-white/76 p-4 text-left transition-[transform,box-shadow] duration-300 hover:-translate-y-[1px] hover:shadow-[0_24px_48px_-34px_rgba(15,23,42,0.16)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
-                <p className="mt-2 text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-950">{Math.round(latest)}%</p>
-              </div>
-              <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-            </div>
-            <div className="mt-4 overflow-hidden rounded-[1.1rem]" style={{ backgroundColor: `${item.color}12` }}>
-              <svg viewBox={`0 0 ${width} ${height}`} className="h-20 w-full">
-                <defs>
-                  <linearGradient id={`mix-fill-${sanitizeId(item.label)}-${sanitizeId(reactId)}`} x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" stopColor={item.color} stopOpacity="0.2" />
-                    <stop offset="100%" stopColor={item.color} stopOpacity="0.02" />
-                  </linearGradient>
-                </defs>
-                <path d={area} fill={`url(#mix-fill-${sanitizeId(item.label)}-${sanitizeId(reactId)})`} />
-                <path d={line} fill="none" stroke={item.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                {[0, Math.round((item.values.length - 1) / 2), item.values.length - 1].map((index) => {
-                  const value = item.values[index];
-                  const x = item.values.length > 1 ? (width / (item.values.length - 1)) * index : width / 2;
-                  const ratio = (value - bounds.min) / (bounds.max - bounds.min || 1);
-                  const y = height - ratio * height;
-                  return <circle key={`${item.label}-${index}`} cx={x} cy={clamp(y, 0, height)} r="3.4" fill={item.color} stroke="rgba(255,255,255,0.94)" strokeWidth="1.4" />;
-                })}
-              </svg>
-            </div>
-            <div className="mt-3 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 transition-colors duration-200 group-hover:text-slate-500">
-              Open detail
-            </div>
-          </button>
+            title={item.label}
+            value={`${Math.round(latest)}%`}
+            accentColor={item.color}
+            toneTint={`${item.color}12`}
+            openLabel={`Open ${item.label} detail`}
+            guideBullets={[
+              `This chart tracks how much ${item.label.toLowerCase()} contributed to total revenue across the filing history.`,
+              "Higher percentages mean the organization is leaning more heavily on this source in that year.",
+              "Read this alongside the other revenue cards to see whether the overall mix is broadening or concentrating.",
+            ]}
+            onOpenDetail={() => onOpenDetail?.(item.label)}
+            frontVisual={
+              <>
+                <div className="flex items-start justify-end">
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                </div>
+                <div className="mt-4 overflow-hidden rounded-[1.05rem]" style={{ backgroundColor: `${item.color}12` }}>
+                  <svg viewBox={`0 0 ${width} ${height}`} className="h-20 w-full" data-testid={`revenue-mix-spark-${sanitizeId(item.label)}`}>
+                    <defs>
+                      <linearGradient id={`mix-fill-${sanitizeId(item.label)}-${sanitizeId(reactId)}`} x1="0%" x2="0%" y1="0%" y2="100%">
+                        <stop offset="0%" stopColor={item.color} stopOpacity="0.2" />
+                        <stop offset="100%" stopColor={item.color} stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    <path d={area} fill={`url(#mix-fill-${sanitizeId(item.label)}-${sanitizeId(reactId)})`} />
+                    <path d={line} fill="none" stroke={item.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    {[0, Math.round((item.values.length - 1) / 2), item.values.length - 1].map((index) => {
+                      const value = item.values[index];
+                      const x = item.values.length > 1 ? (width / (item.values.length - 1)) * index : width / 2;
+                      const ratio = (value - bounds.min) / (bounds.max - bounds.min || 1);
+                      const y = height - ratio * height;
+                      return <circle key={`${item.label}-${index}`} cx={x} cy={clamp(y, 0, height)} r="3.4" fill={item.color} stroke="rgba(255,255,255,0.94)" strokeWidth="1.4" />;
+                    })}
+                  </svg>
+                </div>
+              </>
+            }
+          />
         );
       })}
     </div>
@@ -487,6 +618,95 @@ export function ComparisonRows({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+export interface DecisionLabDetail {
+  title: string;
+  subtitle?: string;
+  guideTitle?: string;
+  guideBullets?: string[];
+  content: ReactNode;
+}
+
+export function DecisionLabDetailOverlay({
+  detail,
+  onClose,
+}: {
+  detail: DecisionLabDetail;
+  onClose: () => void;
+}) {
+  const [showGuide, setShowGuide] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-4 backdrop-blur-[12px] sm:p-5 md:p-6" data-testid="decision-lab-detail-overlay">
+      <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail backdrop" />
+      <section
+        className="relative z-[1] flex h-[min(78dvh,760px)] w-[min(92vw,1400px)] flex-col rounded-[2.6rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={detail.title}
+      >
+        <div className="flex h-full flex-col rounded-[calc(2.6rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="text-[2rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.7rem]">{detail.title}</h4>
+              {detail.subtitle ? <p className="mt-3 max-w-5xl text-[15px] leading-relaxed text-slate-600 md:text-[16px]">{detail.subtitle}</p> : null}
+            </div>
+            <div className="flex items-center gap-3">
+              {detail.guideTitle && detail.guideBullets?.length ? (
+                <button
+                  type="button"
+                  onClick={() => setShowGuide((value) => !value)}
+                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/78 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 hover:bg-white"
+                >
+                  {showGuide ? <ArrowClockwise size={14} /> : <Info size={14} />}
+                  <span>{showGuide ? "Back to chart" : "How to read"}</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onClose}
+                className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-500 transition-colors hover:bg-white"
+                aria-label="Close detail"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="relative mt-5 min-h-0 flex-1">
+            <div
+              className={`absolute inset-0 rounded-[1.9rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
+                showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
+              }`}
+            >
+              <div className="h-full overflow-auto rounded-[2.2rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-5 md:p-6">{detail.content}</div>
+            </div>
+
+            {detail.guideTitle && detail.guideBullets?.length ? (
+              <div
+                className={`absolute inset-0 rounded-[2.2rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-6 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-8 ${
+                  showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
+                }`}
+              >
+                <div className="flex h-full flex-col">
+                  <p className="text-[1.6rem] font-medium tracking-[-0.045em] text-slate-950 md:text-[1.9rem]">{detail.guideTitle}</p>
+                  <ul className="mt-8 max-w-4xl space-y-6">
+                    {detail.guideBullets.map((bullet) => (
+                      <li key={bullet} className="flex gap-4 text-[1rem] leading-relaxed text-slate-700 md:text-[1.08rem]">
+                        <span className="mt-2.5 h-1.5 w-1.5 flex-none rounded-full bg-[#47695c]" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return to the chart</div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

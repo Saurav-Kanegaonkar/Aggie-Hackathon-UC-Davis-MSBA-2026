@@ -1,17 +1,45 @@
-import { useState } from "react";
-
 import type { DecisionLabModel } from "../../lib/decisionLabModel";
-import { ChartDetailModal, Legend, PanelShell, RevenueMixTrendGrid } from "./ChartPrimitives";
+import type { DecisionLabDetail } from "./ChartPrimitives";
+import { Legend, PanelShell, RevenueMixTrendGrid } from "./ChartPrimitives";
 
-export function RevenueCompositionPanel({ model }: { model: DecisionLabModel }) {
-  const [activeSeriesLabel, setActiveSeriesLabel] = useState<string | null>(null);
+export function RevenueCompositionPanel({
+  model,
+  onOpenDetail,
+}: {
+  model: DecisionLabModel;
+  onOpenDetail: (detail: DecisionLabDetail) => void;
+}) {
   const mixSeries = [
     { label: "Program", color: "#4f7664", values: model.revenueComposition.map((point) => point.programPct) },
     { label: "Contributions", color: "#c89648", values: model.revenueComposition.map((point) => point.contributionsPct) },
     { label: "Investment", color: "#6f87a2", values: model.revenueComposition.map((point) => point.investmentPct) },
     { label: "Other", color: "#b5c0cf", values: model.revenueComposition.map((point) => point.otherPct) },
   ];
-  const activeSeries = mixSeries.find((item) => item.label === activeSeriesLabel) ?? null;
+
+  function openSeriesDetail(seriesLabel: string) {
+    const activeSeries = mixSeries.find((item) => item.label === seriesLabel);
+    if (!activeSeries) {
+      return;
+    }
+
+    onOpenDetail({
+      title: `${activeSeries.label} share over time`,
+      subtitle: `A closer read on how ${activeSeries.label.toLowerCase()} contributed to the revenue base across filing years.`,
+      guideTitle: "How to read this chart",
+      guideBullets: [
+        "Each bar shows the share of total revenue coming from this stream in that filing year.",
+        "The labeled points show how the stream started, where it sat mid-history, and where it ended most recently.",
+        "A stream becoming dominant means the organization is leaning harder on that source over time.",
+      ],
+      content: (
+        <ExpandedMixChart
+          labels={model.revenueComposition.map((point) => `FY${point.fiscalYear}`)}
+          color={activeSeries.color}
+          values={activeSeries.values}
+        />
+      ),
+    });
+  }
 
   return (
     <PanelShell
@@ -24,6 +52,7 @@ export function RevenueCompositionPanel({ model }: { model: DecisionLabModel }) 
       ]}
       guideMode="none"
       headerHint="Open a card for detail"
+      bodyMode="auto"
     >
       <Legend
         items={[
@@ -33,26 +62,7 @@ export function RevenueCompositionPanel({ model }: { model: DecisionLabModel }) 
           { label: "Other", color: "#b5c0cf" },
         ]}
       />
-      <RevenueMixTrendGrid series={mixSeries} onOpenDetail={setActiveSeriesLabel} />
-      {activeSeries ? (
-        <ChartDetailModal
-          title={`${activeSeries.label} share over time`}
-          subtitle={`A closer read on how ${activeSeries.label.toLowerCase()} contributed to the revenue base across filing years.`}
-          guideTitle="How to read this chart"
-          guideBullets={[
-            "Each bar shows the share of total revenue coming from this stream in that filing year.",
-            "The labeled points show how the stream started, where it sat mid-history, and where it ended most recently.",
-            "A stream becoming dominant means the organization is leaning harder on that source over time.",
-          ]}
-          onClose={() => setActiveSeriesLabel(null)}
-        >
-          <ExpandedMixChart
-            labels={model.revenueComposition.map((point) => `FY${point.fiscalYear}`)}
-            color={activeSeries.color}
-            values={activeSeries.values}
-          />
-        </ChartDetailModal>
-      ) : null}
+      <RevenueMixTrendGrid series={mixSeries} onOpenDetail={openSeriesDetail} />
     </PanelShell>
   );
 }
@@ -66,8 +76,11 @@ function ExpandedMixChart({
   color: string;
   values: number[];
 }) {
-  const width = 1120;
-  const height = 470;
+  const width = 1320;
+  const height = 640;
+  const plotLeft = 132;
+  const plotTop = 26;
+  const plotBottom = 116;
   const max = Math.max(...values, 100);
   const min = 0;
   const span = Math.max(1, max - min);
@@ -75,23 +88,35 @@ function ExpandedMixChart({
   const keyLabelIndexes = [0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1];
   const keyPointIndexes = [...new Set([0, Math.round((labels.length - 1) / 2), labels.length - 1])];
   const yTicks = [max, Math.round(max / 2), 0];
+  const summaries = keyPointIndexes.map((index) => ({
+    label: labels[index],
+    value: `${Math.round(values[index])}%`,
+  }));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5">
-      <div className="flex-1 overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-5">
-        <svg viewBox={`0 0 ${width + 68} ${height + 58}`} className="h-full w-full">
+    <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_14rem]" data-testid="expanded-mix-chart">
+      <div className="min-h-[30rem] overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-4">
+        <svg viewBox={`0 0 ${width + plotLeft + 8} ${height + plotTop + plotBottom}`} className="h-full min-h-[28rem] w-full">
           {yTicks.map((tick) => {
-            const y = 24 + height - ((tick - min) / span) * height;
+            const y = plotTop + height - ((tick - min) / span) * height;
             return (
               <g key={tick}>
-                <line x1="58" y1={y} x2={width + 58} y2={y} className="decision-gridline" />
-                <text x="0" y={y + 4} className="fill-slate-400 text-[11px] tracking-[0.12em] uppercase">
+                <line
+                  x1={plotLeft}
+                  y1={y}
+                  x2={width + plotLeft}
+                  y2={y}
+                  stroke="rgba(67, 82, 97, 0.22)"
+                  strokeWidth="1.6"
+                  strokeDasharray="6 8"
+                />
+                <text x="0" y={y + 8} fill="#435261" fontSize="28" fontWeight="700" letterSpacing="0.35">
                   {`${Math.round(tick)}%`}
                 </text>
               </g>
             );
           })}
-          <g transform="translate(58 24)">
+          <g transform={`translate(${plotLeft} ${plotTop})`}>
             {values.map((value, index) => {
               const x = index * (barWidth + 10);
               const h = ((value - min) / span) * height;
@@ -105,8 +130,8 @@ function ExpandedMixChart({
               const y = height - h;
               return (
                 <g key={`mix-point-${index}`}>
-                  <circle cx={x} cy={y} r="5.5" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="2.5" />
-                  <text x={x} y={Math.max(16, y - 14)} textAnchor="middle" className="fill-slate-500 text-[11px] tracking-[0.08em] uppercase">
+                  <circle cx={x} cy={y} r="8.5" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="2.8" />
+                  <text x={x} y={Math.max(26, y - 18)} textAnchor="middle" fill="#334155" fontSize="22" fontWeight="700" letterSpacing="0.2">
                     {`${Math.round(value)}%`}
                   </text>
                 </g>
@@ -116,21 +141,24 @@ function ExpandedMixChart({
           {keyLabelIndexes.map((index) => (
             <text
               key={labels[index]}
-              x={58 + index * (barWidth + 10) + barWidth / 2}
-              y={height + 66}
+              x={plotLeft + index * (barWidth + 10) + barWidth / 2}
+              y={height + plotTop + 52}
               textAnchor="middle"
-              className="fill-slate-400 text-[10px] tracking-[0.12em] uppercase"
+              fill="#435261"
+              fontSize="22"
+              fontWeight="700"
+              letterSpacing="0.5"
             >
               {labels[index]}
             </text>
           ))}
         </svg>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {keyPointIndexes.map((index) => (
-          <div key={`mix-summary-${index}`} className="rounded-[1.2rem] border border-black/6 bg-white/78 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{labels[index]}</p>
-            <p className="mt-2 text-lg font-semibold tracking-[-0.04em] text-slate-950">{`${Math.round(values[index])}%`}</p>
+      <div className="grid gap-3 lg:grid-rows-[repeat(3,minmax(0,1fr))]">
+        {summaries.map((summary) => (
+          <div key={`mix-summary-${summary.label}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{summary.label}</p>
+            <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{summary.value}</p>
           </div>
         ))}
       </div>

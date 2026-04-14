@@ -1,8 +1,7 @@
-import { useState } from "react";
-
 import type { DecisionLabModel } from "../../lib/decisionLabModel";
 import { compactCurrency } from "../../lib/decisionLabText";
-import { ChartDetailModal, PanelShell, TrendSparkCard } from "./ChartPrimitives";
+import type { DecisionLabDetail } from "./ChartPrimitives";
+import { PanelShell, TrendSparkCard } from "./ChartPrimitives";
 
 function formatChange(current: number, prior: number) {
   if (!Number.isFinite(current) || !Number.isFinite(prior) || Math.abs(prior) < 1e-9) {
@@ -16,10 +15,15 @@ function formatChange(current: number, prior: number) {
   return `${deltaPct >= 0 ? "+" : ""}${Math.round(deltaPct)}% vs start`;
 }
 
-export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel }) {
+export function FinancialTrajectoryPanel({
+  model,
+  onOpenDetail,
+}: {
+  model: DecisionLabModel;
+  onOpenDetail: (detail: DecisionLabDetail) => void;
+}) {
   const first = model.financialTrajectory[0];
   const last = model.financialTrajectory.at(-1);
-  const [activeSeries, setActiveSeries] = useState<"Revenue" | "Expenses" | "Net assets" | null>(null);
   const labels = model.financialTrajectory.map((point) => `FY${point.fiscalYear}`);
 
   const seriesMap = {
@@ -40,6 +44,26 @@ export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel })
     },
   } as const;
 
+  function openSeriesDetail(seriesLabel: keyof typeof seriesMap) {
+    onOpenDetail({
+      title: `${seriesLabel} over time`,
+      subtitle: seriesMap[seriesLabel].subtitle,
+      guideTitle: "How to read this chart",
+      guideBullets: [
+        "The large line shows the full multi-year pattern, with start, midpoint, and latest years marked directly on the series.",
+        "Use the callouts to understand where the series inflected, not just where it ended.",
+        "Read this together with the other two series to see whether growth, cost pressure, or balance-sheet strength is shaping the case.",
+      ],
+      content: (
+        <ExpandedSeriesChart
+          labels={labels}
+          color={seriesMap[seriesLabel].color}
+          values={seriesMap[seriesLabel].values}
+        />
+      ),
+    });
+  }
+
   return (
     <PanelShell
       title="Financial trajectory"
@@ -51,6 +75,7 @@ export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel })
       ]}
       guideMode="none"
       headerHint="Open a card for detail"
+      bodyMode="auto"
     >
       <div className="grid gap-4 xl:grid-cols-3">
         <TrendSparkCard
@@ -60,7 +85,12 @@ export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel })
           values={model.financialTrajectory.map((point) => point.revenue)}
           color="#466859"
           tint="rgba(70,104,89,0.10)"
-          onOpenDetail={() => setActiveSeries("Revenue")}
+          guideBullets={[
+            "This card isolates one financial series so the shape is easy to read without competing with the other lines.",
+            "The headline number is the latest filing value, while the small badge compares today against the first observed year.",
+            "Open the full detail view when you want the larger chart and year-by-year callouts.",
+          ]}
+          onOpenDetail={() => openSeriesDetail("Revenue")}
         />
         <TrendSparkCard
           label="Expenses"
@@ -69,7 +99,12 @@ export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel })
           values={model.financialTrajectory.map((point) => point.expenses)}
           color="#b68a48"
           tint="rgba(182,138,72,0.12)"
-          onOpenDetail={() => setActiveSeries("Expenses")}
+          guideBullets={[
+            "This card tracks cost pressure over time, separate from revenue, so rising expenses are easy to spot.",
+            "Read the badge as the change from the first filing year, not as a quarter-over-quarter signal.",
+            "Open the large chart when you want the detailed path and labeled inflection points.",
+          ]}
+          onOpenDetail={() => openSeriesDetail("Expenses")}
         />
         <TrendSparkCard
           label="Net assets"
@@ -78,28 +113,14 @@ export function FinancialTrajectoryPanel({ model }: { model: DecisionLabModel })
           values={model.financialTrajectory.map((point) => point.netAssets)}
           color="#7f95ad"
           tint="rgba(127,149,173,0.14)"
-          onOpenDetail={() => setActiveSeries("Net assets")}
+          guideBullets={[
+            "This card shows how the balance-sheet cushion has changed across the filing history.",
+            "Rising net assets usually mean the organization is building more flexibility; falling net assets mean that cushion is thinning.",
+            "Open the larger chart when you need the full path instead of the quick summary read.",
+          ]}
+          onOpenDetail={() => openSeriesDetail("Net assets")}
         />
       </div>
-      {activeSeries ? (
-        <ChartDetailModal
-          title={`${activeSeries} over time`}
-          subtitle={seriesMap[activeSeries].subtitle}
-          guideTitle="How to read this chart"
-          guideBullets={[
-            "The large line shows the full multi-year pattern, with start, midpoint, and latest years marked directly on the series.",
-            "Use the callouts to understand where the series inflected, not just where it ended.",
-            "Read this together with the other two series to see whether growth, cost pressure, or balance-sheet strength is shaping the case.",
-          ]}
-          onClose={() => setActiveSeries(null)}
-        >
-          <ExpandedSeriesChart
-            labels={labels}
-            color={seriesMap[activeSeries].color}
-            values={seriesMap[activeSeries].values}
-          />
-        </ChartDetailModal>
-      ) : null}
     </PanelShell>
   );
 }
@@ -113,16 +134,28 @@ function ExpandedSeriesChart({
   color: string;
   values: number[];
 }) {
-  const width = 1120;
-  const height = 470;
+  const width = 1320;
+  const height = 640;
+  const plotLeft = 132;
+  const plotTop = 26;
+  const plotBottom = 116;
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const span = Math.max(1, max - min);
+  const positiveValues = values.filter((value) => value > 0);
+  const smallestPositive = positiveValues.length ? Math.min(...positiveValues) : 1;
+  const usesCompressedScale = max / Math.max(smallestPositive, 1) > 12;
+  const scaleExponent = usesCompressedScale ? 0.58 : 1;
   const stepX = values.length > 1 ? width / (values.length - 1) : width / 2;
+  const projectY = (value: number) => {
+    const ratio = (value - min) / span;
+    const scaledRatio = scaleExponent === 1 ? ratio : Math.pow(Math.max(0, ratio), scaleExponent);
+    return height - scaledRatio * height;
+  };
   const path = values
     .map((value, index) => {
       const x = stepX * index;
-      const y = height - ((value - min) / span) * height;
+      const y = projectY(value);
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
@@ -130,33 +163,45 @@ function ExpandedSeriesChart({
   const keyLabelIndexes = [0, Math.floor((labels.length - 1) / 3), Math.floor((2 * (labels.length - 1)) / 3), labels.length - 1];
   const keyPointIndexes = [...new Set([0, Math.round((labels.length - 1) / 2), labels.length - 1])];
   const yTicks = [max, min + span * 0.5, min];
+  const summaries = keyPointIndexes.map((index) => ({
+    label: labels[index],
+    value: compactCurrency(values[index]),
+  }));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5">
-      <div className="flex-1 overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-5">
-        <svg viewBox={`0 0 ${width + 68} ${height + 58}`} className="h-full w-full">
+    <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_14rem]" data-testid="expanded-series-chart">
+      <div className="min-h-[30rem] overflow-hidden rounded-[1.8rem] border border-black/6 bg-[rgba(247,243,235,0.78)] p-4">
+        <svg viewBox={`0 0 ${width + plotLeft + 8} ${height + plotTop + plotBottom}`} className="h-full min-h-[28rem] w-full">
           {yTicks.map((tick) => {
-            const y = 24 + height - ((tick - min) / span) * height;
+            const y = plotTop + projectY(tick);
             return (
               <g key={tick}>
-                <line x1="58" y1={y} x2={width + 58} y2={y} className="decision-gridline" />
-                <text x="0" y={y + 4} className="fill-slate-400 text-[11px] tracking-[0.12em] uppercase">
+                <line
+                  x1={plotLeft}
+                  y1={y}
+                  x2={width + plotLeft}
+                  y2={y}
+                  stroke="rgba(67, 82, 97, 0.22)"
+                  strokeWidth="1.6"
+                  strokeDasharray="6 8"
+                />
+                <text x="0" y={y + 8} fill="#435261" fontSize="28" fontWeight="700" letterSpacing="0.35">
                   {compactCurrency(tick)}
                 </text>
               </g>
             );
           })}
-          <g transform="translate(58 24)">
+          <g transform={`translate(${plotLeft} ${plotTop})`}>
             <path d={area} fill={color} fillOpacity="0.12" />
-            <path d={path} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={path} fill="none" stroke={color} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
             {keyPointIndexes.map((index) => {
               const value = values[index];
               const x = stepX * index;
-              const y = height - ((value - min) / span) * height;
+              const y = projectY(value);
               return (
                 <g key={`point-${index}`}>
-                  <circle cx={x} cy={y} r="5.5" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="2.5" />
-                  <text x={x} y={Math.max(16, y - 14)} textAnchor="middle" className="fill-slate-500 text-[11px] tracking-[0.08em] uppercase">
+                  <circle cx={x} cy={y} r="8.5" fill={color} stroke="rgba(255,255,255,0.94)" strokeWidth="2.8" />
+                  <text x={x} y={Math.max(26, y - 18)} textAnchor="middle" fill="#334155" fontSize="22" fontWeight="700" letterSpacing="0.2">
                     {compactCurrency(value)}
                   </text>
                 </g>
@@ -166,23 +211,34 @@ function ExpandedSeriesChart({
           {keyLabelIndexes.map((index) => (
             <text
               key={labels[index]}
-              x={58 + stepX * index}
-              y={height + 66}
+              x={plotLeft + stepX * index}
+              y={height + plotTop + 52}
               textAnchor="middle"
-              className="fill-slate-400 text-[10px] tracking-[0.12em] uppercase"
+              fill="#435261"
+              fontSize="22"
+              fontWeight="700"
+              letterSpacing="0.5"
             >
               {labels[index]}
             </text>
           ))}
         </svg>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {keyPointIndexes.map((index) => (
-          <div key={`summary-${index}`} className="rounded-[1.2rem] border border-black/6 bg-white/78 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{labels[index]}</p>
-            <p className="mt-2 text-lg font-semibold tracking-[-0.04em] text-slate-950">{compactCurrency(values[index])}</p>
+      <div className="grid gap-3 lg:grid-rows-[repeat(3,minmax(0,1fr))]">
+        {summaries.map((summary) => (
+          <div key={`summary-${summary.label}`} className="rounded-[1.2rem] border border-black/6 bg-white/82 px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{summary.label}</p>
+            <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{summary.value}</p>
           </div>
         ))}
+        {usesCompressedScale ? (
+          <div className="rounded-[1.2rem] border border-dashed border-black/8 bg-[rgba(246,241,232,0.78)] px-4 py-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Readability note</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-700">
+              The vertical scale is gently compressed so the spike and the typical years can both be read without flattening the line.
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

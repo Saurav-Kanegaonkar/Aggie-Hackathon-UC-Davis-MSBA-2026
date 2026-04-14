@@ -66,6 +66,7 @@ export function ScoreDriversPanel({ model }: { model: DecisionLabModel }) {
         "The status chip tells you whether that ingredient is clearly helping, neutral, or holding the case back.",
         "Use this panel to explain the score in plain language, not as a second recommendation.",
       ]}
+      bodyMode="auto"
     >
       <div className="grid gap-3 overflow-hidden">
         {model.scoreDrivers.map((driver) => {

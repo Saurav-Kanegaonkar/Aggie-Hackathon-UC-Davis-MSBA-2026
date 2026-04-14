@@ -1,14 +1,17 @@
 import { ArrowArcLeft } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 import { formatOrganizationName } from "../lib/advisorLanguage";
 import { buildDecisionLabModel } from "../lib/decisionLabModel";
 import type { OrganizationRecord } from "../types";
 import { CasePositionStrip } from "./decision-lab/CasePositionStrip";
+import type { DecisionLabDetail } from "./decision-lab/ChartPrimitives";
+import { DecisionLabDetailOverlay } from "./decision-lab/ChartPrimitives";
+import { ExecutiveSummaryPanel } from "./decision-lab/ExecutiveSummaryPanel";
 import { FinancialTrajectoryPanel } from "./decision-lab/FinancialTrajectoryPanel";
 import { OperatingQualityPanel } from "./decision-lab/OperatingQualityPanel";
 import { PeerPositionPanel } from "./decision-lab/PeerPositionPanel";
-import { RecommendationFold } from "./decision-lab/RecommendationFold";
 import { RecoveryAnalogsPanel } from "./decision-lab/RecoveryAnalogsPanel";
 import { RevenueCompositionPanel } from "./decision-lab/RevenueCompositionPanel";
 import { ScoreDriversPanel } from "./decision-lab/ScoreDriversPanel";
@@ -22,11 +25,12 @@ export function DecisionLab({
 }) {
   const model = buildDecisionLabModel(organization);
   const bucketLabel = formatSizeBucket(organization.sizeBucket);
+  const [activeDetail, setActiveDetail] = useState<DecisionLabDetail | null>(null);
 
   return (
     <motion.section
       layout
-      className="rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.74)] p-2 shadow-[0_34px_94px_-56px_rgba(15,23,42,0.28)]"
+      className="relative rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.74)] p-2 shadow-[0_34px_94px_-56px_rgba(15,23,42,0.28)]"
     >
       <div className="rounded-[calc(2.8rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,246,240,0.88))] px-5 pb-5 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)] sm:px-6">
         <div className="space-y-4 border-b border-black/6 pb-5">
@@ -54,25 +58,24 @@ export function DecisionLab({
           </div>
         </div>
 
+        <ExecutiveSummaryPanel model={model} organization={organization} />
         <CasePositionStrip model={model} organization={organization} />
 
-        <div className="mt-5 grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-          <PeerPositionPanel model={model} />
-          <FinancialTrajectoryPanel model={model} />
+        <div className="mt-5 grid gap-4 xl:items-start xl:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <PeerPositionPanel model={model} />
+            <OperatingQualityPanel model={model} />
+            <ScoreDriversPanel model={model} />
+          </div>
+          <div className="flex flex-col gap-4">
+            <FinancialTrajectoryPanel model={model} onOpenDetail={setActiveDetail} />
+            <RevenueCompositionPanel model={model} onOpenDetail={setActiveDetail} />
+            <RecoveryAnalogsPanel organization={organization} />
+          </div>
         </div>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <OperatingQualityPanel model={model} />
-          <RevenueCompositionPanel model={model} />
-        </div>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <ScoreDriversPanel model={model} />
-          <RecoveryAnalogsPanel organization={organization} />
-        </div>
-
-        <RecommendationFold organization={organization} />
       </div>
+
+      {activeDetail ? <DecisionLabDetailOverlay detail={activeDetail} onClose={() => setActiveDetail(null)} /> : null}
     </motion.section>
   );
 }

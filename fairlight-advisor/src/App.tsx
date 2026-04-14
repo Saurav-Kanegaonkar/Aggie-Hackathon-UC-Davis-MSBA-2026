@@ -4,10 +4,12 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 
 import { DecisionLab } from "./components/DecisionLab";
 import { PortfolioInbox } from "./components/PortfolioInbox";
+import { PriorityPipeline } from "./components/PriorityPipeline";
 import { getInboxCopy } from "./lib/advisorLanguage";
-import type { AdvisorDataset, OrganizationRecord } from "./types";
+import type { AdvisorDataset, OrganizationRecord, PriorityPipelineDataset } from "./types";
 
 type SortOption = "northstar-desc" | "northstar-asc" | "name-asc";
+type WorkspaceMode = "portfolio" | "pipeline";
 const SIZE_BUCKET_ORDER: Record<string, number> = {
   "<500K": 0,
   "500K-2M": 1,
@@ -17,8 +19,10 @@ const SIZE_BUCKET_ORDER: Record<string, number> = {
 
 export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
+  const [priorityPipelineDataset, setPriorityPipelineDataset] = useState<PriorityPipelineDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceMode>("portfolio");
   const [actionFilter, setActionFilter] = useState<string>("All");
   const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [sizeBucketFilter, setSizeBucketFilter] = useState<string>("All");
@@ -31,15 +35,25 @@ export default function App() {
 
     async function loadDataset() {
       try {
-        const module = await import("./data/fairlight-advisor.json");
+        const [advisorModule, pipelineModule] = await Promise.all([
+          import("./data/fairlight-advisor.json"),
+          import("./data/priority-pipeline.json"),
+        ]);
         if (isMounted) {
-          const dataset = module.default as AdvisorDataset;
+          const dataset = advisorModule.default as AdvisorDataset;
+          const pipelineDataset = pipelineModule.default as PriorityPipelineDataset;
           if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const requestedOrganization = params.get("org");
+            const requestedView = params.get("view");
+
+            if (requestedView === "pipeline") {
+              setActiveWorkspace("pipeline");
+            }
 
             if (requestedOrganization === "first" && dataset.organizations[0]) {
               setSelectedId(dataset.organizations[0].id);
+              setActiveWorkspace("portfolio");
             } else if (requestedOrganization) {
               const matchedOrganization = dataset.organizations.find(
                 (organization) => organization.id === requestedOrganization,
@@ -47,11 +61,13 @@ export default function App() {
 
               if (matchedOrganization) {
                 setSelectedId(matchedOrganization.id);
+                setActiveWorkspace("portfolio");
               }
             }
           }
 
           setAdvisorDataset(dataset);
+          setPriorityPipelineDataset(pipelineDataset);
         }
       } catch (error) {
         if (isMounted) {
@@ -118,6 +134,13 @@ export default function App() {
     });
   };
 
+  const handleWorkspaceChange = (workspace: WorkspaceMode) => {
+    startTransition(() => {
+      setSelectedId(null);
+      setActiveWorkspace(workspace);
+    });
+  };
+
   const handleReturnToPortfolio = () => {
     startTransition(() => {
       setSelectedId(null);
@@ -141,7 +164,7 @@ export default function App() {
     );
   }
 
-  if (!advisorDataset) {
+  if (!advisorDataset || !priorityPipelineDataset) {
     return (
       <main className="min-h-[100dvh] px-4 py-4 text-slate-900 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col gap-5">
@@ -209,31 +232,66 @@ export default function App() {
               </div>
 
               {!workspaceOpen ? (
-                <SummaryStrip
-                  items={[
-                    {
-                      id: "review",
-                      label: "Cases in review",
-                      value: String(advisorDataset.summary.totalOrganizations),
-                      detail: `${advisorDataset.summary.states.join(", ")} shortlist`,
-                      explanation: "Organizations currently in Fairlight's active shortlist.",
-                    },
-                    {
-                      id: "risk",
-                      label: "Typical risk",
-                      value: `${advisorDataset.summary.distressBaselineRate}%`,
-                      detail: "Average next-year risk",
-                      explanation: "Average chance of financial stress next year across the shortlist.",
-                    },
-                    {
-                      id: "paused",
-                      label: "Paused cases",
-                      value: `${advisorDataset.summary.countsByAction["Deep Review"]}`,
-                      detail: "Need more checking",
-                      explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
-                    },
-                  ]}
-                />
+                <div className="flex flex-col items-stretch gap-3 xl:items-end">
+                  <WorkspaceSwitch
+                    activeWorkspace={activeWorkspace}
+                    onChange={handleWorkspaceChange}
+                  />
+                  {activeWorkspace === "portfolio" ? (
+                    <SummaryStrip
+                      items={[
+                        {
+                          id: "review",
+                          label: "Cases in review",
+                          value: String(advisorDataset.summary.totalOrganizations),
+                          detail: `${advisorDataset.summary.states.join(", ")} shortlist`,
+                          explanation: "Organizations currently in Fairlight's active shortlist.",
+                        },
+                        {
+                          id: "risk",
+                          label: "Typical risk",
+                          value: `${advisorDataset.summary.distressBaselineRate}%`,
+                          detail: "Average next-year risk",
+                          explanation: "Average chance of financial stress next year across the shortlist.",
+                        },
+                        {
+                          id: "paused",
+                          label: "Paused cases",
+                          value: `${advisorDataset.summary.countsByAction["Deep Review"]}`,
+                          detail: "Need more checking",
+                          explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <SummaryStrip
+                      items={[
+                        {
+                          id: "matched",
+                          label: "Matched",
+                          value: String(priorityPipelineDataset.totalMatched),
+                          detail: "from 60K orgs reviewed",
+                          explanation: "Organizations that passed the current screen.",
+                        },
+                        {
+                          id: "range",
+                          label: "Revenue range",
+                          value: "$10M-$75M",
+                          detail: "target AUM tier",
+                          explanation: "Focused on the size range where Fairlight can move fast.",
+                          valueClassName: "text-[1.2rem] tracking-[-0.04em] md:text-[1.28rem]",
+                        },
+                        {
+                          id: "showing",
+                          label: "Showing",
+                          value: `Top ${priorityPipelineDataset.organizations.length}`,
+                          detail: "by opportunity score",
+                          explanation: "The table below is the ranked shortlist.",
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
               ) : null}
             </div>
           </header>
@@ -259,33 +317,85 @@ export default function App() {
               </motion.section>
             ) : (
               <section
-                key="portfolio-gallery"
+                key={activeWorkspace === "portfolio" ? "portfolio-gallery" : "priority-pipeline"}
                 className="mt-5 flex flex-1"
               >
-                <PortfolioInbox
-                  organizations={visibleOrganizations}
-                  selectedId={selectedId}
-                  actionFilter={actionFilter}
-                  sortOption={sortOption}
-                  sizeBucketFilter={sizeBucketFilter}
-                  stateFilter={stateFilter}
-                  onActionFilterChange={setActionFilter}
-                  onSortOptionChange={setSortOption}
-                  onSizeBucketFilterChange={setSizeBucketFilter}
-                  onStateFilterChange={setStateFilter}
-                  searchQuery={searchQuery}
-                  onSearchQueryChange={setSearchQuery}
-                  onSelectOrganization={handleSelectOrganization}
-                  sizeBucketOptions={sizeBucketOptions}
-                  stateOptions={stateOptions}
-                  layoutMode="gallery"
-                />
+                {activeWorkspace === "portfolio" ? (
+                  <PortfolioInbox
+                    organizations={visibleOrganizations}
+                    selectedId={selectedId}
+                    actionFilter={actionFilter}
+                    sortOption={sortOption}
+                    sizeBucketFilter={sizeBucketFilter}
+                    stateFilter={stateFilter}
+                    onActionFilterChange={setActionFilter}
+                    onSortOptionChange={setSortOption}
+                    onSizeBucketFilterChange={setSizeBucketFilter}
+                    onStateFilterChange={setStateFilter}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    onSelectOrganization={handleSelectOrganization}
+                    sizeBucketOptions={sizeBucketOptions}
+                    stateOptions={stateOptions}
+                    layoutMode="gallery"
+                  />
+                ) : (
+                  <PriorityPipeline data={priorityPipelineDataset} />
+                )}
               </section>
             )}
           </AnimatePresence>
 
         </div>
       </main>
+  );
+}
+
+function WorkspaceSwitch({
+  activeWorkspace,
+  onChange,
+}: {
+  activeWorkspace: WorkspaceMode;
+  onChange: (workspace: WorkspaceMode) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/84 p-1 shadow-[0_20px_46px_-34px_rgba(15,23,42,0.2)]">
+      <WorkspaceButton
+        active={activeWorkspace === "portfolio"}
+        label="Portfolio inbox"
+        onClick={() => onChange("portfolio")}
+      />
+      <WorkspaceButton
+        active={activeWorkspace === "pipeline"}
+        label="Priority pipeline"
+        onClick={() => onChange("pipeline")}
+      />
+    </div>
+  );
+}
+
+function WorkspaceButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] transition-colors ${
+        active
+          ? "bg-[#111720] text-white shadow-[0_18px_40px_-24px_rgba(17,23,32,0.46)]"
+          : "bg-transparent text-slate-500 hover:bg-[rgba(246,241,232,0.85)] hover:text-slate-800"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -298,6 +408,7 @@ function SummaryStrip({
     explanation: string;
     label: string;
     value: string;
+    valueClassName?: string;
   }>;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -307,6 +418,11 @@ function SummaryStrip({
       <div className="grid gap-2 sm:grid-cols-3">
         {items.map((item) => {
           const flipped = activeId === item.id;
+          const valueClass =
+            item.valueClassName ??
+            (item.value.length > 8
+              ? "text-[1.55rem] tracking-[-0.055em]"
+              : "text-[2rem] tracking-[-0.07em]");
 
           return (
             <button
@@ -329,7 +445,7 @@ function SummaryStrip({
                       <Info size={12} weight="bold" />
                     </span>
                   </div>
-                  <p className="mt-4 text-[2rem] font-semibold leading-none tracking-[-0.07em] text-slate-950">{item.value}</p>
+                  <p className={`mt-4 font-semibold leading-none text-slate-950 ${valueClass}`}>{item.value}</p>
                   <p className="mt-auto pt-3 text-[12px] leading-[1.35] text-slate-600">{item.detail}</p>
                 </div>
 

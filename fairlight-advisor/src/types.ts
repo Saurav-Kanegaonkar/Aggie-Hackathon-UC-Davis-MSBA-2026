@@ -137,3 +137,33 @@ export interface AdvisorDataset {
   summary: AdvisorSummary;
   organizations: OrganizationRecord[];
 }
+
+export interface PipelineOrganizationRecord {
+  id: string;
+  ein: string;
+  orgName: string;
+  state: string;
+  totalRevenue: number;
+  revenueDisplay: string;
+  rdi: number;
+  rdiLabel: string;
+  operatingMargin: number;
+  marginTrend: string;
+  sector: string;
+  fiscalYear: number;
+  confidenceTier: ConfidenceTier;
+  priorityScore: number;
+}
+
+export interface PriorityPipelineDataset {
+  generatedAt: string;
+  totalMatched: number;
+  criteria: {
+    action: string;
+    revenueMin: number;
+    revenueMax: number;
+    rdiMax: number;
+    trend: string;
+  };
+  organizations: PipelineOrganizationRecord[];
+}
