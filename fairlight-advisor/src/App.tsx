@@ -4,7 +4,6 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 import type { ReactNode } from "react";
 
 import { DecisionLab } from "./components/DecisionLab";
-import { FundingDecisionPanel } from "./components/FundingDecisionPanel";
 import { PortfolioInbox } from "./components/PortfolioInbox";
 import type { AdvisorDataset, OrganizationRecord } from "./types";
 
@@ -12,7 +11,6 @@ export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [recommendationOpen, setRecommendationOpen] = useState(false);
   const [actionFilter, setActionFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -81,14 +79,12 @@ export default function App() {
   const handleSelectOrganization = (organization: OrganizationRecord) => {
     startTransition(() => {
       setSelectedId(organization.id);
-      setRecommendationOpen(false);
     });
   };
 
   const handleReturnToPortfolio = () => {
     startTransition(() => {
       setSelectedId(null);
-      setRecommendationOpen(false);
     });
   };
 
@@ -166,23 +162,29 @@ export default function App() {
         <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
           <motion.header
             layout
-            className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]"
+            className={workspaceOpen
+              ? "rounded-[2rem] border border-black/6 bg-[rgba(255,253,248,0.78)] px-5 py-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]"
+              : "rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]"
+            }
           >
-            <div className={`grid gap-6 ${workspaceOpen ? "" : "xl:grid-cols-[1.02fr_0.98fr]"}`}>
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
-                  <Compass size={14} weight="bold" />
-                  Fairlight advisor workspace
-                </div>
-
-                <div className="space-y-3">
-                  <h1 className={`font-semibold tracking-[-0.08em] text-slate-950 ${workspaceOpen ? "text-5xl md:text-6xl" : "text-6xl md:text-7xl"}`}>
+            {workspaceOpen ? (
+              <div className="flex items-center justify-center gap-2">
+                <Compass size={13} weight="bold" className="text-slate-400" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.26em] text-slate-400">
+                  Northstar
+                </span>
+              </div>
+            ) : (
+              <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                    <Compass size={14} weight="bold" />
+                    Fairlight advisor workspace
+                  </div>
+                  <h1 className="text-6xl font-semibold tracking-[-0.08em] text-slate-950 md:text-7xl">
                     Northstar
                   </h1>
                 </div>
-              </div>
-
-              {!workspaceOpen ? (
                 <div className="grid gap-3 md:grid-cols-3">
                   <HeaderSnapshot
                     icon={<Compass size={16} weight="duotone" />}
@@ -206,8 +208,8 @@ export default function App() {
                     explanation="Cases that need diligence before a funding move."
                   />
                 </div>
-              ) : null}
-            </div>
+              </div>
+            )}
           </motion.header>
 
           <AnimatePresence mode="popLayout" initial={false}>
@@ -224,7 +226,6 @@ export default function App() {
                   <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
                     <DecisionLab
                       organization={selectedOrganization}
-                      onPrepareRecommendation={() => setRecommendationOpen(true)}
                       onReturnToPortfolio={handleReturnToPortfolio}
                     />
                   </div>
@@ -253,18 +254,6 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          <AnimatePresence initial={false}>
-            {workspaceOpen && selectedOrganization && recommendationOpen ? (
-              <motion.div
-                key="funding-decision-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <FundingDecisionPanel organization={selectedOrganization} onClose={() => setRecommendationOpen(false)} />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </main>
     </MotionConfig>

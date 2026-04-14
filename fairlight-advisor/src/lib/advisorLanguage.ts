@@ -68,13 +68,13 @@ function riskLevel(probability: number): string {
 function actionSummary(actionLabel: OrganizationRecord["actionLabel"]): string {
   switch (actionLabel) {
     case "Amplify":
-      return "Stronger than most current cases.";
+      return "This organization is outperforming its peers — the signals support moving forward on funding.";
     case "Stabilize":
-      return "Supportable with guardrails.";
+      return "The case is fundable, but structural gaps need guardrails before moving forward.";
     case "Diversify":
-      return "Viable, but too concentrated.";
+      return "Fundable, but the revenue base is too concentrated in one source to support without a plan to broaden it.";
     case "Deep Review":
-      return "Pause for diligence.";
+      return "There are open questions in this file that should be answered before making a funding decision.";
   }
 }
 
