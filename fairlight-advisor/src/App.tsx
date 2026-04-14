@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { DecisionLab } from "./components/DecisionLab";
 import { PortfolioInbox } from "./components/PortfolioInbox";
+import { PriorityPipeline } from "./components/PriorityPipeline";
 import { getInboxCopy } from "./lib/advisorLanguage";
 import type { AdvisorDataset, OrganizationRecord } from "./types";
 
@@ -18,6 +19,8 @@ const SIZE_BUCKET_ORDER: Record<string, number> = {
 
 export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
+  const [pipelineData, setPipelineData] = useState<any>(null);
+  const [activeView, setActiveView] = useState<"portfolio" | "pipeline">("portfolio");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState<string>("All");
@@ -61,7 +64,15 @@ export default function App() {
       }
     }
 
+    async function loadPipeline() {
+      try {
+        const mod = await import("./data/priority-pipeline.json");
+        if (isMounted) setPipelineData(mod.default);
+      } catch { /* pipeline data optional */ }
+    }
+
     void loadDataset();
+    void loadPipeline();
 
     return () => {
       isMounted = false;
@@ -219,6 +230,7 @@ export default function App() {
                     Northstar
                   </h1>
                 </div>
+
                 <SummaryStrip
                   items={[
                     {
@@ -267,6 +279,34 @@ export default function App() {
                   </div>
                 </div>
               </motion.section>
+            ) : activeView === "pipeline" && pipelineData ? (
+              <motion.section
+                key="pipeline-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-5 flex-1"
+              >
+                <div className="mb-4 flex justify-end">
+                  <div className="flex gap-1 rounded-full border border-black/8 bg-[rgba(246,241,232,0.9)] p-1">
+                    {(["portfolio", "pipeline"] as const).map((view) => (
+                      <button
+                        key={view}
+                        type="button"
+                        onClick={() => setActiveView(view)}
+                        className={`rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors duration-150 ${
+                          activeView === view
+                            ? "bg-[#111720] text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        {view === "portfolio" ? "Portfolio" : "Priority Pipeline"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <PriorityPipeline data={pipelineData} />
+              </motion.section>
             ) : (
               <section
                 key="portfolio-gallery"
@@ -289,6 +329,26 @@ export default function App() {
                   sizeBucketOptions={sizeBucketOptions}
                   stateOptions={stateOptions}
                   layoutMode="gallery"
+                  headerAction={
+                    pipelineData ? (
+                      <div className="flex gap-1 rounded-full border border-black/8 bg-[rgba(246,241,232,0.9)] p-1">
+                        {(["portfolio", "pipeline"] as const).map((view) => (
+                          <button
+                            key={view}
+                            type="button"
+                            onClick={() => setActiveView(view)}
+                            className={`rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors duration-150 ${
+                              activeView === view
+                                ? "bg-[#111720] text-white shadow-sm"
+                                : "text-slate-500 hover:text-slate-800"
+                            }`}
+                          >
+                            {view === "portfolio" ? "Portfolio" : "Priority Pipeline"}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null
+                  }
                 />
               </section>
             )}
