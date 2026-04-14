@@ -105,15 +105,19 @@ export function PortfolioInbox({
             <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.9)] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
               Portfolio Inbox
             </div>
-            <h2 className={`font-semibold tracking-[-0.065em] text-slate-950 ${isGallery ? "text-4xl md:text-5xl" : "text-3xl"}`}>
-              Cases for Review
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-600">{organizations.length} organizations in this view</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <h2 className={`font-semibold tracking-[-0.052em] text-slate-950 ${isGallery ? "text-4xl md:text-5xl" : "text-3xl"}`}>
+                Cases for Review
+              </h2>
+              <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.82)] px-4 py-2 text-sm font-medium tracking-[-0.02em] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+                {organizations.length} cases
+              </div>
+            </div>
           </div>
 
           <div
             ref={toolbarRef}
-            className={`grid gap-3 ${isGallery ? "xl:grid-cols-[minmax(0,1.45fr)_repeat(4,minmax(0,0.4fr))]" : "md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,0.43fr))]"}`}
+            className={`grid gap-3 ${isGallery ? "xl:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.42fr)_repeat(3,minmax(170px,0.31fr))]" : "md:grid-cols-2 xl:grid-cols-[minmax(0,1.12fr)_minmax(220px,0.42fr)_repeat(3,minmax(160px,0.3fr))]"}`}
           >
             <label className="flex items-center gap-3 rounded-[1.7rem] border border-black/6 bg-white/88 px-4 py-3 text-sm text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
               <MagnifyingGlass size={18} weight="bold" />
@@ -228,7 +232,7 @@ function DropdownPill({
         className="flex w-full items-center justify-between gap-3 rounded-[1.7rem] border border-black/6 bg-white/90 px-4 py-3 text-left shadow-[0_18px_44px_-32px_rgba(15,23,42,0.18)] transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-black/10 hover:shadow-[0_20px_48px_-34px_rgba(15,23,42,0.2)]"
       >
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">{buttonLabel}</p>
+          <p className="whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">{buttonLabel}</p>
           <p className="mt-1 text-sm font-medium tracking-[-0.02em] text-slate-800">{value}</p>
         </div>
         <CaretDown size={16} weight="bold" className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />

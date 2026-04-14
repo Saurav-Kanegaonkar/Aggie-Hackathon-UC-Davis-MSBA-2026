@@ -30,7 +30,7 @@ export function OrganizationCard({
           isSelected ? "ring-1 ring-[#30483e]/12" : ""
         }`}
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,2.1fr)_repeat(5,minmax(108px,0.62fr))_minmax(150px,0.78fr)_minmax(156px,0.88fr)]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,2.18fr)_repeat(4,minmax(112px,0.64fr))_minmax(150px,0.78fr)_minmax(156px,0.88fr)]">
           <div className="min-w-0 space-y-3">
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
@@ -66,11 +66,6 @@ export function OrganizationCard({
             label="Risk next year"
             value={inboxCopy.riskLine}
             description="Chance this organization falls into financial stress next year."
-          />
-          <MetricColumn
-            label="Confidence"
-            value={inboxCopy.confidenceLine}
-            description="How reliable this read looks based on the available filing data."
           />
           <MetricColumn
             label="Northstar Score"

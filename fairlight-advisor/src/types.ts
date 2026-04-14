@@ -62,11 +62,45 @@ export interface RecommendationSummary {
   exportSummary: string;
 }
 
+export interface HistoricalFinancialPoint {
+  fiscalYear: number;
+  revenue: number;
+  expenses: number;
+  netAssets: number;
+  liquidReserves: number;
+  operatingMargin: number;
+}
+
+export interface PeerOperatingMarginPoint {
+  fiscalYear: number;
+  peerMarginQ25: number;
+  peerMarginMedian: number;
+  peerMarginQ75: number;
+}
+
+export interface RevenueCompositionPoint {
+  fiscalYear: number;
+  contributionsPct: number;
+  programPct: number;
+  investmentPct: number;
+  otherPct: number;
+}
+
+export interface ScoreDrivers {
+  distressProtection: number;
+  operatingMargin: number;
+  revenueMix: number;
+  evidenceQuality: number;
+}
+
 export interface OrganizationRecord {
   id: string;
   ein: string;
   orgName: string;
   fiscalYear: number;
+  filingYearsObserved: number;
+  firstFilingYear: number;
+  latestFilingYear: number;
   state: string;
   nteeCategory: string;
   sizeBucket: string;
@@ -86,6 +120,10 @@ export interface OrganizationRecord {
   confidenceNote: string;
   trendDirection: string;
   memoText: string;
+  historicalFinancials: HistoricalFinancialPoint[];
+  peerOperatingMarginHistory: PeerOperatingMarginPoint[];
+  revenueCompositionHistory: RevenueCompositionPoint[];
+  scoreDrivers: ScoreDrivers;
   benchmark: BenchmarkSummary;
   stress: StressSummary;
   distress: DistressSummary;
@@ -98,4 +136,34 @@ export interface AdvisorDataset {
   generatedAt: string;
   summary: AdvisorSummary;
   organizations: OrganizationRecord[];
+}
+
+export interface PipelineOrganizationRecord {
+  id: string;
+  ein: string;
+  orgName: string;
+  state: string;
+  totalRevenue: number;
+  revenueDisplay: string;
+  rdi: number;
+  rdiLabel: string;
+  operatingMargin: number;
+  marginTrend: string;
+  sector: string;
+  fiscalYear: number;
+  confidenceTier: ConfidenceTier;
+  priorityScore: number;
+}
+
+export interface PriorityPipelineDataset {
+  generatedAt: string;
+  totalMatched: number;
+  criteria: {
+    action: string;
+    revenueMin: number;
+    revenueMax: number;
+    rdiMax: number;
+    trend: string;
+  };
+  organizations: PipelineOrganizationRecord[];
 }

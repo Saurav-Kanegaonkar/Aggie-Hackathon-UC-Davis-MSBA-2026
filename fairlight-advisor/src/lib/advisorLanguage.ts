@@ -450,8 +450,78 @@ function formatRiskChance(probability: number): string {
   return `${probability.toFixed(1)}%`;
 }
 
+function revenueMixRead(value: number): string {
+  if (value >= 0.45) {
+    return "well spread";
+  }
+  if (value >= 0.25) {
+    return "reasonably spread";
+  }
+  if (value >= 0.1) {
+    return "fairly concentrated";
+  }
+  return "highly concentrated";
+}
+
+function revenueScaleRead(amount: number | null): string {
+  if (amount === null || Number.isNaN(amount)) {
+    return "moderate-scale";
+  }
+  if (amount >= 10_000_000) {
+    return "large-scale";
+  }
+  if (amount >= 2_000_000) {
+    return "established";
+  }
+  if (amount >= 500_000) {
+    return "mid-sized";
+  }
+  return "smaller-scale";
+}
+
+function operatingMarginRead(value: number): string {
+  if (value >= 12) {
+    return "very strong";
+  }
+  if (value >= 5) {
+    return "healthy";
+  }
+  if (value >= 0) {
+    return "positive";
+  }
+  if (value >= -8) {
+    return "thin";
+  }
+  return "negative";
+}
+
+function filingHistoryRead(years: number, latestYear: number): string {
+  if (years <= 1) {
+    return `Based on 1 year of filings through FY${latestYear}`;
+  }
+  return `Based on ${years} years of filings through FY${latestYear}`;
+}
+
+function buildInboxAdvisoryNote(organization: OrganizationRecord): string {
+  const risk = formatRiskChance(organization.distress.probability).toLowerCase();
+  const history = filingHistoryRead(organization.filingYearsObserved, organization.latestFilingYear);
+  const revenueScale = revenueScaleRead(organization.revenueAmount);
+  const marginRead = operatingMarginRead(organization.operatingMargin);
+  const mixRead = revenueMixRead(organization.revenueDiversificationIndex);
+
+  switch (organization.actionLabel) {
+    case "Amplify":
+      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile and a ${mixRead} funding base. We project ${risk} risk next year, which supports moving forward rather than treating this as a repair case.`;
+    case "Stabilize":
+      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile. We project ${risk} risk next year, so support looks reasonable if it comes with clear guardrails rather than open-ended capital.`;
+    case "Diversify":
+      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile, but the funding base is still ${mixRead}. We project ${risk} risk next year, so the case is strongest if support is tied to broadening revenue sources.`;
+    case "Deep Review":
+      return `${history}, this looks like a ${revenueScale} organization, but the operating profile is ${marginRead} and the funding base is ${mixRead}. We project ${risk} risk next year, so the signals do not line up cleanly enough for a capital recommendation without another diligence pass.`;
+  }
+}
+
 export function getInboxCopy(organization: OrganizationRecord) {
-  const pressurePoint = buildPressurePoints(organization)[0];
   const stabilityIndex = computeStabilityIndex(organization);
   const northstarScore = computeNorthstarScore(organization);
 
@@ -462,7 +532,7 @@ export function getInboxCopy(organization: OrganizationRecord) {
     riskBadge: `${riskLevel(organization.distress.probability)} risk`,
     confidenceLine: organization.confidenceTier,
     overview: organization.decisionReason,
-    whyNow: pressurePoint,
+    whyNow: buildInboxAdvisoryNote(organization),
     supportNote: confidenceSummary(organization.confidenceTier),
     revenueLabel: organization.revenueDisplay,
     operatingMarginLabel: `${organization.operatingMargin >= 0 ? "+" : ""}${organization.operatingMargin.toFixed(1)}%`,
