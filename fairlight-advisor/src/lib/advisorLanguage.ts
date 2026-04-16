@@ -560,6 +560,65 @@ function structuralComponent(organization: OrganizationRecord): number {
   return (computeNorthstarStructuralSignal(organization) / 100) * 40;
 }
 
+// Component B'' — Financial Foundation (WFF only, 0–40)
+// Replaces the Structural component for Weak Financial Foundation orgs, where
+// the v2 structural signal mis-surfaces large distressed crisis cases instead
+// of Fairlight's actual WFF target profile: small-to-medium orgs with mild
+// margin issues and thin reserves that would benefit from reserve coaching.
+//
+// Sub-components: asset band fit (0–15, peaks at $1M–$20M sweet spot),
+// margin repair potential (0–10, peaks at mildly negative margins),
+// low liquid reserves (0–10, peaks at <3-month runway),
+// evidence strength (0–5, scaled down from the RCR/NDD weighting).
+//
+// Note: `organization.operatingMargin` is stored as a percentage (e.g., 5.0 = 5%)
+// per the exporter convention, so thresholds are expressed in percentage points.
+function financialFoundationComponent(organization: OrganizationRecord): number {
+  const netAssets = organization.netAssetsEoy ?? 0;
+
+  // Sub-A: asset band fit (0–15)
+  let assetBandFit = 0;
+  if (netAssets >= 1_000_000 && netAssets <= 20_000_000) {
+    assetBandFit = 15;
+  } else if (netAssets >= 500_000 && netAssets < 1_000_000) {
+    assetBandFit = 8;
+  } else if (netAssets > 20_000_000 && netAssets <= 50_000_000) {
+    assetBandFit = 10;
+  } else if (netAssets > 50_000_000 && netAssets <= 100_000_000) {
+    assetBandFit = 5;
+  }
+
+  // Sub-B: margin repair potential (0–10). `operatingMargin` is in percentage points.
+  const marginPct = organization.operatingMargin;
+  let marginRepair = 0;
+  if (marginPct >= -10 && marginPct <= 5) {
+    marginRepair = 10;
+  } else if (marginPct >= -20 && marginPct < -10) {
+    marginRepair = 6;
+  } else if (marginPct > 5 && marginPct <= 15) {
+    marginRepair = 5;
+  }
+
+  // Sub-C: low liquid reserves (0–10). Uses operatingRunwayMonths.
+  // Stage 3's proxy can blow up to unrealistic values (e.g., 100k+ months) for
+  // orgs with near-zero expenses; those cases correctly score 0 here.
+  const runway = organization.operatingRunwayMonths ?? Infinity;
+  let lowReserves = 0;
+  if (runway < 3) {
+    lowReserves = 10;
+  } else if (runway < 6) {
+    lowReserves = 7;
+  } else if (runway < 12) {
+    lowReserves = 3;
+  }
+
+  // Sub-D: evidence strength (0–5)
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
+  const evidenceScore = (evidenceStrength / 100) * 5;
+
+  return assetBandFit + marginRepair + lowReserves + evidenceScore;
+}
+
 // Component B' — Asset Sophistication (UAB only, 0–40)
 // Replaces the Structural component for Underinvested Asset Base orgs, where
 // healthy fundamentals hurt the structural signal (wrong direction commercially).
@@ -608,7 +667,10 @@ function fairlightFitBonus(organization: OrganizationRecord): number {
     case "Revenue Concentration Risk":
       return netAssets > 1_000_000 ? 8 : 0;
     case "Weak Financial Foundation":
-      return netAssets > 5_000_000 ? 5 : 0;
+      // v2.2: bonus tied to the $1M–$20M sweet spot (was flat +5 for >$5M in v2.1)
+      if (netAssets >= 1_000_000 && netAssets <= 20_000_000) return 10;
+      if (netAssets > 20_000_000 && netAssets <= 50_000_000) return 5;
+      return 0;
     case "Needs Data Diligence":
       return 0;
   }
@@ -637,12 +699,18 @@ function applyExclusionCaps(organization: OrganizationRecord, score: number): nu
 }
 
 function computeNorthstarScore(organization: OrganizationRecord): number {
-  // v2.1 — UAB uses Asset Sophistication instead of Structural. Every other
-  // bucket keeps the v2 formula unchanged.
-  const middleComponent =
-    organization.actionLabel === "Underinvested Asset Base"
-      ? assetSophisticationComponent(organization)
-      : structuralComponent(organization);
+  // v2.2 — bucket-aware middle component:
+  //   UAB → Asset Sophistication (favours large-asset, low-yield, long-streak orgs)
+  //   WFF → Financial Foundation (favours $1M–$20M orgs with mild margin issues)
+  //   RCR / NDD → Structural (unchanged v2 formula)
+  let middleComponent: number;
+  if (organization.actionLabel === "Underinvested Asset Base") {
+    middleComponent = assetSophisticationComponent(organization);
+  } else if (organization.actionLabel === "Weak Financial Foundation") {
+    middleComponent = financialFoundationComponent(organization);
+  } else {
+    middleComponent = structuralComponent(organization);
+  }
 
   const raw =
     opportunityComponent(organization) +
