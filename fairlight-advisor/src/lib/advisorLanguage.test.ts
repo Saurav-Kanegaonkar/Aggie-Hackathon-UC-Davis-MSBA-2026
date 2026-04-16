@@ -13,6 +13,10 @@ function makeOrganization(overrides: Partial<OrganizationRecord>): OrganizationR
     netAssetsEoy: overrides.netAssetsEoy ?? base.netAssetsEoy ?? 5_000_000,
     investmentYield: overrides.investmentYield ?? base.investmentYield ?? 0,
     dataCompletenessScore: overrides.dataCompletenessScore ?? base.dataCompletenessScore ?? 6,
+    consecutiveYearsWithInvestmentIncome:
+      overrides.consecutiveYearsWithInvestmentIncome ??
+      base.consecutiveYearsWithInvestmentIncome ??
+      0,
     ...overrides,
     distress:
       distressProbability === undefined
@@ -176,6 +180,47 @@ describe("Northstar Score v2", () => {
     const primedScore = getInboxCopy(org).northstarScore;
 
     expect(primedScore).toBe(adHocScore);
+  });
+
+  it("Asset Sophistication: UAB orgs with long investment track record and low yield score high", () => {
+    // UAB uses the alternative middle component. Long streak + low yield + large
+    // assets should now produce a score meaningfully above v2's ceiling of ~78.
+    const strongUab = makeOrganization({
+      actionLabel: "Underinvested Asset Base",
+      distressProbability: 10,
+      confidenceTier: "High",
+      operatingMargin: 12,
+      revenueDiversificationIndex: 0.35,
+      netAssetsEoy: 20_000_000,
+      investmentYield: 0.3,
+      dataCompletenessScore: 8,
+      consecutiveYearsWithInvestmentIncome: 7,
+    });
+
+    expect(getInboxCopy(strongUab).northstarScore).toBeGreaterThanOrEqual(85);
+  });
+
+  it("Asset Sophistication: investment track record tiers matter", () => {
+    // Use inputs that don't saturate at 100 so the streak differential is visible.
+    // Smaller assets (~$750K) and moderate yield/confidence keep the total below
+    // the clamp, letting the 0/3/7/10 track_record tiers actually show up.
+    const base = {
+      actionLabel: "Underinvested Asset Base" as const,
+      distressProbability: 40,
+      confidenceTier: "Medium" as const,
+      operatingMargin: -5,
+      revenueDiversificationIndex: 0.5,
+      netAssetsEoy: 750_000,
+      investmentYield: 4.0,
+      dataCompletenessScore: 3,
+    };
+
+    const noStreak = getInboxCopy(makeOrganization({ ...base, consecutiveYearsWithInvestmentIncome: 0 })).northstarScore;
+    const midStreak = getInboxCopy(makeOrganization({ ...base, consecutiveYearsWithInvestmentIncome: 3 })).northstarScore;
+    const longStreak = getInboxCopy(makeOrganization({ ...base, consecutiveYearsWithInvestmentIncome: 6 })).northstarScore;
+
+    expect(midStreak).toBeGreaterThan(noStreak);
+    expect(longStreak).toBeGreaterThan(midStreak);
   });
 
   it("yields a score in [0, 100] across a range of inputs", () => {

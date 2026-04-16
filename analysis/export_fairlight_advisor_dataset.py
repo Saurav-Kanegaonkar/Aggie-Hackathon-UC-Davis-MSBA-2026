@@ -141,6 +141,13 @@ def _read_stage_data(raw: pd.DataFrame) -> pd.DataFrame:
         validate="one_to_one",
     )
     merged = merged.merge(filing_history, on="ein", how="left", validate="many_to_one")
+
+    inv_streak = _build_consecutive_investment_years(raw)
+    merged = merged.merge(inv_streak, on=["ein", "fiscal_year"], how="left")
+    merged["consecutive_years_with_investment_income"] = (
+        merged["consecutive_years_with_investment_income"].fillna(0).astype(int)
+    )
+
     merged = merged.sort_values(["ein", "fiscal_year"]).groupby("ein", as_index=False).tail(1).reset_index(drop=True)
     return merged
 
@@ -169,6 +176,39 @@ def _compute_investment_yield(row: Any) -> float:
     if pd.isna(net_assets) or pd.isna(inv_income) or float(net_assets) <= 0:
         return 0.0
     return round(float(inv_income) / float(net_assets) * 100.0, 3)
+
+
+def _build_consecutive_investment_years(raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    For each EIN, count consecutive years (working backward from latest fiscal_year)
+    where investment_income > 0. Returns a DataFrame keyed on (ein, fiscal_year)
+    where fiscal_year is the latest filing year observed for that EIN.
+    """
+    panel = raw[["ein", "fiscal_year", "investment_income"]].copy()
+    panel = panel.dropna(subset=["ein", "fiscal_year"])
+    panel["fiscal_year"] = panel["fiscal_year"].astype(int)
+    panel = panel.sort_values(["ein", "fiscal_year"])
+
+    results = []
+    for ein, grp in panel.groupby("ein", sort=False):
+        rows = grp.sort_values("fiscal_year").to_dict("records")
+        latest_year = rows[-1]["fiscal_year"]
+        year_to_ii = {int(r["fiscal_year"]): r["investment_income"] for r in rows}
+        count = 0
+        year = latest_year
+        while year in year_to_ii:
+            val = year_to_ii[year]
+            if pd.notna(val) and float(val) > 0:
+                count += 1
+                year -= 1
+            else:
+                break
+        results.append({
+            "ein": ein,
+            "fiscal_year": latest_year,
+            "consecutive_years_with_investment_income": count,
+        })
+    return pd.DataFrame(results)
 
 
 def _compute_data_completeness_score(row: Any) -> float:
@@ -624,6 +664,7 @@ def _organization_record(
         "netAssetsEoy": None if pd.isna(row.get("net_assets_eoy")) else round(float(row["net_assets_eoy"]), 2),
         "investmentYield": _compute_investment_yield(row),
         "dataCompletenessScore": _compute_data_completeness_score(row),
+        "consecutiveYearsWithInvestmentIncome": int(row.get("consecutive_years_with_investment_income", 0) or 0),
         "actionLabel": _optional_str(row["action_label"]),
         "distressTier": _optional_str(row["distress_tier"]),
         "distressProbability": round(distress_prob * 100.0, 1),

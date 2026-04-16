@@ -560,6 +560,36 @@ function structuralComponent(organization: OrganizationRecord): number {
   return (computeNorthstarStructuralSignal(organization) / 100) * 40;
 }
 
+// Component B' — Asset Sophistication (UAB only, 0–40)
+// Replaces the Structural component for Underinvested Asset Base orgs, where
+// healthy fundamentals hurt the structural signal (wrong direction commercially).
+// Three sub-components: asset scale (0–15), investment track record (0–10),
+// yield gap depth (0–15). Intentionally double-counts assets and yield gap —
+// for UAB, both ARE the opportunity AND the actionability signal.
+function assetSophisticationComponent(organization: OrganizationRecord): number {
+  const netAssets = organization.netAssetsEoy ?? 0;
+
+  // Sub-A: asset scale (0–15)
+  let assetScale = 0;
+  if (netAssets > 0) {
+    const cappedAssets = Math.min(Math.max(netAssets, 1), 50_000_000);
+    assetScale = Math.min(Math.log(cappedAssets) / Math.log(50_000_000), 1.0) * 15;
+  }
+
+  // Sub-B: investment track record (0–10)
+  const streak = organization.consecutiveYearsWithInvestmentIncome ?? 0;
+  let trackRecord = 0;
+  if (streak >= 5) trackRecord = 10;
+  else if (streak >= 3) trackRecord = 7;
+  else if (streak >= 1) trackRecord = 3;
+
+  // Sub-C: yield gap depth (0–15)
+  const yieldGapDepth =
+    (Math.max(5.0 - clamp(organization.investmentYield, 0, 100), 0) / 5.0) * 15;
+
+  return assetScale + trackRecord + yieldGapDepth;
+}
+
 // Component C — Confidence (0–20)
 function confidenceComponent(organization: OrganizationRecord): number {
   const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
@@ -607,9 +637,16 @@ function applyExclusionCaps(organization: OrganizationRecord, score: number): nu
 }
 
 function computeNorthstarScore(organization: OrganizationRecord): number {
+  // v2.1 — UAB uses Asset Sophistication instead of Structural. Every other
+  // bucket keeps the v2 formula unchanged.
+  const middleComponent =
+    organization.actionLabel === "Underinvested Asset Base"
+      ? assetSophisticationComponent(organization)
+      : structuralComponent(organization);
+
   const raw =
     opportunityComponent(organization) +
-    structuralComponent(organization) +
+    middleComponent +
     confidenceComponent(organization) +
     fairlightFitBonus(organization) +
     distressAdjustment(organization);

@@ -109,6 +109,7 @@ export interface OrganizationRecord {
   netAssetsEoy: number | null;
   investmentYield: number;
   dataCompletenessScore: number;
+  consecutiveYearsWithInvestmentIncome: number;
   operatingRunwayMonths: number;
   operatingMargin: number;
   revenueDiversificationIndex: number;
