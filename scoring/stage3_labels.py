@@ -1,7 +1,8 @@
 """
 Stage 3 — Action label assignment.
 Deterministic if/elif/elif/else chain per ratified contract.
-Precedence: Deep Review > Amplify > Diversify > Stabilize.
+Precedence: Needs Data Diligence > Underinvested Asset Base >
+            Revenue Concentration Risk > Weak Financial Foundation.
 """
 
 import numpy as np
@@ -10,14 +11,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Stabilize constraint mapping: gap column -> rationale rule name
+# Weak Financial Foundation constraint mapping: gap column -> rationale rule name.
+# Rationale-key strings retain the legacy "stabilize_primary_constraint_*" wording
+# so downstream memo-generation regex continues to match.
 CONSTRAINT_MAP = {
     "operating_margin_gap": "stabilize_primary_constraint_low_margin",
     "operating_runway_gap": "stabilize_primary_constraint_low_runway",
     "revenue_diversification_gap": "stabilize_primary_constraint_high_concentration_in_volatile_source",
 }
 
-# Tie-break order for Stabilize primary constraint
+# Tie-break order for Weak Financial Foundation primary constraint
 GAP_COLUMNS = ["operating_margin_gap", "operating_runway_gap", "revenue_diversification_gap"]
 
 
@@ -31,25 +34,25 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
     for i in range(n):
         row = out.iloc[i]
 
-        # --- Deep Review: any condition fires ---
+        # --- Needs Data Diligence: any condition fires ---
         dr_reasons = []
         if row.get("benchmark_status") == "insufficient_resilient_refs":
-            dr_reasons.append("deep_review_insufficient_resilient_refs")
+            dr_reasons.append("review_insufficient_resilient_refs")
         if row.get("checkpoint1_confidence_tier") == "Low":
-            dr_reasons.append("deep_review_low_confidence")
+            dr_reasons.append("review_low_confidence")
         if (row.get("urgency_severity") == "acute"
                 and row.get("stress_25pct_severity") in ("severe", "critical")):
-            dr_reasons.append("deep_review_acute_and_severe_25pct_stress")
+            dr_reasons.append("review_acute_and_severe_25pct_stress")
         rg = row.get("resilience_gap")
         if pd.notna(rg) and rg > 2.0:
-            dr_reasons.append("deep_review_structural_outlier")
+            dr_reasons.append("review_structural_outlier")
 
         if dr_reasons:
-            labels[i] = "Deep Review"
+            labels[i] = "Needs Data Diligence"
             rationales[i] = dr_reasons
             continue
 
-        # --- Amplify: all five conditions must be true ---
+        # --- Underinvested Asset Base: all five conditions must be true ---
         om_gap = row.get("operating_margin_gap")
         or_gap = row.get("operating_runway_gap")
         rd_gap = row.get("revenue_diversification_gap")
@@ -61,7 +64,7 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
                 and pd.notna(rd_gap) and rd_gap >= 0
                 and s25_sev not in ("severe", "critical")
                 and urg_sev == "none"):
-            labels[i] = "Amplify"
+            labels[i] = "Underinvested Asset Base"
             rationales[i] = [
                 "amplify_margin_above_benchmark",
                 "amplify_runway_above_benchmark",
@@ -71,12 +74,12 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
             ]
             continue
 
-        # --- Diversify: all four conditions must be true ---
+        # --- Revenue Concentration Risk: all four conditions must be true ---
         if (pd.notna(rd_gap) and rd_gap <= -0.30
                 and pd.notna(om_gap) and om_gap >= -0.30
                 and s25_sev not in ("severe", "critical")
                 and urg_sev == "none"):
-            labels[i] = "Diversify"
+            labels[i] = "Revenue Concentration Risk"
             rationales[i] = [
                 "diversify_concentration_gap_below_neg_0_30",
                 "diversify_margin_at_or_above_neg_0_30",
@@ -85,7 +88,7 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
             ]
             continue
 
-        # --- Stabilize: unconditional fallthrough ---
+        # --- Weak Financial Foundation: unconditional fallthrough ---
         # Find most negative non-null gap
         gaps = {}
         for col in GAP_COLUMNS:
@@ -96,7 +99,7 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
         if not gaps:
             raise ValueError(
                 f"Row {i} (ein={row.get('ein')}, fy={row.get('fiscal_year')}) "
-                f"reached Stabilize with all three per-metric gaps null. "
+                f"reached Weak Financial Foundation with all three per-metric gaps null. "
                 f"This indicates upstream data corruption."
             )
 
@@ -104,7 +107,7 @@ def assign_labels(df: pd.DataFrame) -> pd.DataFrame:
         primary_col = min(gaps, key=lambda c: (gaps[c], GAP_COLUMNS.index(c)))
         constraint_rule = CONSTRAINT_MAP[primary_col]
 
-        labels[i] = "Stabilize"
+        labels[i] = "Weak Financial Foundation"
         rationales[i] = ["stabilize_default_scoreable", constraint_rule]
 
     out["action_label"] = labels

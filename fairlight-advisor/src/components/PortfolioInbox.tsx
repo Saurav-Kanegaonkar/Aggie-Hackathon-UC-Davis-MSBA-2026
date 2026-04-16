@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { OrganizationCard } from "./OrganizationCard";
 import type { OrganizationRecord } from "../types";
 
-const ACTION_OPTIONS = ["All", "Amplify", "Stabilize", "Diversify", "Deep Review"] as const;
+const ACTION_OPTIONS = ["All", "Underinvested Asset Base", "Weak Financial Foundation", "Revenue Concentration Risk", "Needs Data Diligence"] as const;
 const SORT_OPTIONS = [
   { value: "northstar-desc", label: "Score high-low" },
   { value: "northstar-asc", label: "Score low-high" },

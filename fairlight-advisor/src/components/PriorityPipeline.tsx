@@ -95,7 +95,7 @@ export function PriorityPipeline({ data }: { data: PipelineDataset }) {
           <div className="mt-5 flex flex-wrap gap-2 border-t border-black/6 pt-4">
             <p className="mr-2 self-center text-[12px] font-medium uppercase tracking-[0.22em] text-slate-400">Filters applied:</p>
             {[
-              "Action: Diversify",
+              "Action: Revenue Concentration Risk",
               "Revenue $10M–$75M",
               "Revenue concentration > 70%",
               "Trend: stable or improving",

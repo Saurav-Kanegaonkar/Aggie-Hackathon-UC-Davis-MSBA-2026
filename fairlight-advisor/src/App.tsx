@@ -259,7 +259,7 @@ export default function App() {
                         {
                           id: "paused",
                           label: "Paused cases",
-                          value: `${advisorDataset.summary.countsByAction["Deep Review"]}`,
+                          value: `${advisorDataset.summary.countsByAction["Needs Data Diligence"]}`,
                           detail: "Need more checking",
                           explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
                         },
