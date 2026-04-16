@@ -56,34 +56,34 @@ def _constraint_plain_english(constraint):
 def _action_explanation(row):
     """One sentence explaining the decisive rule logic per contract."""
     label = row["action_label"]
-    if label == "Deep Review":
+    if label == "Needs Data Diligence":
         reasons = row.get("action_label_rationale", [])
         if not reasons:
             return "This organization requires deeper diligence before any recommendation."
         # Map first reason to plain English
         reason_map = {
-            "deep_review_insufficient_resilient_refs": "insufficient resilient peer references for benchmarking",
-            "deep_review_low_confidence": "low data confidence in the underlying filings",
-            "deep_review_acute_and_severe_25pct_stress": "acute urgency combined with severe stress-test exposure",
-            "deep_review_structural_outlier": f"resilience gap of {_fmt_val(row.get('resilience_gap'))} exceeds the structural outlier threshold of 2.0",
+            "review_insufficient_resilient_refs": "insufficient resilient peer references for benchmarking",
+            "review_low_confidence": "low data confidence in the underlying filings",
+            "review_acute_and_severe_25pct_stress": "acute urgency combined with severe stress-test exposure",
+            "review_structural_outlier": f"resilience gap of {_fmt_val(row.get('resilience_gap'))} exceeds the structural outlier threshold of 2.0",
         }
         explanations = [reason_map.get(r, r) for r in reasons]
         return f"This is driven by {'; '.join(explanations)}."
 
-    elif label == "Amplify":
+    elif label == "Underinvested Asset Base":
         return (
             f"All three resilience metrics are at or above cohort benchmarks, "
             f"with no severe stress-test exposure and no urgency flag."
         )
 
-    elif label == "Diversify":
+    elif label == "Revenue Concentration Risk":
         rd_gap = row.get("revenue_diversification_gap")
         return (
             f"Revenue diversification gap of {_fmt_val(rd_gap)} indicates elevated concentration risk, "
             f"while operating margin remains adequate for targeted diversification."
         )
 
-    else:  # Stabilize
+    else:  # Strengthen
         constraint = row.get("recovery_analog_constraint", "")
         return (
             f"The primary constraint is {_constraint_plain_english(constraint)}, "

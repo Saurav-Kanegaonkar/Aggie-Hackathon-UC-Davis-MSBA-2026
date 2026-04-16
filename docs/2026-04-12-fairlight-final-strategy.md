@@ -81,7 +81,7 @@ The right mental model is: NTEE works like an optional booster for peer comparab
 Use this order:
 
 1. `NTEE major category + size bucket + state`
-2. `size bucket + state + filing type`, if filing type helps stabilize the cohort
+2. `size bucket + state + filing type`, if filing type helps strengthen the cohort
 3. `size bucket + state`
 
 Rules:
@@ -163,17 +163,17 @@ The logic behind some of these can survive. The terminology should not.
 
 Use four action labels:
 
-- **Amplify**
-- **Stabilize**
+- **Optimize**
+- **Strengthen**
 - **Diversify**
-- **Deep Review**
+- **Review**
 
 Interpretation:
 
-- **Amplify**: financially resilient relative to peers, healthy under stress, under-scaled or growing from strength
-- **Stabilize**: below benchmark but recoverable, with credible analogs and a fixable financial profile
+- **Optimize**: financially resilient relative to peers, healthy under stress, under-scaled or growing from strength
+- **Strengthen**: below benchmark but recoverable, with credible analogs and a fixable financial profile
 - **Diversify**: operationally okay but overly concentrated in one funding source or revenue stream
-- **Deep Review**: structurally weak, low-confidence data, or no clear near-term intervention path
+- **Review**: structurally weak, low-confidence data, or no clear near-term intervention path
 
 Add an **urgency flag** if needed, but keep it separate from the action label.
 
@@ -183,10 +183,10 @@ The team should not leave recommendation mapping implicit.
 
 Start with this rule set:
 
-- **Amplify** = top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure
-- **Stabilize** = below benchmark, but positive recovery analog evidence and a fixable financial profile
+- **Optimize** = top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure
+- **Strengthen** = below benchmark, but positive recovery analog evidence and a fixable financial profile
 - **Diversify** = acceptable current operating health, but elevated concentration risk or stress-test sensitivity
-- **Deep Review** = structurally weak profile, very low confidence, or no clear near-term intervention path
+- **Review** = structurally weak profile, very low confidence, or no clear near-term intervention path
 
 Tune thresholds as the team tests the model, but keep the mapping rule explicit from day one.
 
@@ -520,6 +520,6 @@ The final approach is a **peer-benchmarked advisory decision system** built arou
 - stress testing
 - recovery analogs
 - a board-ready Capital Stewardship Memo
-- four sponsor-native actions: Amplify, Stabilize, Diversify, Deep Review
+- four sponsor-native actions: Underinvested Asset Base, Weak Financial Foundation, Revenue Concentration Risk, Needs Data Diligence
 
 This is the cleanest, most defensible, and most sponsor-native version of everything explored so far. The novelty should come from the decision logic, not the terminology.

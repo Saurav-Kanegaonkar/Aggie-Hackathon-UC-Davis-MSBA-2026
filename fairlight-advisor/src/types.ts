@@ -1,4 +1,4 @@
-export type ActionLabel = "Amplify" | "Deep Review" | "Diversify" | "Stabilize";
+export type ActionLabel = "Underinvested Asset Base" | "Needs Data Diligence" | "Revenue Concentration Risk" | "Weak Financial Foundation";
 export type DistressTier = "High" | "Medium" | "Low";
 export type ConfidenceTier = "High" | "Medium" | "Low";
 
@@ -106,6 +106,9 @@ export interface OrganizationRecord {
   sizeBucket: string;
   revenueAmount: number | null;
   revenueDisplay: string;
+  netAssetsEoy: number | null;
+  investmentYield: number;
+  dataCompletenessScore: number;
   operatingRunwayMonths: number;
   operatingMargin: number;
   revenueDiversificationIndex: number;

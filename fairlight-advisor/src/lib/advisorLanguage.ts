@@ -67,26 +67,26 @@ function riskLevel(probability: number): string {
 
 function actionSummary(actionLabel: OrganizationRecord["actionLabel"]): string {
   switch (actionLabel) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return "This looks stronger than most cases in the queue.";
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return "This could move forward if support comes with guardrails.";
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return "This could work, but too much depends on one source of money.";
-    case "Deep Review":
+    case "Needs Data Diligence":
       return "This needs a closer check before anyone commits capital.";
   }
 }
 
 function nextMoveLabel(actionLabel: OrganizationRecord["actionLabel"]): string {
   switch (actionLabel) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return "Move forward";
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return "Support with guardrails";
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return "Support, but widen the base";
-    case "Deep Review":
+    case "Needs Data Diligence":
       return "Pause and verify";
   }
 }
@@ -103,13 +103,13 @@ function confidenceSummary(confidenceTier: OrganizationRecord["confidenceTier"])
 }
 
 function simplifySurfacedReason(organization: OrganizationRecord): string {
-  if (organization.actionLabel === "Deep Review") {
+  if (organization.actionLabel === "Needs Data Diligence") {
     return "There is too much uncertainty to move straight to a recommendation.";
   }
-  if (organization.actionLabel === "Diversify") {
+  if (organization.actionLabel === "Revenue Concentration Risk") {
     return "The organization may be workable, but relying too much on one source still makes the case hard to defend.";
   }
-  if (organization.actionLabel === "Stabilize") {
+  if (organization.actionLabel === "Weak Financial Foundation") {
     return "The case is workable if Fairlight is willing to protect the weak spots.";
   }
   return "This case looks stronger than most and may justify faster action.";
@@ -415,13 +415,13 @@ function diversificationOpportunityScore(organization: OrganizationRecord): numb
 
 function actionPriorityScore(actionLabel: OrganizationRecord["actionLabel"]): number {
   switch (actionLabel) {
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return 95;
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return 74;
-    case "Amplify":
+    case "Underinvested Asset Base":
       return 28;
-    case "Deep Review":
+    case "Needs Data Diligence":
       return 22;
   }
 }
@@ -436,25 +436,27 @@ export function getNorthstarScoreDrivers(organization: OrganizationRecord) {
   };
 }
 
-function scoreWithinBand(signal: number, minimum: number, maximum: number): number {
-  const normalized = clamp(signal, 0, 100) / 100;
-  return minimum + normalized * (maximum - minimum);
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// NORTHSTAR SCORE v2 — additive five-component model
+//
+// Components:
+//   A  Opportunity       (0–40)   asset size (capped at $50M) + low-yield gap
+//   B  Structural        (0–40)   per-bucket weighted blend of sub-signals
+//   C  Confidence        (0–20)   evidence strength + data completeness
+//   D  Fairlight Fit     ( 0–10)  bucket/size/yield bonus
+//   E  Distress penalty  (−15–0)  tiered by distress probability
+//
+// Final = clamp(A + B + C + D + E, 0, 100) with exclusion caps:
+//   net_assets > $500M      → score capped at 30 (too large for Fairlight)
+//   net_assets < $500K AND  → score capped at 40 (too small unless Diversify)
+//     bucket !== "Revenue Concentration Risk"
+//
+// v1's band-gating system, risk-priority-blend, and bucket-specific risk
+// ceilings have been removed. Distress now influences the score only through
+// component E.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const northstarScoreCache = new Map<string, number>();
-
-function northstarBand(actionLabel: OrganizationRecord["actionLabel"]): { min: number; max: number } {
-  switch (actionLabel) {
-    case "Diversify":
-      return { min: 72, max: 94 };
-    case "Stabilize":
-      return { min: 48, max: 72 };
-    case "Amplify":
-      return { min: 18, max: 42 };
-    case "Deep Review":
-      return { min: 8, max: 28 };
-  }
-}
 
 function operatingSupportSignal(organization: OrganizationRecord): number {
   return clamp(((organization.operatingMargin + 20) / 40) * 100, 0, 100);
@@ -500,181 +502,132 @@ function stressVulnerabilitySignal(organization: OrganizationRecord): number {
   return severityBase * 0.4 + burnBase * 0.6;
 }
 
-function riskPrioritySignal(organization: OrganizationRecord): number {
-  switch (organization.actionLabel) {
-    case "Diversify":
-      return clamp(100 - organization.distress.probability, 0, 100);
-    case "Stabilize":
-      return clamp(organization.distress.probability, 0, 100);
-    case "Amplify":
-      return clamp(100 - organization.distress.probability, 0, 100);
-    case "Deep Review":
-      return clamp(organization.distress.probability, 0, 100);
-  }
-}
-
 function computeNorthstarStructuralSignal(organization: OrganizationRecord): number {
-  const {
-    evidenceQuality: evidenceStrength,
-  } = getNorthstarScoreDrivers(organization);
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
   const operatingSupport = operatingSupportSignal(organization);
   const operatingStress = operatingStressSignal(organization);
   const diversificationNeed = diversificationNeedSignal(organization);
   const stressVulnerability = stressVulnerabilitySignal(organization);
 
   switch (organization.actionLabel) {
-    case "Diversify": {
+    case "Revenue Concentration Risk":
       return (
         diversificationNeed * 0.45 +
         operatingSupport * 0.25 +
         stressVulnerability * 0.1 +
         evidenceStrength * 0.2
       );
-    }
-    case "Stabilize": {
+    case "Weak Financial Foundation":
       return (
         stressVulnerability * 0.35 +
         operatingStress * 0.2 +
         diversificationNeed * 0.15 +
         evidenceStrength * 0.3
       );
-    }
-    case "Amplify": {
+    case "Underinvested Asset Base":
       return (
         diversificationNeed * 0.45 +
         stressVulnerability * 0.2 +
         operatingStress * 0.2 +
         (100 - evidenceStrength) * 0.15
       );
-    }
-    case "Deep Review": {
+    case "Needs Data Diligence":
       return (
         (100 - evidenceStrength) * 0.6 +
         stressVulnerability * 0.25 +
         diversificationNeed * 0.15
       );
-    }
   }
 
   return 0;
 }
 
-function computeNorthstarScore(organization: OrganizationRecord): number {
-  const band = northstarBand(organization.actionLabel);
-  const blendedSignal = computeNorthstarStructuralSignal(organization) * 0.7 + riskPrioritySignal(organization) * 0.3;
-  return applyNorthstarRiskCeiling(organization, Math.round(scoreWithinBand(blendedSignal, band.min, band.max)));
+// Component A — Opportunity (0–40)
+function opportunityComponent(organization: OrganizationRecord): number {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  let assetScore = 0;
+  if (netAssets > 0) {
+    const cappedAssets = Math.min(Math.max(netAssets, 1), 50_000_000);
+    assetScore = Math.min(Math.log(cappedAssets) / Math.log(50_000_000), 1.0) * 25;
+  }
+  const yieldGap =
+    (Math.max(5.0 - clamp(organization.investmentYield, 0, 100), 0) / 5.0) * 15;
+  return assetScore + yieldGap;
 }
 
-function applyNorthstarRiskCeiling(organization: OrganizationRecord, score: number): number {
-  switch (organization.actionLabel) {
-    case "Diversify":
-      if (organization.distress.probability >= 70) {
-        return Math.min(score, 68);
-      }
-      if (organization.distress.probability >= 65) {
-        return Math.min(score, 72);
-      }
-      if (organization.distress.probability >= 55) {
-        return Math.min(score, 78);
-      }
-      if (organization.distress.probability >= 40) {
-        return Math.min(score, 86);
-      }
-      return score;
-    case "Stabilize":
-      if (organization.distress.probability < 15) {
-        return Math.min(score, 56);
-      }
-      if (organization.distress.probability < 25) {
-        return Math.min(score, 62);
-      }
-      if (organization.distress.probability < 35) {
-        return Math.min(score, 68);
-      }
-      return score;
-    case "Amplify":
-      if (organization.distress.probability >= 50) {
-        return Math.min(score, 18);
-      }
-      if (organization.distress.probability >= 35) {
-        return Math.min(score, 24);
-      }
-      if (organization.distress.probability >= 25) {
-        return Math.min(score, 30);
-      }
-      if (organization.distress.probability >= 15) {
-        return Math.min(score, 36);
-      }
-      return score;
-    case "Deep Review":
-      if (organization.distress.probability >= 60) {
-        return Math.min(score, 16);
-      }
-      if (organization.distress.probability >= 40) {
-        return Math.min(score, 20);
-      }
-      if (organization.distress.probability >= 25) {
-        return Math.min(score, 24);
-      }
-      return score;
-  }
+// Component B — Structural (0–40)
+function structuralComponent(organization: OrganizationRecord): number {
+  return (computeNorthstarStructuralSignal(organization) / 100) * 40;
+}
 
+// Component C — Confidence (0–20)
+function confidenceComponent(organization: OrganizationRecord): number {
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
+  const evidenceScore = (evidenceStrength / 100) * 12;
+  const dataCompleteness = clamp(organization.dataCompletenessScore, 0, 8);
+  return evidenceScore + dataCompleteness;
+}
+
+// Component D — Fairlight Fit Bonus (0–10)
+function fairlightFitBonus(organization: OrganizationRecord): number {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  const yield_ = organization.investmentYield;
+  switch (organization.actionLabel) {
+    case "Underinvested Asset Base":
+      return netAssets > 1_000_000 && yield_ < 3 ? 10 : 0;
+    case "Revenue Concentration Risk":
+      return netAssets > 1_000_000 ? 8 : 0;
+    case "Weak Financial Foundation":
+      return netAssets > 5_000_000 ? 5 : 0;
+    case "Needs Data Diligence":
+      return 0;
+  }
+  return 0;
+}
+
+// Component E — Distress adjustment (−15 to 0)
+function distressAdjustment(organization: OrganizationRecord): number {
+  const dp = organization.distress.probability;
+  if (dp > 70) return -15;
+  if (dp > 50) return -8;
+  if (dp > 35) return -3;
+  return 0;
+}
+
+// Exclusion caps (Step 6)
+function applyExclusionCaps(organization: OrganizationRecord, score: number): number {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  if (netAssets > 500_000_000) {
+    return Math.min(score, 30);
+  }
+  if (netAssets < 500_000 && organization.actionLabel !== "Revenue Concentration Risk") {
+    return Math.min(score, 40);
+  }
   return score;
+}
+
+function computeNorthstarScore(organization: OrganizationRecord): number {
+  const raw =
+    opportunityComponent(organization) +
+    structuralComponent(organization) +
+    confidenceComponent(organization) +
+    fairlightFitBonus(organization) +
+    distressAdjustment(organization);
+  const clamped = clamp(raw, 0, 100);
+  return Math.round(applyExclusionCaps(organization, clamped));
 }
 
 export function resetNorthstarScoreCache(): void {
   northstarScoreCache.clear();
 }
 
+// Batch scorer kept for API compatibility. Each org is now scored
+// independently (no percentile-based within-bucket ranking), so this just
+// loops. Retained in case callers expect the cache to be primed eagerly.
 export function primeNorthstarScores(organizations: OrganizationRecord[]): void {
   resetNorthstarScoreCache();
-
-  const byAction = new Map<OrganizationRecord["actionLabel"], OrganizationRecord[]>();
   for (const organization of organizations) {
-    const bucket = byAction.get(organization.actionLabel) ?? [];
-    bucket.push(organization);
-    byAction.set(organization.actionLabel, bucket);
-  }
-
-  for (const [actionLabel, rows] of byAction.entries()) {
-    const band = northstarBand(actionLabel);
-    const scored = rows
-      .map((organization) => ({
-        id: organization.id,
-        structuralSignal: computeNorthstarStructuralSignal(organization),
-        riskSignal: riskPrioritySignal(organization),
-      }))
-      .sort((left, right) => left.structuralSignal - right.structuralSignal);
-
-      if (scored.length === 1) {
-        northstarScoreCache.set(
-          scored[0].id,
-          applyNorthstarRiskCeiling(
-            rows[0],
-            Math.round(band.min + (band.max - band.min) * (0.5 * 0.7 + (scored[0].riskSignal / 100) * 0.3)),
-          ),
-        );
-        continue;
-      }
-
-    let index = 0;
-    while (index < scored.length) {
-      let groupEnd = index;
-      while (groupEnd + 1 < scored.length && scored[groupEnd + 1].structuralSignal === scored[index].structuralSignal) {
-        groupEnd += 1;
-      }
-
-      const structuralPercentile = ((index + groupEnd) / 2) / (scored.length - 1);
-
-      for (let cursor = index; cursor <= groupEnd; cursor += 1) {
-        const blendedPercentile = structuralPercentile * 0.7 + (scored[cursor].riskSignal / 100) * 0.3;
-        const organization = rows.find((row) => row.id === scored[cursor].id);
-        const rawScore = Math.round(band.min + blendedPercentile * (band.max - band.min));
-        northstarScoreCache.set(scored[cursor].id, applyNorthstarRiskCeiling(organization ?? rows[0], rawScore));
-      }
-
-      index = groupEnd + 1;
-    }
+    northstarScoreCache.set(organization.id, computeNorthstarScore(organization));
   }
 }
 
@@ -746,13 +699,13 @@ function buildInboxAdvisoryNote(organization: OrganizationRecord): string {
   const mixRead = revenueMixRead(organization.revenueDiversificationIndex);
 
   switch (organization.actionLabel) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile and a ${mixRead} funding base. We project ${risk} risk next year, which supports moving forward rather than treating this as a repair case.`;
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile. We project ${risk} risk next year, so support looks reasonable if it comes with clear guardrails rather than open-ended capital.`;
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile, but the funding base is still ${mixRead}. We project ${risk} risk next year, so the case is strongest if support is tied to broadening revenue sources.`;
-    case "Deep Review":
+    case "Needs Data Diligence":
       return `${history}, this looks like a ${revenueScale} organization, but the operating profile is ${marginRead} and the funding base is ${mixRead}. We project ${risk} risk next year, so the signals do not line up cleanly enough for a capital recommendation without another diligence pass.`;
   }
 }

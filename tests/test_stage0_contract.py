@@ -220,7 +220,7 @@ class Stage0ContractTests(unittest.TestCase):
         self.assertIn("action_labels", contract)
         self.assertEqual(
             set(contract["action_labels"].keys()),
-            {"Amplify", "Stabilize", "Diversify", "Deep Review"},
+            {"Underinvested Asset Base", "Weak Financial Foundation", "Revenue Concentration Risk", "Needs Data Diligence"},
         )
 
         self.assertIn("submitted_on_filter", contract)
