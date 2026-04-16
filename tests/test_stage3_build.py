@@ -73,7 +73,7 @@ def _stage2_fixture() -> pd.DataFrame:
             "stress_test_status": "computed",
             "recovery_analog_eins": ["999999999"],
             "recovery_analog_count": 1,
-            "recovery_analog_evidence": [_analog("Analog Stabilize", "CA", "operating_runway_proxy_months", 1.0, 12.0)],
+            "recovery_analog_evidence": [_analog("Analog Strengthen", "CA", "operating_runway_proxy_months", 1.0, 12.0)],
             "recovery_analog_constraint": "low_runway",
             "recovery_analog_status": "found",
             "urgency_flag": False,
@@ -121,7 +121,7 @@ def _stage2_fixture() -> pd.DataFrame:
             "stress_test_status": "computed",
             "recovery_analog_eins": ["999999999"],
             "recovery_analog_count": 1,
-            "recovery_analog_evidence": [_analog("Analog Stabilize", "CA", "operating_runway_proxy_months", 1.0, 12.0)],
+            "recovery_analog_evidence": [_analog("Analog Strengthen", "CA", "operating_runway_proxy_months", 1.0, 12.0)],
             "recovery_analog_constraint": "low_runway",
             "recovery_analog_status": "found",
             "urgency_flag": False,
@@ -169,7 +169,7 @@ def _stage2_fixture() -> pd.DataFrame:
             "stress_test_status": "computed",
             "recovery_analog_eins": ["999999998"],
             "recovery_analog_count": 1,
-            "recovery_analog_evidence": [_analog("Analog Amplify", "CA", "operating_margin", -0.05, 0.15)],
+            "recovery_analog_evidence": [_analog("Analog Optimize", "CA", "operating_margin", -0.05, 0.15)],
             "recovery_analog_constraint": "low_margin",
             "recovery_analog_status": "found",
             "urgency_flag": False,
@@ -279,9 +279,9 @@ def _stage2_fixture() -> pd.DataFrame:
 def _panel_fixture() -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {"ein": "100", "fiscal_year": 2023, "org_name": "Org Stabilize Prior", "total_revenue": 700000.0, "ntee_major_category": "F"},
-            {"ein": "100", "fiscal_year": 2024, "org_name": "Org Stabilize", "total_revenue": 800000.0, "ntee_major_category": "F"},
-            {"ein": "200", "fiscal_year": 2024, "org_name": "Org Amplify", "total_revenue": 1200000.0, "ntee_major_category": "Q"},
+            {"ein": "100", "fiscal_year": 2023, "org_name": "Org Strengthen Prior", "total_revenue": 700000.0, "ntee_major_category": "F"},
+            {"ein": "100", "fiscal_year": 2024, "org_name": "Org Strengthen", "total_revenue": 800000.0, "ntee_major_category": "F"},
+            {"ein": "200", "fiscal_year": 2024, "org_name": "Org Optimize", "total_revenue": 1200000.0, "ntee_major_category": "Q"},
             {"ein": "300", "fiscal_year": 2024, "org_name": "Org Diversify", "total_revenue": 250000.0, "ntee_major_category": "P"},
         ]
     )
@@ -291,15 +291,15 @@ class Stage3BuildTests(unittest.TestCase):
     def test_assign_action_labels_matches_contract_rules(self):
         labeled = assign_action_labels(_stage2_fixture())
         labels = dict(zip(labeled["ein"], labeled["action_label"]))
-        self.assertEqual(labels["100"], "Stabilize")
-        self.assertEqual(labels["200"], "Amplify")
-        self.assertEqual(labels["300"], "Diversify")
-        self.assertEqual(labels["400"], "Deep Review")
+        self.assertEqual(labels["100"], "Weak Financial Foundation")
+        self.assertEqual(labels["200"], "Underinvested Asset Base")
+        self.assertEqual(labels["300"], "Revenue Concentration Risk")
+        self.assertEqual(labels["400"], "Needs Data Diligence")
 
         deep_row = labeled[labeled["ein"] == "400"].iloc[0]
         self.assertEqual(
             deep_row["action_label_rationale"],
-            ["deep_review_insufficient_resilient_refs", "deep_review_structural_outlier"],
+            ["review_insufficient_resilient_refs", "review_structural_outlier"],
         )
 
         stabilize_row = labeled[(labeled["ein"] == "100") & (labeled["fiscal_year"] == 2024)].iloc[0]
@@ -329,8 +329,8 @@ class Stage3BuildTests(unittest.TestCase):
 
         labeled = assign_action_labels(pd.DataFrame([diversify_row, stabilize_row]))
         labels = dict(zip(labeled["ein"], labeled["action_label"]))
-        self.assertEqual(labels["301"], "Diversify")
-        self.assertEqual(labels["302"], "Stabilize")
+        self.assertEqual(labels["301"], "Revenue Concentration Risk")
+        self.assertEqual(labels["302"], "Weak Financial Foundation")
 
     def test_compute_trend_direction_uses_2023_to_2024_join_only(self):
         trended = compute_trend_direction(_stage2_fixture())
@@ -347,7 +347,7 @@ class Stage3BuildTests(unittest.TestCase):
             hydrated = hydrate_memo_fields(stage2_df, panel_path)
 
         matched = hydrated[(hydrated["ein"] == "200") & (hydrated["fiscal_year"] == 2024)].iloc[0]
-        self.assertEqual(matched["org_name"], "Org Amplify")
+        self.assertEqual(matched["org_name"], "Org Optimize")
         self.assertEqual(matched["ntee_major_category"], "Q")
         self.assertEqual(matched["total_revenue"], 1200000.0)
 
@@ -393,9 +393,9 @@ class Stage3BuildTests(unittest.TestCase):
             )
             self.assertTrue({"action_label", "action_label_rationale", "memo_text", "trend_direction"}.issubset(built.columns))
 
-            amplify_memo = built[built["ein"] == "200"].iloc[0]["memo_text"]
-            self.assertIn("Recommended action: Amplify.", amplify_memo)
-            self.assertLessEqual(len(amplify_memo.split()), 250)
+            uab_memo = built[built["ein"] == "200"].iloc[0]["memo_text"]
+            self.assertIn("Recommended action: Underinvested Asset Base.", uab_memo)
+            self.assertLessEqual(len(uab_memo.split()), 250)
 
     def test_checked_in_stage3_schema_file_exists_and_includes_new_columns(self):
         self.assertTrue(SCHEMA_PATH.exists(), f"Missing schema file: {SCHEMA_PATH}")

@@ -127,10 +127,10 @@
     "Low": "Three or fewer years present, more than 20 percent missing key fields, broadest-cohort fallback, or insufficient resilient references."
   },
   "action_labels": {
-    "Amplify": "Top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure.",
-    "Stabilize": "Below benchmark but recoverable, with positive recovery analog evidence and a fixable financial profile.",
-    "Diversify": "Acceptable operating health with elevated concentration risk or stress-test sensitivity.",
-    "Deep Review": "Structurally weak profile, very low confidence, or no clear near-term intervention path."
+    "Underinvested Asset Base": "Top-quartile resilience profile within cohort, stable or improving trend, and no severe stress-test failure.",
+    "Weak Financial Foundation": "Below benchmark but recoverable, with positive recovery analog evidence and a fixable financial profile.",
+    "Revenue Concentration Risk": "Acceptable operating health with elevated concentration risk or stress-test sensitivity.",
+    "Needs Data Diligence": "Structurally weak profile, very low confidence, or no clear near-term intervention path."
   },
   "urgency_flag": {
     "rule": "shock_absorption_months < 3 and current_year_operating_margin < 0",

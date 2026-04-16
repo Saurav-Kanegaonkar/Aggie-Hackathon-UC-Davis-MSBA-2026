@@ -80,10 +80,10 @@ Stage 3 adds exactly four new columns:
 
 String enum. Allowed values:
 
-- `Amplify`
-- `Stabilize`
+- `Optimize`
+- `Strengthen`
 - `Diversify`
-- `Deep Review`
+- `Review`
 
 #### `action_label_rationale`
 
@@ -93,16 +93,16 @@ Rules:
 
 - values must be machine-readable rule names, not prose
 - order must be deterministic
-- Deep Review may include more than one trigger if multiple Deep Review conditions fire
-- Amplify and Diversify include the fixed rule names that define the label
-- Stabilize includes the default terminal rule and the primary-constraint tag
+- Review may include more than one trigger if multiple Review conditions fire
+- Optimize and Diversify include the fixed rule names that define the label
+- Strengthen includes the default terminal rule and the primary-constraint tag
 
 Allowed rule names:
 
-- `deep_review_insufficient_resilient_refs`
-- `deep_review_low_confidence`
-- `deep_review_acute_and_severe_25pct_stress`
-- `deep_review_structural_outlier`
+- `review_insufficient_resilient_refs`
+- `review_low_confidence`
+- `review_acute_and_severe_25pct_stress`
+- `review_structural_outlier`
 - `amplify_margin_above_benchmark`
 - `amplify_runway_above_benchmark`
 - `amplify_diversification_above_benchmark`
@@ -201,32 +201,32 @@ The label assignment is not a weighted score, not a voting scheme, and not an OR
 
 Evaluate labels in this exact order:
 
-1. `Deep Review`
-2. `Amplify`
+1. `Review`
+2. `Optimize`
 3. `Diversify`
-4. `Stabilize`
+4. `Strengthen`
 
-`Stabilize` is the unconditional fallthrough for remaining scoreable rows. There is no second Deep Review catch-all.
+`Strengthen` is the unconditional fallthrough for remaining scoreable rows. There is no second Review catch-all.
 
-### Deep Review
+### Review
 
-Assign `Deep Review` if **any** of the following conditions is true:
+Assign `Review` if **any** of the following conditions is true:
 
 - `benchmark_status == 'insufficient_resilient_refs'`
 - `checkpoint1_confidence_tier == 'Low'`
 - `urgency_severity == 'acute' and stress_25pct_severity in ('severe', 'critical')`
 - `resilience_gap > 2.0`
 
-`action_label_rationale` must include each matching Deep Review trigger in this fixed order:
+`action_label_rationale` must include each matching Review trigger in this fixed order:
 
-1. `deep_review_insufficient_resilient_refs`
-2. `deep_review_low_confidence`
-3. `deep_review_acute_and_severe_25pct_stress`
-4. `deep_review_structural_outlier`
+1. `review_insufficient_resilient_refs`
+2. `review_low_confidence`
+3. `review_acute_and_severe_25pct_stress`
+4. `review_structural_outlier`
 
-### Amplify
+### Optimize
 
-Assign `Amplify` if the row did not already match `Deep Review` and **all** of the following conditions are true:
+Assign `Optimize` if the row did not already match `Review` and **all** of the following conditions are true:
 
 - `operating_margin_gap >= 0`
 - `operating_runway_gap >= 0`
@@ -236,7 +236,7 @@ Assign `Amplify` if the row did not already match `Deep Review` and **all** of t
 
 Implementation note:
 
-- null `stress_25pct_severity` from `stress_test_status = not_applicable` is treated as "no observed severe stress failure" and does not block `Amplify`
+- null `stress_25pct_severity` from `stress_test_status = not_applicable` is treated as "no observed severe stress failure" and does not block `Optimize`
 
 `action_label_rationale` must be exactly:
 
@@ -244,7 +244,7 @@ Implementation note:
 
 ### Diversify
 
-Assign `Diversify` if the row did not already match `Deep Review` or `Amplify` and **all** of the following conditions are true:
+Assign `Diversify` if the row did not already match `Review` or `Optimize` and **all** of the following conditions are true:
 
 - `revenue_diversification_gap <= -0.30`
 - `operating_margin_gap >= -0.30`
@@ -259,13 +259,13 @@ Implementation note:
 
 - `["diversify_concentration_gap_below_neg_0_30", "diversify_margin_at_or_above_neg_0_30", "diversify_no_severe_25pct_stress", "diversify_no_urgency"]`
 
-### Stabilize
+### Strengthen
 
-Assign `Stabilize` to every remaining row that did not already match `Deep Review`, `Amplify`, or `Diversify`.
+Assign `Strengthen` to every remaining row that did not already match `Review`, `Optimize`, or `Diversify`.
 
-`Stabilize` is the default label for scoreable rows that are neither clearly top-of-cohort nor clean concentration-risk cases.
+`Strengthen` is the default label for scoreable rows that are neither clearly top-of-cohort nor clean concentration-risk cases.
 
-For `Stabilize`, determine the primary constraint from the three Stage 1 per-metric gaps:
+For `Strengthen`, determine the primary constraint from the three Stage 1 per-metric gaps:
 
 - `operating_margin_gap`
 - `operating_runway_gap`
@@ -291,8 +291,8 @@ Constraint label mapping:
 
 Edge case:
 
-- if a row reaches the Stabilize branch with all three per-metric gaps null, the implementation must raise an explicit error rather than silently default
-- this case should not occur in practice because rows with all-null per-metric gaps should already be captured by `benchmark_status == 'insufficient_resilient_refs'` and assigned `Deep Review`
+- if a row reaches the Strengthen branch with all three per-metric gaps null, the implementation must raise an explicit error rather than silently default
+- this case should not occur in practice because rows with all-null per-metric gaps should already be captured by `benchmark_status == 'insufficient_resilient_refs'` and assigned `Review`
 - if it does occur, treat it as upstream data corruption and fail the build loudly
 
 ## Clarifications On Rejected Rule Paths
@@ -303,7 +303,7 @@ The following interpretations are explicitly rejected and must not be reintroduc
 - do not use recovery-analog presence as a label differentiator
 - do not use `largest_revenue_source_pct` absolute cutoffs for Diversify
 - do not use trend as a hard label-assignment gate
-- do not use the 50 percent stress scenario as a hard blocker for Amplify or Diversify
+- do not use the 50 percent stress scenario as a hard blocker for Optimize or Diversify
 
 ## Why Recovery Analogs Are Memo Evidence, Not Label Logic
 
@@ -327,7 +327,7 @@ The load-bearing Diversify signal is:
 
 This is cohort-relative and therefore interpretable across different nonprofit funding models.
 
-The fixed `-0.30` threshold was calibrated on the April 13 merged Stage 2 parquet by sweeping candidate cutoffs across the post-`Deep Review`, post-`Amplify` eligible pool and selecting the smallest value that produced a final `Diversify` share inside the intended `10% - 15%` range after precedence application. The contract therefore freezes the measured `-0.30` cutoff rather than treating Diversify as an intuition-based threshold.
+The fixed `-0.30` threshold was calibrated on the April 13 merged Stage 2 parquet by sweeping candidate cutoffs across the post-`Review`, post-`Optimize` eligible pool and selecting the smallest value that produced a final `Diversify` share inside the intended `10% - 15%` range after precedence application. The contract therefore freezes the measured `-0.30` cutoff rather than treating Diversify as an intuition-based threshold.
 
 ## Trend Methodology
 
@@ -366,7 +366,7 @@ Stage 3 must not substitute:
 - `data_confidence_tier`
 - `cohort_confidence_tier`
 
-`checkpoint1_confidence_tier == 'Low'` forces `Deep Review` unconditionally.
+`checkpoint1_confidence_tier == 'Low'` forces `Review` unconditionally.
 
 ## Benchmark Status Rule
 
@@ -379,13 +379,13 @@ Stage 3 must not reference `not_scoreable` in label logic because that is not th
 
 ## Stress Interaction Rule
 
-Urgency remains orthogonal to the action label except for the one explicit Deep Review override:
+Urgency remains orthogonal to the action label except for the one explicit Review override:
 
 - `urgency_severity == 'acute' and stress_25pct_severity in ('severe', 'critical')`
 
 Outside that override:
 
-- urgent rows may still receive `Stabilize`
+- urgent rows may still receive `Strengthen`
 - non-urgent rows may still receive any non-Deep-Review label if they meet the other criteria
 
 Stage 3 uses the 25 percent stress scenario only for hard label blocking.
@@ -396,8 +396,8 @@ The 50 percent stress scenario remains available for memo narrative but is not a
 
 If `stress_25pct_severity` is null because the Stage 2 stress test was not computable:
 
-- the row does not automatically become `Deep Review`
-- null is treated as "no observed severe 25 percent stress failure" for the purposes of the Amplify and Diversify rule checks
+- the row does not automatically become `Review`
+- null is treated as "no observed severe 25 percent stress failure" for the purposes of the Optimize and Diversify rule checks
 - the memo must state that the stress-test scenario was unavailable when `stress_test_status != 'computed'`
 
 This is an explicit contract choice to avoid hidden builder divergence.
@@ -555,7 +555,7 @@ the confidence note must include this meaning:
 
 These examples are explanatory only. They do not replace the rules above.
 
-### Example A: Stabilize
+### Example A: Weak Financial Foundation
 
 `EIN 042800910` — `RESPONSIBLE HOSPITALITY INSTITUTE INC` — CA — FY2024
 
@@ -573,14 +573,14 @@ Key fields:
 
 Assignment:
 
-- not `Deep Review`
-- not `Amplify` because `operating_runway_gap < 0`
+- not `Review`
+- not `Optimize` because `operating_runway_gap < 0`
 - not `Diversify` because `revenue_diversification_gap > -0.30`
-- therefore `Stabilize`
+- therefore `Strengthen`
 
 `trend_direction = improving` because `resilience_gap_2024 = -0.735061` and `resilience_gap_2023 = -0.244139`.
 
-### Example B: Amplify
+### Example B: Underinvested Asset Base
 
 `EIN 812793464` — `Global Outreach Fund Inc` — CA — FY2024
 
@@ -596,11 +596,11 @@ Key fields:
 
 Assignment:
 
-- not `Deep Review`
-- matches all five Amplify conditions
-- therefore `Amplify`
+- not `Review`
+- matches all five Optimize conditions
+- therefore `Optimize`
 
-### Example C: Diversify
+### Example C: Revenue Concentration Risk
 
 `EIN 463711322` — `Friends of Santa Claus Inc` — CA — FY2024
 
@@ -616,12 +616,12 @@ Key fields:
 
 Assignment:
 
-- not `Deep Review`
-- not `Amplify` because `revenue_diversification_gap < 0`
+- not `Review`
+- not `Optimize` because `revenue_diversification_gap < 0`
 - matches all Diversify conditions
 - therefore `Diversify`
 
-### Example D: Deep Review
+### Example D: Needs Data Diligence
 
 `EIN 825407158` — `HEALTH ASSURANCE ECONOMY FOUNDATION` — CA — FY2023
 
@@ -633,9 +633,9 @@ Key fields:
 
 Assignment:
 
-- `Deep Review` immediately because `benchmark_status == insufficient_resilient_refs`
-- `action_label_rationale` must include `deep_review_insufficient_resilient_refs`
-- it may also include `deep_review_structural_outlier` because `resilience_gap > 2.0`
+- `Review` immediately because `benchmark_status == insufficient_resilient_refs`
+- `action_label_rationale` must include `review_insufficient_resilient_refs`
+- it may also include `review_structural_outlier` because `resilience_gap > 2.0`
 
 ## Checkpoint Comparison Rule
 
@@ -663,17 +663,17 @@ These are diagnostics, not quotas.
 
 For the April 13 merged Stage 2 parquet and the ratified Stage 3 rules, the post-calibration baseline dry-run distribution is approximately:
 
-- `Amplify`: `3.35%`
+- `Optimize`: `3.35%`
 - `Diversify`: `12.28%`
-- `Stabilize`: `51.30%`
-- `Deep Review`: `33.07%`
+- `Strengthen`: `51.30%`
+- `Review`: `33.07%`
 
 Sanity-check ranges for this rule shape are:
 
-- `Amplify`: `2% - 6%`
+- `Optimize`: `2% - 6%`
 - `Diversify`: `10% - 15%`
-- `Stabilize`: `45% - 60%`
-- `Deep Review`: `25% - 40%`
+- `Strengthen`: `45% - 60%`
+- `Review`: `25% - 40%`
 
 Outputs far outside these ranges should be investigated before submission, but the ranges are not acceptance criteria by themselves.
 

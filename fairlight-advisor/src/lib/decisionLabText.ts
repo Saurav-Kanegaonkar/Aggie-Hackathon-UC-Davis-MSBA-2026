@@ -48,39 +48,39 @@ function mixRead(value: number): string {
 
 function callHeadline(action: ActionLabel): string {
   switch (action) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return "Move forward";
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return "Support with guardrails";
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return "Support with diversification conditions";
-    case "Deep Review":
+    case "Needs Data Diligence":
       return "Hold pending diligence";
   }
 }
 
 function supportApproach(action: ActionLabel): string {
   switch (action) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return "Growth-aligned support";
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return "Bridge or reserve support";
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return "Diversification-linked support";
-    case "Deep Review":
+    case "Needs Data Diligence":
       return "Diligence-first support";
   }
 }
 
 function supportApproachDetail(action: ActionLabel): string {
   switch (action) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return "Best when the case already looks healthy and support can accelerate execution rather than repair weakness.";
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return "Best when the core model is viable but the organization still needs tighter guardrails or short-term breathing room.";
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return "Best when the organization is workable but the funding base is still too narrow for comfort.";
-    case "Deep Review":
+    case "Needs Data Diligence":
       return "Best when the case may be supportable, but the evidence still needs one more diligence pass before capital is committed.";
   }
 }
@@ -92,13 +92,13 @@ function recommendationSummary(organization: OrganizationRecord): string {
   const mix = organization.revenueDiversificationIndex;
 
   switch (organization.actionLabel) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return `The operating profile looks strong, projected risk sits ${formatRisk(risk)}, and the funding base reads ${mixRead(mix)}. This is the clearest case for moving forward.`;
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return `The case is workable, but it is not yet a clean green light. Projected risk sits ${formatRisk(risk)} versus a ${baseline.toFixed(1)}% portfolio baseline, so support should come with clear guardrails.`;
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return `The core model looks supportable, but the funding base still reads ${mixRead(mix)}. This should be backed only if the support is tied to broadening revenue sources.`;
-    case "Deep Review":
+    case "Needs Data Diligence":
       return `The current evidence is not strong enough for a clean capital recommendation. With operating margin at ${formatSignedPercent(margin)} and projected risk at ${formatRisk(risk)}, this still needs diligence before a call is made.`;
   }
 }
@@ -149,22 +149,22 @@ function strengthenPoints(organization: OrganizationRecord): string[] {
 
 function changePoints(organization: OrganizationRecord): string[] {
   switch (organization.actionLabel) {
-    case "Amplify":
+    case "Underinvested Asset Base":
       return [
-        "If projected risk rises materially from here, this should move out of an amplify stance.",
+        "If projected risk rises materially from here, this should move out of an optimize stance.",
         "If operating margin compresses back toward break-even, the case becomes less about growth and more about protection.",
       ];
-    case "Stabilize":
+    case "Weak Financial Foundation":
       return [
         "If operating performance weakens further, this should shift from guardrailed support to pause-and-review.",
         "If projected risk drops and margin holds, the case can graduate into a cleaner support call.",
       ];
-    case "Diversify":
+    case "Revenue Concentration Risk":
       return [
         "If the revenue base stays narrow, support should remain conditional rather than open-ended.",
         "If revenue mix broadens meaningfully, the case becomes much easier to back from strength.",
       ];
-    case "Deep Review":
+    case "Needs Data Diligence":
       return [
         "If fresh diligence confirms durable operating performance, this can move into a support case.",
         "If additional diligence reveals weaker fundamentals than filings suggest, the case should be paused rather than funded.",

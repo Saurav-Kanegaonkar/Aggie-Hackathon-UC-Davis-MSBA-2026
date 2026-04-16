@@ -2,7 +2,7 @@
   "generatedAt": "2026-04-14",
   "totalMatched": 257,
   "criteria": {
-    "action": "Diversify",
+    "action": "Revenue Concentration Risk",
     "revenueMin": 10000000,
     "revenueMax": 75000000,
     "rdiMax": 0.3,

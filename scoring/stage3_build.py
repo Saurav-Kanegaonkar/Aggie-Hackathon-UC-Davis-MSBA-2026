@@ -34,13 +34,13 @@ PANEL_CANDIDATES = [
     Path("Data/panel_990_extended_v4.parquet"),
 ]
 
-DEEP_REVIEW_RULES = [
-    "deep_review_insufficient_resilient_refs",
-    "deep_review_low_confidence",
-    "deep_review_acute_and_severe_25pct_stress",
-    "deep_review_structural_outlier",
+REVIEW_RULES = [
+    "review_insufficient_resilient_refs",
+    "review_low_confidence",
+    "review_acute_and_severe_25pct_stress",
+    "review_structural_outlier",
 ]
-AMPLIFY_RULES = [
+OPTIMIZE_RULES = [
     "amplify_margin_above_benchmark",
     "amplify_runway_above_benchmark",
     "amplify_diversification_above_benchmark",
@@ -53,7 +53,7 @@ DIVERSIFY_RULES = [
     "diversify_no_severe_25pct_stress",
     "diversify_no_urgency",
 ]
-STABILIZE_RULE_MAP = {
+STRENGTHEN_RULE_MAP = {
     "operating_margin_gap": "stabilize_primary_constraint_low_margin",
     "operating_runway_gap": "stabilize_primary_constraint_low_runway",
     "revenue_diversification_gap": "stabilize_primary_constraint_high_concentration_in_volatile_source",
@@ -128,7 +128,7 @@ def compute_trend_direction(stage2_df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _build_deep_review_rationales(df: pd.DataFrame) -> list[list[str]]:
+def _build_review_rationales(df: pd.DataFrame) -> list[list[str]]:
     insuff = df["benchmark_status"].eq("insufficient_resilient_refs")
     low_conf = df["checkpoint1_confidence_tier"].eq("Low")
     acute_severe = df["urgency_severity"].eq("acute") & df["stress_25pct_severity"].isin(["severe", "critical"])
@@ -138,13 +138,13 @@ def _build_deep_review_rationales(df: pd.DataFrame) -> list[list[str]]:
     for i in range(len(df)):
         row_rules = []
         if insuff.iat[i]:
-            row_rules.append(DEEP_REVIEW_RULES[0])
+            row_rules.append(REVIEW_RULES[0])
         if low_conf.iat[i]:
-            row_rules.append(DEEP_REVIEW_RULES[1])
+            row_rules.append(REVIEW_RULES[1])
         if acute_severe.iat[i]:
-            row_rules.append(DEEP_REVIEW_RULES[2])
+            row_rules.append(REVIEW_RULES[2])
         if outlier.iat[i]:
-            row_rules.append(DEEP_REVIEW_RULES[3])
+            row_rules.append(REVIEW_RULES[3])
         rationales.append(row_rules)
     return rationales
 
@@ -181,18 +181,18 @@ def assign_action_labels(stage2_df: pd.DataFrame) -> pd.DataFrame:
 
     out["action_label"] = np.select(
         [deep_mask, amplify_mask, diversify_mask, stabilize_mask],
-        ["Deep Review", "Amplify", "Diversify", "Stabilize"],
-        default="Stabilize",
+        ["Needs Data Diligence", "Underinvested Asset Base", "Revenue Concentration Risk", "Weak Financial Foundation"],
+        default="Weak Financial Foundation",
     )
 
     rationales: list[list[str]] = [[] for _ in range(len(out))]
 
-    deep_rationales = _build_deep_review_rationales(out)
+    deep_rationales = _build_review_rationales(out)
     for idx in out.index[deep_mask]:
         rationales[idx] = deep_rationales[idx]
 
     for idx in out.index[amplify_mask]:
-        rationales[idx] = AMPLIFY_RULES.copy()
+        rationales[idx] = OPTIMIZE_RULES.copy()
 
     for idx in out.index[diversify_mask]:
         rationales[idx] = DIVERSIFY_RULES.copy()
@@ -202,12 +202,12 @@ def assign_action_labels(stage2_df: pd.DataFrame) -> pd.DataFrame:
         stabilize_gaps = out.loc[stabilize_mask, gap_cols]
         if stabilize_gaps.isna().all(axis=1).any():
             raise ValueError(
-                "Row reached Stabilize with all three per-metric gaps null. "
+                "Row reached Strengthen with all three per-metric gaps null. "
                 "This indicates upstream data corruption."
             )
         primary_constraint = stabilize_gaps.fillna(np.inf).idxmin(axis=1)
         for idx, gap_col in primary_constraint.items():
-            rationales[idx] = ["stabilize_default_scoreable", STABILIZE_RULE_MAP[gap_col]]
+            rationales[idx] = ["stabilize_default_scoreable", STRENGTHEN_RULE_MAP[gap_col]]
 
     out["action_label_rationale"] = rationales
     return out
@@ -267,19 +267,19 @@ def _top_analog_sentence(evidence, constraint_label: str) -> str:
 
 def _action_reason_sentence(row) -> str:
     label = row.action_label
-    if label == "Amplify":
+    if label == "Underinvested Asset Base":
         return (
             f"Margin gap {_format_number(row.operating_margin_gap)}, runway gap {_format_number(row.operating_runway_gap)}, "
             f"and diversification gap {_format_number(row.revenue_diversification_gap)} are all above benchmark, "
             f"with 25% stress severity {row.stress_25pct_severity} and urgency {row.urgency_severity}."
         )
-    if label == "Diversify":
+    if label == "Revenue Concentration Risk":
         return (
             f"Diversification gap {_format_number(row.revenue_diversification_gap)} is materially below benchmark "
             f"while margin gap {_format_number(row.operating_margin_gap)} remains above the -0.30 floor and "
             f"25% stress severity is {row.stress_25pct_severity}."
         )
-    if label == "Deep Review":
+    if label == "Needs Data Diligence":
         reasons = ", ".join(row.action_label_rationale) if row.action_label_rationale else "contract triggers"
         return (
             f"This row triggered {reasons}, with benchmark status {row.benchmark_status}, "
