@@ -212,27 +212,27 @@ export default function App() {
   }
 
   return (
-      <main className="min-h-[100dvh] text-slate-900">
-        <div className="pointer-events-none fixed inset-0">
+    <main className="relative overflow-x-hidden text-slate-900">
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute left-[-6rem] top-[-4rem] h-[28rem] w-[28rem] rounded-full bg-white/70 blur-3xl" />
           <div className="absolute right-[-8rem] top-[6rem] h-[30rem] w-[30rem] rounded-full bg-emerald-100/30 blur-3xl" />
           <div className="northstar-halftone northstar-halftone--top" />
           <div className="northstar-halftone northstar-halftone--bottom" />
         </div>
 
-        <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-          <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
-            <div className={`grid gap-6 ${workspaceOpen ? "" : "xl:grid-cols-[1fr_auto]"}`}>
-              <div className="space-y-4">
-                <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
-                  Fairlight advisor workspace
+        <div className="relative z-10 mx-auto w-full max-w-[1500px] px-4 pt-4 pb-[max(6rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+          {!workspaceOpen ? (
+            <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
+              <div className="grid gap-6 xl:grid-cols-[1fr_auto]">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                    Fairlight advisor workspace
+                  </div>
+                  <h1 className="northstar-display text-[6.7rem] font-[600] leading-[0.88] tracking-[-0.09em] text-[#111720] [text-wrap:balance] md:text-[8.8rem]">
+                    Northstar
+                  </h1>
                 </div>
-                <h1 className={`northstar-display leading-[0.88] tracking-[-0.09em] text-[#111720] [text-wrap:balance] ${workspaceOpen ? "text-[5.2rem] font-[600] md:text-[6.4rem]" : "text-[6.7rem] font-[600] md:text-[8.8rem]"}`}>
-                  Northstar
-                </h1>
-              </div>
 
-              {!workspaceOpen ? (
                 <div className="flex flex-col items-stretch gap-3 xl:items-end">
                   <WorkspaceSwitch
                     activeWorkspace={activeWorkspace}
@@ -293,9 +293,9 @@ export default function App() {
                     />
                   )}
                 </div>
-              ) : null}
-            </div>
-          </header>
+              </div>
+            </header>
+          ) : null}
 
           <AnimatePresence mode="popLayout" initial={false}>
             {workspaceOpen && selectedOrganization ? (
@@ -305,10 +305,10 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 16 }}
-                className="mt-5 grid flex-1 gap-5 lg:min-h-[calc(100dvh-11.5rem)]"
+                className="grid gap-4 pb-8"
               >
-                <div className="min-h-0">
-                  <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
+                <div>
+                  <div className="flex flex-col gap-4">
                     <DecisionLab
                       organization={selectedOrganization}
                       onReturnToPortfolio={handleReturnToPortfolio}

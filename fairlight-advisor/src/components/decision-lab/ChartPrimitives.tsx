@@ -644,7 +644,7 @@ export function DecisionLabDetailOverlay({
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-4 backdrop-blur-[12px] sm:p-5 md:p-6" data-testid="decision-lab-detail-overlay">
       <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail backdrop" />
       <section
-        className="relative z-[1] flex h-[min(78dvh,760px)] w-[min(92vw,1400px)] flex-col rounded-[2.6rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
+        className="relative z-[1] flex h-[min(88dvh,820px)] w-[min(94vw,1500px)] flex-col rounded-[2.6rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
         role="dialog"
         aria-modal="true"
         aria-label={detail.title}
@@ -682,7 +682,7 @@ export function DecisionLabDetailOverlay({
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
             >
-              <div className="h-full overflow-auto rounded-[2.2rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-5 md:p-6">{detail.content}</div>
+              <div className="h-full overflow-hidden rounded-[2.2rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-5 md:p-6">{detail.content}</div>
             </div>
 
             {detail.guideTitle && detail.guideBullets?.length ? (

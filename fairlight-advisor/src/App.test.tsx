@@ -62,30 +62,58 @@ describe("Fairlight advisor workspace", () => {
 
   it("reveals the decision lab inline after selecting an organization", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    const { container } = render(<App />);
 
     await user.click((await screen.findAllByRole("button", { name: /open x-ray/i }))[0]);
 
     expect(await screen.findByRole("heading", { name: /decision lab/i })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: /financial trajectory/i })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: /how this compares/i })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: /margin vs peers/i })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: /revenue mix over time/i })).toBeInTheDocument();
-    expect(await screen.findByText(/recommended move/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.getByText(/score breakdown/i)).toBeInTheDocument();
+    expect(screen.getByText(/peer compare/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /recovery flight/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /crisis replay/i })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("heading", { name: /cases for review/i })).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /priority pipeline/i })).not.toBeInTheDocument();
+
+    const trappedScroller = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" && element.className.includes("overflow-y-auto"),
+    );
+    const cappedWorkspace = Array.from(container.querySelectorAll("section")).find((element) =>
+      typeof element.className === "string" && element.className.includes("lg:min-h-[calc(100dvh-10.5rem)]"),
+    );
+
+    expect(trappedScroller).toBeUndefined();
+    expect(cappedWorkspace).toBeUndefined();
+
+    const safeAreaContainer = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" &&
+      element.className.includes("pb-[max(6rem,env(safe-area-inset-bottom))]"),
+    );
+    const fixedViewportBackground = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" && element.className.includes("fixed inset-0"),
+    );
+
+    expect(safeAreaContainer).toBeDefined();
+    expect(fixedViewportBackground).toBeUndefined();
   });
 
-  it("surfaces the consultant-style summary instead of the old decision frame", async () => {
+  it("switches among case snapshot, recovery flight, and crisis replay modes", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click((await screen.findAllByRole("button", { name: /open x-ray/i }))[0]);
 
-    expect(await screen.findByText(/type of support/i)).toBeInTheDocument();
-    expect(screen.getByText(/why it showed up/i)).toBeInTheDocument();
-    expect(screen.getByText(/what to check next/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /show decision frame/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /funding decision/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /recovery flight console/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /recovery flight/i }));
+    expect(await screen.findByRole("heading", { name: /recovery flight console/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /crisis replay console/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /crisis replay/i }));
+    expect(await screen.findByRole("heading", { name: /crisis replay console/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/path split/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/route simulator/i)).not.toBeInTheDocument();
   });
 });

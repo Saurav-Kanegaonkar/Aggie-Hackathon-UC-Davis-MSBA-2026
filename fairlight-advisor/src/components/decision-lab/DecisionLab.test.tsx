@@ -42,24 +42,22 @@ describe("Decision Lab visual panels", () => {
 
     expect(overlay).toBeInTheDocument();
     expect(overlay.className).toContain("fixed");
-    expect(dialog.className).toContain("w-[min(92vw,1400px)]");
+    expect(dialog.className).toContain("w-[min(94vw,1500px)]");
     expect(screen.getByRole("button", { name: /^close detail$/i })).toBeInTheDocument();
   });
 
-  it("surfaces the consultant brief before the evidence dashboard", () => {
+  it("defaults to Case Snapshot mode and hides other mode panels until selected", () => {
     const organization = dataset.organizations[0] as OrganizationRecord;
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
-    const recommendationLabel = screen.getByText(/recommended move/i);
-    const evidenceHeading = screen.getByRole("heading", { name: /how this compares/i });
-
-    expect(screen.getByText(/type of support/i)).toBeInTheDocument();
-    expect(screen.getByText(/why it showed up/i)).toBeInTheDocument();
-    expect(screen.getByText(/what to check next/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /show decision frame/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/fairlight recommendation/i)).not.toBeInTheDocument();
-    expect(recommendationLabel.compareDocumentPosition(evidenceHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("button", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /recovery flight/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /crisis replay/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.getByText(/score breakdown/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /recovery flight console/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /crisis replay console/i })).not.toBeInTheDocument();
   });
 
   it("uses readable axis typography in the expanded financial chart", async () => {
@@ -81,17 +79,16 @@ describe("Decision Lab visual panels", () => {
     expect(firstGridline?.getAttribute("stroke-width")).toBe("1.6");
   });
 
-  it("lets mini chart cards flip to layman guidance before opening detail", async () => {
+  it("surfaces compact evidence actions directly from the snapshot console", async () => {
     const user = userEvent.setup();
     const organization = dataset.organizations[0] as OrganizationRecord;
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
-    await user.click(screen.getByRole("button", { name: /how to read revenue/i }));
+    await user.click(screen.getByRole("button", { name: /open contributions detail/i }));
 
-    expect(screen.getByText(/this card isolates one financial series/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /back to revenue chart/i })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /revenue over time/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /contributions share over time/i })).toBeInTheDocument();
+    expect(screen.getByText(/each bar shows the share of total revenue/i)).toBeInTheDocument();
   });
 
   it("allows score breakdown and recovery analogs panels to grow with their content", () => {
@@ -183,20 +180,33 @@ describe("Decision Lab visual panels", () => {
     expect(revenueMixHasFixedBody).toBe(false);
   });
 
-  it("uses independent desktop columns so shorter panels do not leave dead vertical gaps", () => {
+  it("uses the rebuilt sidebar-plus-workspace shell instead of stacking equal cards", () => {
     const organization = dataset.organizations[0] as OrganizationRecord;
 
     const { container } = render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
-    const columnStack = Array.from(container.querySelectorAll("div")).find(
+    const shell = Array.from(container.querySelectorAll("div")).find(
       (element) =>
         typeof element.className === "string" &&
-        element.className.includes("xl:grid-cols-2") &&
-        element.className.includes("xl:items-start"),
+        element.className.includes("min-[960px]:grid-cols-[202px_minmax(0,1fr)]"),
     );
 
-    expect(columnStack).toBeDefined();
-    expect((columnStack as HTMLElement).querySelectorAll("section").length).toBeGreaterThanOrEqual(6);
+    expect(shell).toBeDefined();
+    expect((shell as HTMLElement).querySelectorAll("aside").length).toBe(1);
+    expect((shell as HTMLElement).querySelectorAll("section").length).toBeGreaterThanOrEqual(4);
+    expect(screen.queryByText(/case strip/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/recommendation mechanics/i)).not.toBeInTheDocument();
+    expect((shell as HTMLElement).querySelector("aside")?.className.includes("sticky")).toBe(false);
+
+    const oldPeerCompareLayout = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" && element.className.includes("grid-cols-[1fr_auto_auto]"),
+    );
+    const wrappingValueCells = Array.from(container.querySelectorAll("p,strong,span")).filter((element) =>
+      typeof element.className === "string" && element.className.includes("break-words"),
+    );
+
+    expect(oldPeerCompareLayout).toBeUndefined();
+    expect(wrappingValueCells.length).toBeGreaterThan(8);
   });
 
   it("shows an explicit fallback when peer margin history is unavailable", () => {
