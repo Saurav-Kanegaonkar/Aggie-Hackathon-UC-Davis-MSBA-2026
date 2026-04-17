@@ -1,0 +1,52 @@
+{
+  "train_years": "FY2009\u2013FY2020",
+  "test_years": "FY2021\u2013FY2024",
+  "target_rule": "shock_absorption_months_t1 < 3 AND operating_margin_t1 < 0",
+  "logistic": {
+    "auc": 0.650113361406745,
+    "threshold": 0.4956,
+    "precision": 0.26823784400839196,
+    "recall": 0.5523498673782182,
+    "f1": 0.36110981314476476,
+    "baseline_rate": 0.18161940435204643,
+    "n_test": 693329,
+    "n_train": 2216714,
+    "calibration_mae_across_deciles": 0.23262130977946596
+  },
+  "xgboost": {
+    "auc": 0.8523772533897199,
+    "threshold": 0.4956,
+    "precision": 0.4417170138155393,
+    "recall": 0.74724829656454,
+    "f1": 0.5552260999637108,
+    "top_5_feature_groups": [
+      {
+        "group": "cash_to_expenses",
+        "importance": 0.38704901933670044
+      },
+      {
+        "group": "shock_absorption_months",
+        "importance": 0.25086939334869385
+      },
+      {
+        "group": "ntee_major_category",
+        "importance": 0.0724039077758789
+      },
+      {
+        "group": "state",
+        "importance": 0.060908686369657516
+      },
+      {
+        "group": "operating_margin",
+        "importance": 0.05125727877020836
+      }
+    ]
+  },
+  "agreement": {
+    "both_high": 120426,
+    "logistic_only_high": 138870,
+    "xgboost_only_high": 92595,
+    "both_low": 341438,
+    "prob_correlation": 0.36034998321562484
+  }
+}

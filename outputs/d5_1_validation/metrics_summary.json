@@ -1,0 +1,291 @@
+{
+  "train_years": "FY2009\u2013FY2020",
+  "test_years": "FY2021\u2013FY2024",
+  "threshold": 0.4956,
+  "baseline_rate_test": 0.18161940435204643,
+  "n_test": 693329,
+  "n_train": 2216714,
+  "expanded_feature_count": 49,
+  "logistic_expanded": {
+    "auc": 0.7095570469762121,
+    "threshold": 0.4956,
+    "precision": 0.4191014708823476,
+    "recall": 0.36611553183716905,
+    "f1": 0.39082077279123784,
+    "calibration_mae_across_deciles": 0.20476248399335617,
+    "confusion_matrix": [
+      [
+        503507,
+        63900
+      ],
+      [
+        79820,
+        46102
+      ]
+    ],
+    "top_15_abs_coefs": [
+      {
+        "feature": "runway_yoy_delta",
+        "coefficient": 32.9162708002446,
+        "abs_coef": 32.9162708002446
+      },
+      {
+        "feature": "cash_runway_months",
+        "coefficient": -23.67462885740884,
+        "abs_coef": 23.67462885740884
+      },
+      {
+        "feature": "total_expenses",
+        "coefficient": 4.177320206420356,
+        "abs_coef": 4.177320206420356
+      },
+      {
+        "feature": "pct_other_revenue",
+        "coefficient": -2.4708945323691247,
+        "abs_coef": 2.4708945323691247
+      },
+      {
+        "feature": "pct_contributions",
+        "coefficient": -2.064458183294189,
+        "abs_coef": 2.064458183294189
+      },
+      {
+        "feature": "program_service_revenue",
+        "coefficient": -2.0592682465324414,
+        "abs_coef": 2.0592682465324414
+      },
+      {
+        "feature": "total_revenue",
+        "coefficient": -1.93389204920605,
+        "abs_coef": 1.93389204920605
+      },
+      {
+        "feature": "savings_temporary_investments",
+        "coefficient": -1.2147146393300732,
+        "abs_coef": 1.2147146393300732
+      },
+      {
+        "feature": "state_GU",
+        "coefficient": -1.0073151725353309,
+        "abs_coef": 1.0073151725353309
+      },
+      {
+        "feature": "ntee_major_category_M",
+        "coefficient": -0.688128924836099,
+        "abs_coef": 0.688128924836099
+      },
+      {
+        "feature": "pct_investment_income",
+        "coefficient": -0.6453802155305511,
+        "abs_coef": 0.6453802155305511
+      },
+      {
+        "feature": "cash_non_interest_bearing",
+        "coefficient": -0.5084469545732017,
+        "abs_coef": 0.5084469545732017
+      },
+      {
+        "feature": "years_of_consecutive_deficits",
+        "coefficient": 0.4320974007620185,
+        "abs_coef": 0.4320974007620185
+      },
+      {
+        "feature": "pct_program_revenue",
+        "coefficient": -0.4098208484265246,
+        "abs_coef": 0.4098208484265246
+      },
+      {
+        "feature": "size_bucket_<500K",
+        "coefficient": -0.3923674808774171,
+        "abs_coef": 0.3923674808774171
+      }
+    ]
+  },
+  "xgboost_expanded": {
+    "auc": 0.8538665996629692,
+    "threshold": 0.4956,
+    "precision": 0.44504097603931425,
+    "recall": 0.746509744127317,
+    "f1": 0.5576387467632429,
+    "calibration_mae_across_deciles": 0.17980733849372163,
+    "confusion_matrix": [
+      [
+        450188,
+        117219
+      ],
+      [
+        31920,
+        94002
+      ]
+    ],
+    "top_15_feature_importances": [
+      {
+        "feature": "shock_absorption_months",
+        "importance": 0.2975647449493408,
+        "group": "shock_absorption_months"
+      },
+      {
+        "feature": "cash_to_expenses",
+        "importance": 0.16816997528076172,
+        "group": "cash_to_expenses"
+      },
+      {
+        "feature": "cash_runway_months",
+        "importance": 0.0585084967315197,
+        "group": "cash_runway_months"
+      },
+      {
+        "feature": "years_of_consecutive_deficits",
+        "importance": 0.05008633807301521,
+        "group": "years_of_consecutive_deficits"
+      },
+      {
+        "feature": "operating_margin",
+        "importance": 0.03915565088391304,
+        "group": "operating_margin"
+      },
+      {
+        "feature": "concentration_x_thin_runway",
+        "importance": 0.031620219349861145,
+        "group": "concentration_x_thin_runway"
+      },
+      {
+        "feature": "ntee_major_category_L",
+        "importance": 0.01943599060177803,
+        "group": "ntee_major_category"
+      },
+      {
+        "feature": "shock_absorption_months_lagged_1y",
+        "importance": 0.018327873200178146,
+        "group": "shock_absorption_months_lagged_1y"
+      },
+      {
+        "feature": "runway_yoy_delta",
+        "importance": 0.015616185963153839,
+        "group": "runway_yoy_delta"
+      },
+      {
+        "feature": "operating_margin_lagged_1y",
+        "importance": 0.0154309356585145,
+        "group": "operating_margin_lagged_1y"
+      },
+      {
+        "feature": "negative_margin_years_x_concentration",
+        "importance": 0.012951663695275784,
+        "group": "negative_margin_years_x_concentration"
+      },
+      {
+        "feature": "net_assets_eoy",
+        "importance": 0.012878824956715107,
+        "group": "net_assets_eoy"
+      },
+      {
+        "feature": "net_assets_yoy_delta",
+        "importance": 0.01205347664654255,
+        "group": "net_assets_yoy_delta"
+      },
+      {
+        "feature": "pct_program_revenue",
+        "importance": 0.011111646890640259,
+        "group": "pct_program_revenue"
+      },
+      {
+        "feature": "program_service_revenue",
+        "importance": 0.01091535110026598,
+        "group": "program_service_revenue"
+      }
+    ],
+    "top_10_shap_groups": [
+      {
+        "group": "shock_absorption_months",
+        "mean_abs_shap": 1.2674949169158936
+      },
+      {
+        "group": "shock_absorption_months_lagged_1y",
+        "mean_abs_shap": 0.24136634171009064
+      },
+      {
+        "group": "cash_to_expenses",
+        "mean_abs_shap": 0.18289630115032196
+      },
+      {
+        "group": "operating_margin",
+        "mean_abs_shap": 0.12747438251972198
+      },
+      {
+        "group": "operating_margin_lagged_1y",
+        "mean_abs_shap": 0.1102733165025711
+      },
+      {
+        "group": "concentration_x_thin_runway",
+        "mean_abs_shap": 0.0992467924952507
+      },
+      {
+        "group": "cash_runway_months",
+        "mean_abs_shap": 0.09356702119112015
+      },
+      {
+        "group": "savings_temporary_investments",
+        "mean_abs_shap": 0.08645186573266983
+      },
+      {
+        "group": "ntee_major_category",
+        "mean_abs_shap": 0.06505294144153595
+      },
+      {
+        "group": "margin_3yr_trend",
+        "mean_abs_shap": 0.054735004901885986
+      }
+    ],
+    "n_estimators_after_early_stop": 398
+  },
+  "agreement": {
+    "both_high": 80803,
+    "log_only_high": 29199,
+    "xgb_only_high": 130418,
+    "both_low": 452909,
+    "prob_correlation": 0.582109740814574
+  },
+  "d5_baseline_for_reference": {
+    "logistic_original": {
+      "auc": 0.650113361406745,
+      "threshold": 0.4956,
+      "precision": 0.26823784400839196,
+      "recall": 0.5523498673782182,
+      "f1": 0.36110981314476476,
+      "baseline_rate": 0.18161940435204643,
+      "n_test": 693329,
+      "n_train": 2216714,
+      "calibration_mae_across_deciles": 0.23262130977946596
+    },
+    "xgboost_original": {
+      "auc": 0.8523772533897199,
+      "threshold": 0.4956,
+      "precision": 0.4417170138155393,
+      "recall": 0.74724829656454,
+      "f1": 0.5552260999637108,
+      "top_5_feature_groups": [
+        {
+          "group": "cash_to_expenses",
+          "importance": 0.38704901933670044
+        },
+        {
+          "group": "shock_absorption_months",
+          "importance": 0.25086939334869385
+        },
+        {
+          "group": "ntee_major_category",
+          "importance": 0.0724039077758789
+        },
+        {
+          "group": "state",
+          "importance": 0.060908686369657516
+        },
+        {
+          "group": "operating_margin",
+          "importance": 0.05125727877020836
+        }
+      ]
+    }
+  }
+}
