@@ -4,12 +4,10 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 
 import { DecisionLab } from "./components/DecisionLab";
 import { PortfolioInbox } from "./components/PortfolioInbox";
-import { PriorityPipeline } from "./components/PriorityPipeline";
 import { getInboxCopy, primeNorthstarScores } from "./lib/advisorLanguage";
-import type { AdvisorDataset, OrganizationRecord, PriorityPipelineDataset } from "./types";
+import type { AdvisorDataset, OrganizationRecord } from "./types";
 
 type SortOption = "northstar-desc" | "northstar-asc" | "name-asc";
-type WorkspaceMode = "portfolio" | "pipeline";
 const SIZE_BUCKET_ORDER: Record<string, number> = {
   "<500K": 0,
   "500K-2M": 1,
@@ -19,10 +17,8 @@ const SIZE_BUCKET_ORDER: Record<string, number> = {
 
 export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
-  const [priorityPipelineDataset, setPriorityPipelineDataset] = useState<PriorityPipelineDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceMode>("portfolio");
   const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [sizeBucketFilter, setSizeBucketFilter] = useState<string>("All");
   const [stateFilter, setStateFilter] = useState<string>("All");
@@ -34,26 +30,16 @@ export default function App() {
 
     async function loadDataset() {
       try {
-        const [advisorModule, pipelineModule] = await Promise.all([
-          import("./data/fairlight-advisor.json"),
-          import("./data/priority-pipeline.json"),
-        ]);
+        const advisorModule = await import("./data/fairlight-advisor.json");
         if (isMounted) {
           const dataset = advisorModule.default as AdvisorDataset;
-          const pipelineDataset = pipelineModule.default as PriorityPipelineDataset;
           primeNorthstarScores(dataset.organizations);
           if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const requestedOrganization = params.get("org");
-            const requestedView = params.get("view");
-
-            if (requestedView === "pipeline") {
-              setActiveWorkspace("pipeline");
-            }
 
             if (requestedOrganization === "first" && dataset.organizations[0]) {
               setSelectedId(dataset.organizations[0].id);
-              setActiveWorkspace("portfolio");
             } else if (requestedOrganization) {
               const matchedOrganization = dataset.organizations.find(
                 (organization) => organization.id === requestedOrganization,
@@ -61,13 +47,11 @@ export default function App() {
 
               if (matchedOrganization) {
                 setSelectedId(matchedOrganization.id);
-                setActiveWorkspace("portfolio");
               }
             }
           }
 
           setAdvisorDataset(dataset);
-          setPriorityPipelineDataset(pipelineDataset);
         }
       } catch (error) {
         if (isMounted) {
@@ -133,13 +117,6 @@ export default function App() {
     });
   };
 
-  const handleWorkspaceChange = (workspace: WorkspaceMode) => {
-    startTransition(() => {
-      setSelectedId(null);
-      setActiveWorkspace(workspace);
-    });
-  };
-
   const handleReturnToPortfolio = () => {
     startTransition(() => {
       setSelectedId(null);
@@ -150,7 +127,7 @@ export default function App() {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center px-4 text-slate-900">
         <section className="w-full max-w-2xl rounded-[2.5rem] border border-black/6 bg-[rgba(255,253,248,0.88)] p-8 shadow-[0_36px_90px_-48px_rgba(15,23,42,0.32)]">
-          <p className="text-[11px] font-medium uppercase tracking-[0.26em] text-slate-400">Load error</p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-slate-600">Load error</p>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.07em] text-slate-950">Northstar</h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-600">
             The advisor workspace could not load its portfolio data. Refresh after regenerating the app dataset.
@@ -163,7 +140,7 @@ export default function App() {
     );
   }
 
-  if (!advisorDataset || !priorityPipelineDataset) {
+  if (!advisorDataset) {
     return (
       <main className="min-h-[100dvh] px-4 py-4 text-slate-900 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col gap-5">
@@ -223,7 +200,7 @@ export default function App() {
             <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
               <div className="grid gap-6 xl:grid-cols-[1fr_auto]">
                 <div className="space-y-4">
-                  <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-slate-500 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                  <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.22em] text-slate-700 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
                     Fairlight advisor workspace
                   </div>
                   <h1 className="northstar-display text-[6.7rem] font-[600] leading-[0.88] tracking-[-0.09em] text-[#111720] [text-wrap:balance] md:text-[8.8rem]">
@@ -232,64 +209,31 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col items-stretch gap-3 xl:items-end">
-                  <WorkspaceSwitch
-                    activeWorkspace={activeWorkspace}
-                    onChange={handleWorkspaceChange}
+                  <SummaryStrip
+                    items={[
+                      {
+                        id: "review",
+                        label: "Cases in review",
+                        value: String(advisorDataset.summary.totalOrganizations),
+                        detail: `${advisorDataset.summary.states.join(", ")} shortlist`,
+                        explanation: "Organizations currently in Fairlight's active shortlist.",
+                      },
+                      {
+                        id: "risk",
+                        label: "Typical risk",
+                        value: `${advisorDataset.summary.distressBaselineRate}%`,
+                        detail: "Average next-year risk",
+                        explanation: "Average chance of financial stress next year across the shortlist.",
+                      },
+                      {
+                        id: "paused",
+                        label: "Paused cases",
+                        value: `${advisorDataset.summary.countsByAction["Needs Data Diligence"]}`,
+                        detail: "Need more checking",
+                        explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
+                      },
+                    ]}
                   />
-                  {activeWorkspace === "portfolio" ? (
-                    <SummaryStrip
-                      items={[
-                        {
-                          id: "review",
-                          label: "Cases in review",
-                          value: String(advisorDataset.summary.totalOrganizations),
-                          detail: `${advisorDataset.summary.states.join(", ")} shortlist`,
-                          explanation: "Organizations currently in Fairlight's active shortlist.",
-                        },
-                        {
-                          id: "risk",
-                          label: "Typical risk",
-                          value: `${advisorDataset.summary.distressBaselineRate}%`,
-                          detail: "Average next-year risk",
-                          explanation: "Average chance of financial stress next year across the shortlist.",
-                        },
-                        {
-                          id: "paused",
-                          label: "Paused cases",
-                          value: `${advisorDataset.summary.countsByAction["Needs Data Diligence"]}`,
-                          detail: "Need more checking",
-                          explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
-                        },
-                      ]}
-                    />
-                  ) : (
-                    <SummaryStrip
-                      items={[
-                        {
-                          id: "matched",
-                          label: "Matched",
-                          value: String(priorityPipelineDataset.totalMatched),
-                          detail: "from 60K orgs reviewed",
-                          explanation: "Organizations that passed the current screen.",
-                        },
-                        {
-                          id: "range",
-                          label: "Revenue range",
-                          value: "$10M-$75M",
-                          detail: "target AUM tier",
-                          explanation: "Focused on the size range where Fairlight can move fast.",
-                          valueClassName: "text-[1.2rem] tracking-[-0.04em] md:text-[1.28rem]",
-                        },
-                        {
-                          id: "showing",
-                          label: "Showing",
-                          value: `Top ${priorityPipelineDataset.organizations.length}`,
-                          detail: "by opportunity score",
-                          explanation: "The table below is the ranked shortlist.",
-                        },
-                      ]}
-                    />
-                  )}
                 </div>
               </div>
             </header>
@@ -315,84 +259,29 @@ export default function App() {
                 </div>
               </motion.section>
             ) : (
-              <section
-                key={activeWorkspace === "portfolio" ? "portfolio-gallery" : "priority-pipeline"}
-                className="mt-5 flex flex-1"
-              >
-                {activeWorkspace === "portfolio" ? (
-                  <PortfolioInbox
-                    organizations={visibleOrganizations}
-                    selectedId={selectedId}
-                    sortOption={sortOption}
-                    sizeBucketFilter={sizeBucketFilter}
-                    stateFilter={stateFilter}
-                    onSortOptionChange={setSortOption}
-                    onSizeBucketFilterChange={setSizeBucketFilter}
-                    onStateFilterChange={setStateFilter}
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                    onSelectOrganization={handleSelectOrganization}
-                    sizeBucketOptions={sizeBucketOptions}
-                    stateOptions={stateOptions}
-                    layoutMode="gallery"
-                  />
-                ) : (
-                  <PriorityPipeline data={priorityPipelineDataset} />
-                )}
+              <section key="portfolio-gallery" className="mt-5 flex flex-1">
+                <PortfolioInbox
+                  organizations={visibleOrganizations}
+                  selectedId={selectedId}
+                  sortOption={sortOption}
+                  sizeBucketFilter={sizeBucketFilter}
+                  stateFilter={stateFilter}
+                  onSortOptionChange={setSortOption}
+                  onSizeBucketFilterChange={setSizeBucketFilter}
+                  onStateFilterChange={setStateFilter}
+                  searchQuery={searchQuery}
+                  onSearchQueryChange={setSearchQuery}
+                  onSelectOrganization={handleSelectOrganization}
+                  sizeBucketOptions={sizeBucketOptions}
+                  stateOptions={stateOptions}
+                  layoutMode="gallery"
+                />
               </section>
             )}
           </AnimatePresence>
 
         </div>
       </main>
-  );
-}
-
-function WorkspaceSwitch({
-  activeWorkspace,
-  onChange,
-}: {
-  activeWorkspace: WorkspaceMode;
-  onChange: (workspace: WorkspaceMode) => void;
-}) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/84 p-1 shadow-[0_20px_46px_-34px_rgba(15,23,42,0.2)]">
-      <WorkspaceButton
-        active={activeWorkspace === "portfolio"}
-        label="Portfolio inbox"
-        onClick={() => onChange("portfolio")}
-      />
-      <WorkspaceButton
-        active={activeWorkspace === "pipeline"}
-        label="Priority pipeline"
-        onClick={() => onChange("pipeline")}
-      />
-    </div>
-  );
-}
-
-function WorkspaceButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] transition-colors ${
-        active
-          ? "bg-[#111720] text-white shadow-[0_18px_40px_-24px_rgba(17,23,32,0.46)]"
-          : "bg-transparent text-slate-500 hover:bg-[rgba(246,241,232,0.85)] hover:text-slate-800"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -437,23 +326,23 @@ function SummaryStrip({
               >
                 <div className="absolute inset-0 flex flex-col rounded-[1.45rem] border border-black/6 bg-[rgba(255,255,255,0.82)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] [backface-visibility:hidden] transition-[box-shadow,border-color] duration-200 ease-out group-hover:shadow-[0_18px_36px_-28px_rgba(15,23,42,0.16)]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">{item.label}</p>
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.92)] text-slate-500">
                       <Info size={12} weight="bold" />
                     </span>
                   </div>
                   <p className={`mt-4 font-semibold leading-none text-slate-950 ${valueClass}`}>{item.value}</p>
-                  <p className="mt-auto pt-3 text-[12px] leading-[1.35] text-slate-600">{item.detail}</p>
+                  <p className="mt-auto pt-3 text-[13px] leading-[1.4] text-slate-700">{item.detail}</p>
                 </div>
 
                 <div className="absolute inset-0 flex flex-col rounded-[1.45rem] border border-black/6 bg-[rgba(248,244,236,0.95)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">{item.label}</p>
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-black/6 bg-white/70 text-slate-500">
                       <Info size={12} weight="bold" />
                     </span>
                   </div>
-                  <p className="mt-4 text-[12px] leading-[1.5] text-slate-700">{item.explanation}</p>
+                  <p className="mt-4 text-[13px] leading-[1.5] text-slate-800">{item.explanation}</p>
                 </div>
               </div>
             </button>

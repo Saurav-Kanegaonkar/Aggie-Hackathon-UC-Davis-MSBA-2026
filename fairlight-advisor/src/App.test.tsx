@@ -9,8 +9,8 @@ describe("Fairlight advisor workspace", () => {
 
     expect(await screen.findByRole("heading", { name: /northstar/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /cases for review/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /portfolio inbox/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /priority pipeline/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/cases in review/i).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /priority pipeline/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /decision lab/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /funding decision/i })).not.toBeInTheDocument();
   });
@@ -55,24 +55,6 @@ describe("Fairlight advisor workspace", () => {
       screen.getAllByLabelText(/operating margin: .*operating margin = \(revenue - expenses\) \/ revenue/i).length,
     ).toBeGreaterThan(0);
   });
-
-  it("switches into the priority pipeline workspace", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await user.click(await screen.findByRole("button", { name: /priority pipeline/i }));
-
-    expect(await screen.findByRole("heading", { name: /organizations ready to move/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /priority pipeline/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/filters applied:/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /top 60 opportunities/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /matched: 257/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /revenue range: \$10m-\$75m/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /showing: top 60/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /revenue range: \$10m-\$75m/i }));
-    expect(screen.getByText(/focused on the size range where fairlight can move fast/i)).toBeInTheDocument();
-  }, 12000);
 
   it("reveals the decision lab inline after selecting an organization", async () => {
     const user = userEvent.setup();

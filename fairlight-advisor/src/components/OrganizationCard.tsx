@@ -62,11 +62,11 @@ export function OrganizationCard({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                 {organization.state}
               </span>
-              <span className="text-slate-300">·</span>
-              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+              <span className="text-slate-400">·</span>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">
                 FY{organization.fiscalYear}
               </span>
               {showBucketBadge ? <BucketBadge mode={mode} /> : null}
@@ -103,13 +103,13 @@ export function OrganizationCard({
         </div>
 
         <div className="mt-3 rounded-[1.7rem] border border-black/6 bg-white/82 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-600">
             {isNdd ? "Diligence note" : "Advisory note"}
           </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{inboxCopy.whyNow}</p>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-slate-800">{inboxCopy.whyNow}</p>
           {mode === "uab" ? (
-            <p className="mt-2 border-t border-black/5 pt-2 text-[11px] leading-relaxed text-slate-400">
-              <span className="font-medium text-slate-500">Unrealized Returns</span> — estimated annual gain if assets earned 5% benchmark yield vs current yield. Formula: (5% − current yield) × net assets.
+            <p className="mt-2 border-t border-black/5 pt-2 text-[12px] leading-relaxed text-slate-600">
+              <span className="font-semibold text-slate-700">Unrealized Returns</span> — estimated annual gain if assets earned 5% benchmark yield vs current yield. Formula: (5% − current yield) × net assets.
             </p>
           ) : null}
         </div>
@@ -191,11 +191,11 @@ function MetricBox({
       aria-label={description ? `${label}: ${value}. ${description}` : undefined}
       tabIndex={description ? 0 : undefined}
     >
-      <p className={`text-[11px] font-medium uppercase tracking-[0.14em] ${toneClass.label}`}>{label}</p>
+      <p className={`text-[12px] font-semibold uppercase tracking-[0.12em] ${toneClass.label}`}>{label}</p>
       <p className={`mt-1.5 text-[1.3rem] font-bold leading-tight tracking-[-0.03em] ${toneClass.value}`}>
         {value}
       </p>
-      {subtext ? <p className={`text-[10px] ${toneClass.label}`}>{subtext}</p> : null}
+      {subtext ? <p className={`text-[11px] font-medium ${toneClass.label}`}>{subtext}</p> : null}
     </div>
   );
 }
@@ -211,9 +211,9 @@ function HeroMetricBox({
 }) {
   return (
     <div className="flex h-[5.5rem] flex-col justify-center rounded-[1.55rem] border border-black/6 bg-white/92 px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-900">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{label}</p>
       <p className="mt-1 text-[1.4rem] font-bold leading-none tracking-[-0.04em] text-slate-950">{value}</p>
-      <p className="mt-1 text-[11px] text-slate-500">{caption}</p>
+      <p className="mt-1 text-[12px] text-slate-700">{caption}</p>
     </div>
   );
 }
@@ -234,13 +234,13 @@ function SweetSpotHeroBox({ organization }: { organization: OrganizationRecord }
           : "border-amber-900/10 bg-[rgba(247,239,221,0.96)]"
       }`}
     >
-      <p className={`text-[10px] font-medium uppercase tracking-[0.18em] ${inSweetSpot ? "text-[#0f2e22]" : "text-[#3d2800]"}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${inSweetSpot ? "text-[#0f2e22]" : "text-[#3d2800]"}`}>
         Sweet Spot
       </p>
       <p className={`mt-1 text-[1.1rem] font-bold leading-tight tracking-[-0.03em] ${inSweetSpot ? "text-[#1f392f]" : "text-[#5e4718]"}`}>
         {inSweetSpot ? "In range ($1M–$20M)" : "Outside range"}
       </p>
-      <p className={`mt-0.5 text-[11px] ${inSweetSpot ? "text-[#46695b]" : "text-[#8c6b2f]"}`}>
+      <p className={`mt-0.5 text-[12px] font-medium ${inSweetSpot ? "text-[#355548]" : "text-[#7a5920]"}`}>
         Infra gap: {gapLabel}
       </p>
     </div>
@@ -256,7 +256,7 @@ function NddHeroBox({ organization }: { organization: OrganizationRecord }) {
 
   return (
     <div className="flex h-[5.5rem] flex-col justify-center rounded-[1.55rem] border border-black/6 bg-[rgba(240,238,234,0.92)] px-4 py-3">
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">Data Gaps</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">Data Gaps</p>
       <div className="mt-1.5 flex items-center gap-1">
         {Array.from({ length: maxScore }).map((_, index) => (
           <div
@@ -265,7 +265,7 @@ function NddHeroBox({ organization }: { organization: OrganizationRecord }) {
           />
         ))}
       </div>
-      <p className="mt-1 text-[11px] text-slate-500">{label}</p>
+      <p className="mt-1 text-[12px] font-medium text-slate-700">{label}</p>
     </div>
   );
 }

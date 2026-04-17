@@ -28,22 +28,22 @@ const REVENUE_BUCKET_ORDER = ["All", "<500K", "500K-2M", "2M-10M", ">10M"] as co
 const TAB_CONFIGS: Array<{
   id: BucketTab;
   label: string;
-  description: string;
+  eyebrow: string;
 }> = [
   {
     id: "uab",
     label: "Portfolio Growth",
-    description: "Underinvested asset bases — investment management pitch",
+    eyebrow: "Asset management lane",
   },
   {
     id: "rcr",
     label: "Strategic Advisory",
-    description: "Revenue concentration risk — diversification advisory pitch",
+    eyebrow: "Diversification lane",
   },
   {
     id: "all",
     label: "Active Review",
-    description: "Full shortlist including WFF and NDD cases",
+    eyebrow: "Financial infra + diligence",
   },
 ];
 
@@ -140,7 +140,7 @@ export function PortfolioInbox({
 
         <div className="space-y-5 border-b border-black/6 pb-5">
           <div className="space-y-3">
-            <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.9)] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
+            <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.9)] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.2em] text-slate-700">
               Portfolio Inbox
             </div>
             <div className="flex flex-wrap items-end gap-3">
@@ -151,13 +151,13 @@ export function PortfolioInbox({
               >
                 Cases for Review
               </h2>
-              <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.82)] px-4 py-2 text-sm font-medium tracking-[-0.02em] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+              <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.82)] px-4 py-2 text-[15px] font-semibold tracking-[-0.02em] text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                 {tabFilteredOrganizations.length} cases
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <nav className="grid overflow-hidden rounded-[1.45rem] border border-black/8 bg-[rgba(245,239,231,0.92)] md:grid-cols-3">
             {TAB_CONFIGS.map((tab) => {
               const count = tab.id === "uab" ? uabCount : tab.id === "rcr" ? rcrCount : organizations.length;
               const active = bucketTab === tab.id;
@@ -167,27 +167,43 @@ export function PortfolioInbox({
                   key={tab.id}
                   type="button"
                   onClick={() => setBucketTab(tab.id)}
-                  title={tab.description}
-                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-semibold tracking-[-0.01em] transition-colors duration-150 ${
+                  className={`cursor-pointer border-r border-black/8 px-4 py-3 text-left last:border-r-0 ${
                     active
-                      ? "border-[#30483e]/16 bg-[#30483e] text-[#faf6ee] shadow-sm"
-                      : "border-black/8 bg-white/80 text-slate-600 hover:border-black/12 hover:text-slate-900"
+                      ? "bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-white"
+                      : "bg-[rgba(255,255,255,0.46)] text-slate-700 hover:bg-white/80"
                   }`}
                 >
-                  {tab.label}
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      active
-                        ? "bg-white/16 text-[#d4ead9]"
-                        : "bg-[rgba(246,241,232,0.9)] text-slate-500"
-                    }`}
-                  >
-                    {count}
-                  </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p
+                        className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                          active ? "text-[rgba(239,247,242,0.78)]" : "text-[#6d665b]"
+                        }`}
+                      >
+                        {tab.eyebrow}
+                      </p>
+                      <p
+                        className={`mt-0.5 text-[1rem] font-semibold leading-[1.08] tracking-[-0.05em] [text-wrap:balance] ${
+                          active ? "text-[rgba(239,247,242,0.98)]" : "text-slate-950"
+                        }`}
+                      >
+                        {tab.label}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-full px-2.5 py-1 text-[12px] font-bold ${
+                        active
+                          ? "bg-white/16 text-[#f3faf5]"
+                          : "bg-[rgba(246,241,232,0.95)] text-slate-800"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </div>
                 </button>
               );
             })}
-          </div>
+          </nav>
 
           <div
             ref={toolbarRef}
@@ -201,13 +217,13 @@ export function PortfolioInbox({
                   : "md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.42fr)_repeat(2,minmax(160px,0.3fr))]"
             }`}
           >
-            <label className="flex items-center gap-3 rounded-[1.7rem] border border-black/6 bg-white/88 px-4 py-3 text-sm text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <label className="flex items-center gap-3 rounded-[1.7rem] border border-black/6 bg-white/88 px-4 py-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
               <MagnifyingGlass size={18} weight="bold" />
               <input
                 value={searchQuery}
                 onChange={(event) => onSearchQueryChange(event.target.value)}
                 placeholder="Search by name, state, or note"
-                className="w-full border-none bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                className="w-full border-none bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-500"
               />
             </label>
 
@@ -267,7 +283,7 @@ export function PortfolioInbox({
           </div>
 
           {!isGallery && hiddenCount > 0 ? (
-            <p className="text-xs leading-relaxed text-slate-500">
+            <p className="text-sm leading-relaxed text-slate-700">
               {displayedOrganizations.length} shown · {hiddenCount} more match this view.
             </p>
           ) : null}
@@ -289,7 +305,7 @@ export function PortfolioInbox({
               ))}
             </div>
           ) : (
-            <div className="flex h-full min-h-[20rem] items-center justify-center rounded-[2rem] border border-dashed border-black/10 bg-white/75 px-6 text-center text-sm leading-relaxed text-slate-500">
+            <div className="flex h-full min-h-[20rem] items-center justify-center rounded-[2rem] border border-dashed border-black/10 bg-white/75 px-6 text-center text-base leading-relaxed text-slate-700">
               No cases match these controls. Adjust the search or filters to bring the shortlist back into view.
             </div>
           )}
@@ -323,15 +339,15 @@ function DropdownPill({
         className="flex w-full items-center justify-between gap-3 rounded-[1.7rem] border border-black/6 bg-white/90 px-4 py-3 text-left shadow-[0_18px_44px_-32px_rgba(15,23,42,0.18)] transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-black/10 hover:shadow-[0_20px_48px_-34px_rgba(15,23,42,0.2)]"
       >
         <div>
-          <p className="whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+          <p className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">
             {buttonLabel}
           </p>
-          <p className="mt-1 text-sm font-medium tracking-[-0.02em] text-slate-800">{value}</p>
+          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{value}</p>
         </div>
         <CaretDown
           size={16}
           weight="bold"
-          className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-slate-700 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
