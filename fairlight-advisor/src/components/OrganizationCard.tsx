@@ -107,11 +107,6 @@ export function OrganizationCard({
             {isNdd ? "Diligence note" : "Advisory note"}
           </p>
           <p className="mt-1.5 text-[15px] leading-relaxed text-slate-900">{inboxCopy.whyNow}</p>
-          {mode === "uab" ? (
-            <p className="mt-2 border-t border-black/5 pt-2 text-[12px] leading-relaxed text-slate-700">
-              <span className="font-semibold text-slate-800">Unrealized Returns</span> — estimated annual gain if assets earned 5% benchmark yield vs current yield. Formula: (5% − current yield) × net assets.
-            </p>
-          ) : null}
         </div>
       </div>
     </article>

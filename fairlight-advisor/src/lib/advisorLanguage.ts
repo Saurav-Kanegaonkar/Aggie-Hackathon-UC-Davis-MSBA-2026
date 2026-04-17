@@ -1004,22 +1004,107 @@ function filingHistoryRead(years: number, latestYear: number): string {
   return `Based on ${years} years of filings through FY${latestYear}`;
 }
 
-function buildInboxAdvisoryNote(organization: OrganizationRecord): string {
-  const risk = formatRiskChance(organization.distress.probability).toLowerCase();
-  const history = filingHistoryRead(organization.filingYearsObserved, organization.latestFilingYear);
-  const revenueScale = revenueScaleRead(organization.revenueAmount);
-  const marginRead = operatingMarginRead(organization.operatingMargin);
-  const mixRead = revenueMixRead(organization.revenueDiversificationIndex);
+// Bucket-specific advisory notes.
+//
+// Each note follows a three-beat structure:
+//   1. Situation — specific numbers from the org's own filing
+//   2. Why it lands in this bucket — the pattern Fairlight sees
+//   3. Fairlight action — the engagement type that fits this bucket
+function _formatLargestSourceLabel(rawName: string): string {
+  const normalized = (rawName || "").toLowerCase();
+  if (normalized.includes("program")) return "a single program-service source";
+  if (normalized.includes("govern")) return "a single government contract";
+  if (normalized.includes("contribut")) return "a single donor or grant source";
+  if (normalized.includes("invest")) return "investment income";
+  if (normalized.includes("other")) return "a single 'other' revenue line";
+  return "a single revenue source";
+}
 
+function _formatRunwayMonths(months: number | null): string {
+  if (months === null || !Number.isFinite(months)) return "a runway we cannot fully measure";
+  if (months < 1) return "less than a month";
+  if (months < 2) return "roughly a month";
+  if (months < 12) return `${Math.round(months)} months`;
+  if (months >= 120) return "over ten years";
+  return `about ${Math.round(months / 12)} years`;
+}
+
+function buildUabAdvisoryNote(organization: OrganizationRecord): string {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  const yieldPct = organization.investmentYield;
+  const streak = organization.consecutiveYearsWithInvestmentIncome;
+  const unrealized = netAssets > 0 && yieldPct < 5 ? (0.05 - yieldPct / 100) * netAssets : 0;
+  const streakClause = streak >= 5
+    ? `, with ${streak} straight years of flat investment income`
+    : streak >= 1
+    ? `, with only ${streak} year${streak === 1 ? "" : "s"} of investment-income history on file`
+    : "";
+  const gapClause = unrealized > 0
+    ? `, closing a roughly ${compactCurrency(unrealized)}/year gap against a 5% benchmark`
+    : "";
+  return (
+    `Holds ${compactCurrency(netAssets)} in reserves earning just ${yieldPct.toFixed(1)}% this year${streakClause}. ` +
+    `Fairlight's Portfolio Growth engagement repositions the idle balance sheet into a diversified, policy-driven structure${gapClause}.`
+  );
+}
+
+function buildRcrAdvisoryNote(organization: OrganizationRecord): string {
+  const revenue = compactCurrency(organization.revenueAmount ?? 0);
+  const concentration = organization.stress.largestSourcePct;
+  const sourceLabel = _formatLargestSourceLabel(organization.stress.largestSource);
+  const shock25 = organization.stress.burnMonths25;
+  const shockClause = shock25 === null
+    ? "a 25% funding cut would dent the cushion materially"
+    : shock25 < 3
+    ? `a 25% cut would collapse runway to ${_formatRunwayMonths(shock25)}`
+    : `a 25% cut would pull runway to ${_formatRunwayMonths(shock25)}`;
+  return (
+    `${concentration.toFixed(0)}% of this ${revenue} operation rides on ${sourceLabel}; ${shockClause}. ` +
+    `Fairlight's Strategic Advisory engagement diversifies the funding base with fee-for-service and philanthropic channels before the budget cycle forces it.`
+  );
+}
+
+function buildWffAdvisoryNote(organization: OrganizationRecord): string {
+  const revenue = compactCurrency(organization.revenueAmount ?? 0);
+  const margin = organization.operatingMargin;
+  const runwayMonths = organization.operatingRunwayMonths;
+  const marginClause = margin < -10
+    ? `margin is deeply negative at ${margin.toFixed(1)}%`
+    : margin < 0
+    ? `margin turned negative at ${margin.toFixed(1)}% this year`
+    : margin < 5
+    ? `margin sits thin at ${margin >= 0 ? "+" : ""}${margin.toFixed(1)}%`
+    : `margin is positive but reserves stay thin`;
+  const runwayClause = runwayMonths < 6
+    ? "and reserves cover less than six months of expenses"
+    : runwayMonths < 12
+    ? "and reserves cover less than a year of expenses"
+    : "and no formal reserve policy is on file";
+  return (
+    `${revenue} operation, ${marginClause} ${runwayClause}. ` +
+    `Fairlight's Financial Infrastructure engagement installs a reserve policy, tightens the expense structure, and builds multi-year cash forecasting before the slip compounds.`
+  );
+}
+
+function buildNddAdvisoryNote(organization: OrganizationRecord): string {
+  const completeness = organization.dataCompletenessScore;
+  const completenessOutOfFive = Math.round(clamp((completeness / 8) * 5, 0, 5));
+  return (
+    `Only ${completenessOutOfFive} of 5 balance-sheet fields are complete on the latest filing, so concentration and runway signals cannot be measured cleanly. ` +
+    `Fairlight recommends a diligence pass: request audited financials and reconcile the restricted-asset picture before any advisory or capital engagement.`
+  );
+}
+
+function buildInboxAdvisoryNote(organization: OrganizationRecord): string {
   switch (organization.actionLabel) {
     case "Underinvested Asset Base":
-      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile and a ${mixRead} funding base. We project ${risk} risk next year, which supports moving forward rather than treating this as a repair case.`;
-    case "Weak Financial Foundation":
-      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile. We project ${risk} risk next year, so support looks reasonable if it comes with clear guardrails rather than open-ended capital.`;
+      return buildUabAdvisoryNote(organization);
     case "Revenue Concentration Risk":
-      return `${history}, this looks like a ${revenueScale} organization with a ${marginRead} operating profile, but the funding base is still ${mixRead}. We project ${risk} risk next year, so the case is strongest if support is tied to broadening revenue sources.`;
+      return buildRcrAdvisoryNote(organization);
+    case "Weak Financial Foundation":
+      return buildWffAdvisoryNote(organization);
     case "Needs Data Diligence":
-      return `${history}, this looks like a ${revenueScale} organization, but the operating profile is ${marginRead} and the funding base is ${mixRead}. We project ${risk} risk next year, so the signals do not line up cleanly enough for a capital recommendation without another diligence pass.`;
+      return buildNddAdvisoryNote(organization);
   }
 }
 

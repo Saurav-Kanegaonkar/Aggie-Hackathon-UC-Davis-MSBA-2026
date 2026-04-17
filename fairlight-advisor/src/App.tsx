@@ -123,6 +123,14 @@ export default function App() {
     });
   };
 
+  // Scroll to the top of the page whenever the workspace opens or closes so
+  // the user always lands at the header of the newly-rendered view rather than
+  // inheriting the scroll position from the previous screen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [selectedId]);
+
   if (loadError) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center px-4 text-slate-900">
@@ -197,44 +205,14 @@ export default function App() {
 
         <div className="relative z-10 mx-auto w-full max-w-[1500px] px-4 pt-4 pb-[max(6rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
           {!workspaceOpen ? (
-            <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
-              <div className="grid gap-6 xl:grid-cols-[1fr_auto]">
-                <div className="space-y-4">
-                  <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.22em] text-slate-700 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
-                    Fairlight advisor workspace
-                  </div>
-                  <h1 className="northstar-display text-[6.7rem] font-[600] leading-[0.88] tracking-[-0.09em] text-[#111720] [text-wrap:balance] md:text-[8.8rem]">
-                    Northstar
-                  </h1>
+            <header className="rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.78)] px-6 py-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.26)]">
+              <div className="flex flex-col items-center gap-2">
+                <div className="inline-flex items-center rounded-full border border-black/6 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-700 shadow-[0_14px_32px_-26px_rgba(15,23,42,0.16)]">
+                  Fairlight advisor workspace
                 </div>
-
-                <div className="flex flex-col items-stretch gap-3 xl:items-end">
-                  <SummaryStrip
-                    items={[
-                      {
-                        id: "review",
-                        label: "Cases in review",
-                        value: String(advisorDataset.summary.totalOrganizations),
-                        detail: `${advisorDataset.summary.states.join(", ")} shortlist`,
-                        explanation: "Organizations currently in Fairlight's active shortlist.",
-                      },
-                      {
-                        id: "risk",
-                        label: "Typical risk",
-                        value: `${advisorDataset.summary.distressBaselineRate}%`,
-                        detail: "Average next-year risk",
-                        explanation: "Average chance of financial stress next year across the shortlist.",
-                      },
-                      {
-                        id: "paused",
-                        label: "Paused cases",
-                        value: `${advisorDataset.summary.countsByAction["Needs Data Diligence"]}`,
-                        detail: "Need more checking",
-                        explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
-                      },
-                    ]}
-                  />
-                </div>
+                <h1 className="northstar-display text-center text-[5rem] font-[600] leading-[1] tracking-[-0.06em] text-[#111720]">
+                  Northstar
+                </h1>
               </div>
             </header>
           ) : null}
