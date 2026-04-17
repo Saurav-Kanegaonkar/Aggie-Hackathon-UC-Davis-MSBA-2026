@@ -1,5 +1,5 @@
 import { Info, ArrowClockwise, ArrowUpRight, X } from "@phosphor-icons/react";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -109,6 +109,31 @@ function sparseLabels(labels: string[], maxLabels = 5) {
 
 function sanitizeId(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function useDocumentScrollLock() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const appRoot = document.getElementById("root");
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousAppRootOverflow = appRoot?.style.overflow;
+
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    if (appRoot) {
+      appRoot.style.overflow = "hidden";
+    }
+
+    return () => {
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+      if (appRoot) {
+        appRoot.style.overflow = previousAppRootOverflow ?? "";
+      }
+    };
+  }, []);
 }
 
 export function PanelShell({
@@ -639,6 +664,7 @@ export function DecisionLabDetailOverlay({
   onClose: () => void;
 }) {
   const [showGuide, setShowGuide] = useState(false);
+  useDocumentScrollLock();
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-3 backdrop-blur-[12px] sm:p-4 md:p-5" data-testid="decision-lab-detail-overlay">
@@ -728,6 +754,7 @@ export function ChartDetailModal({
   guideBullets?: string[];
 }) {
   const [showGuide, setShowGuide] = useState(false);
+  useDocumentScrollLock();
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-4">

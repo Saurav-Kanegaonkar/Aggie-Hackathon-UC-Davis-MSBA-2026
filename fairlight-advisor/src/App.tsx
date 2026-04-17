@@ -23,7 +23,6 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceMode>("portfolio");
-  const [actionFilter, setActionFilter] = useState<string>("All");
   const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [sizeBucketFilter, setSizeBucketFilter] = useState<string>("All");
   const [stateFilter, setStateFilter] = useState<string>("All");
@@ -104,7 +103,6 @@ export default function App() {
 
     return organizations
       .filter((organization) => {
-        const matchesAction = actionFilter === "All" || organization.actionLabel === actionFilter;
         const matchesSizeBucket = sizeBucketFilter === "All" || organization.sizeBucket === sizeBucketFilter;
         const matchesState = stateFilter === "All" || organization.state === stateFilter;
         const matchesQuery =
@@ -114,7 +112,7 @@ export default function App() {
           organization.decisionReason.toLowerCase().includes(normalizedQuery) ||
           organization.whySurfaced.toLowerCase().includes(normalizedQuery);
 
-        return matchesAction && matchesQuery && matchesSizeBucket && matchesState;
+        return matchesQuery && matchesSizeBucket && matchesState;
       })
       .sort((left, right) => {
         if (sortOption === "name-asc") {
@@ -127,7 +125,7 @@ export default function App() {
 
         return getInboxCopy(right).northstarScore - getInboxCopy(left).northstarScore;
       });
-  }, [actionFilter, deferredSearchQuery, organizations, sizeBucketFilter, sortOption, stateFilter]);
+  }, [deferredSearchQuery, organizations, sizeBucketFilter, sortOption, stateFilter]);
 
   const handleSelectOrganization = (organization: OrganizationRecord) => {
     startTransition(() => {
@@ -212,7 +210,7 @@ export default function App() {
   }
 
   return (
-    <main className="relative overflow-x-hidden text-slate-900">
+    <main className="relative text-slate-900">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute left-[-6rem] top-[-4rem] h-[28rem] w-[28rem] rounded-full bg-white/70 blur-3xl" />
           <div className="absolute right-[-8rem] top-[6rem] h-[30rem] w-[30rem] rounded-full bg-emerald-100/30 blur-3xl" />
@@ -258,7 +256,7 @@ export default function App() {
                         {
                           id: "paused",
                           label: "Paused cases",
-                          value: `${advisorDataset.summary.countsByAction["Deep Review"]}`,
+                          value: `${advisorDataset.summary.countsByAction["Needs Data Diligence"]}`,
                           detail: "Need more checking",
                           explanation: "Cases that still need more verification before Fairlight can make a clean recommendation.",
                         },
@@ -325,11 +323,9 @@ export default function App() {
                   <PortfolioInbox
                     organizations={visibleOrganizations}
                     selectedId={selectedId}
-                    actionFilter={actionFilter}
                     sortOption={sortOption}
                     sizeBucketFilter={sizeBucketFilter}
                     stateFilter={stateFilter}
-                    onActionFilterChange={setActionFilter}
                     onSortOptionChange={setSortOption}
                     onSizeBucketFilterChange={setSizeBucketFilter}
                     onStateFilterChange={setStateFilter}

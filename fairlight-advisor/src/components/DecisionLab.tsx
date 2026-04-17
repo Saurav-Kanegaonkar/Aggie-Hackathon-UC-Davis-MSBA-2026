@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { formatOrganizationName } from "../lib/advisorLanguage";
 import { buildDecisionLabModel, type DecisionLabModel } from "../lib/decisionLabModel";
 import { compactCurrency } from "../lib/decisionLabText";
-import type { OrganizationRecord } from "../types";
+import type { CrisisReplayTrajectoryPoint, OrganizationRecord } from "../types";
 import type { DecisionLabDetail } from "./decision-lab/ChartPrimitives";
 import { DecisionLabDetailOverlay } from "./decision-lab/ChartPrimitives";
 
@@ -58,12 +58,24 @@ interface PathState {
   cushion: number;
 }
 
+interface PathTimelinePoint {
+  year: number;
+  actual: PathState;
+  projected: PathState;
+}
+
 interface PathView {
   interventionYear: number;
   observedYear: number;
+  windowLabel: string;
+  targetSignal: FlightSignal;
   baseline: PathState;
   actual: PathState;
   projected: PathState;
+  timeline: PathTimelinePoint[];
+  narrative: string;
+  rankingLabel: string;
+  driversExplanation: string | null;
   deltaRisk: number;
   deltaDiversity: number;
   deltaMargin: number;
@@ -73,6 +85,17 @@ interface PathView {
 interface ReplaySetup {
   interventionYear: number;
   scenarioId: string;
+}
+
+interface SnapshotMetric {
+  label: string;
+  value: string;
+  emphasis?: "hero";
+}
+
+interface SnapshotDefinition {
+  pitch: string;
+  metrics: SnapshotMetric[];
 }
 
 export function DecisionLab({
@@ -291,50 +314,135 @@ function SnapshotConsole({
   const revenueSeries = organization.historicalFinancials.map((point) => point.revenue);
   const expensesSeries = organization.historicalFinancials.map((point) => point.expenses);
   const assetsSeries = organization.historicalFinancials.map((point) => point.netAssets);
+  const snapshotDefinition = useMemo(() => buildSnapshotDefinition(organization, model), [organization, model]);
+  const hasStressData = organization.stress.burnMonths25 !== null && organization.stress.burnMonths50 !== null;
+
+  const scoreBreakdownCard = (
+    <CardShell eyebrow="Score breakdown">
+      <ScoreBreakdownCard model={model} />
+    </CardShell>
+  );
+  const currentPositionCard = (
+    <CardShell eyebrow="Current position">
+      <CurrentPositionCard organization={organization} />
+    </CardShell>
+  );
+  const peerCompareCard = (
+    <CardShell eyebrow="Peer compare">
+      <PeerCompareCard model={model} />
+    </CardShell>
+  );
+  const focusCard = (
+    <CardShell eyebrow={snapshotFocusEyebrow(organization.actionLabel)}>
+      <SnapshotFocusCard organization={organization} model={model} />
+    </CardShell>
+  );
+  const stressScenarioCard = hasStressData ? (
+    <CardShell eyebrow="Stress scenario">
+      <StressScenarioCard organization={organization} />
+    </CardShell>
+  ) : null;
+  const financialTrajectoryCard = (
+    <CardShell eyebrow="Financial trajectory">
+      <QuickFinancialEvidence
+        labels={labels}
+        revenueSeries={revenueSeries}
+        expensesSeries={expensesSeries}
+        assetsSeries={assetsSeries}
+        latest={latest}
+        first={first}
+        onOpenDetail={onOpenDetail}
+      />
+    </CardShell>
+  );
+  const revenueMixCard = (
+    <CardShell eyebrow="Revenue mix over time">
+      <QuickRevenueMixEvidence
+        organization={organization}
+        labels={organization.revenueCompositionHistory.map((point) => `FY${point.fiscalYear}`)}
+        onOpenDetail={onOpenDetail}
+      />
+    </CardShell>
+  );
 
   return (
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Case Snapshot</h3>
       <div className="grid gap-3 px-4 pb-4 pt-2.5">
-        <div className="grid gap-2.5 sm:grid-cols-2 min-[960px]:grid-cols-4">
-          <SnapshotMetricCard label="Northstar score" value={String(model.northstarScore)} compact />
-          <SnapshotMetricCard label="Risk next year" value={`${organization.distress.probability.toFixed(1)}%`} compact />
-          <SnapshotMetricCard label="Action" value={organization.actionLabel} compact />
-          <SnapshotMetricCard label="Portfolio baseline" value={`${organization.distress.baseline.toFixed(1)}%`} compact />
+        <section className="rounded-[1.3rem] border border-black/7 bg-white/82 p-4 shadow-[0_16px_34px_-32px_rgba(15,23,42,0.18)]">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Advisor pitch</p>
+          <p className="mt-2 text-[1.12rem] font-medium leading-[1.38] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
+            {snapshotDefinition.pitch}
+          </p>
+        </section>
+
+        <div className={`grid gap-2.5 ${snapshotDefinition.metrics.length >= 5 ? "sm:grid-cols-2 min-[1120px]:grid-cols-5" : "sm:grid-cols-2 min-[1120px]:grid-cols-4"}`}>
+          {snapshotDefinition.metrics.map((metric) => (
+            <SnapshotMetricCard
+              key={metric.label}
+              label={metric.label}
+              value={metric.value}
+              compact
+              hero={metric.emphasis === "hero"}
+            />
+          ))}
         </div>
 
-        <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
-          <CardShell eyebrow="Score breakdown">
-            <ScoreBreakdownCard model={model} />
-          </CardShell>
-          <CardShell eyebrow="Current position">
-            <CurrentPositionCard organization={organization} />
-          </CardShell>
-          <CardShell eyebrow="Peer compare">
-            <PeerCompareCard model={model} />
-          </CardShell>
-        </div>
+        {organization.actionLabel === "Underinvested Asset Base" ? (
+          <>
+            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+              {scoreBreakdownCard}
+              {currentPositionCard}
+              {peerCompareCard}
+            </div>
+            {focusCard}
+            {financialTrajectoryCard}
+            {stressScenarioCard}
+            {revenueMixCard}
+          </>
+        ) : null}
 
-        <div className="grid gap-3">
-          <CardShell eyebrow="Financial trajectory">
-            <QuickFinancialEvidence
-              labels={labels}
-              revenueSeries={revenueSeries}
-              expensesSeries={expensesSeries}
-              assetsSeries={assetsSeries}
-              latest={latest}
-              first={first}
-              onOpenDetail={onOpenDetail}
-            />
-          </CardShell>
-          <CardShell eyebrow="Revenue mix over time">
-            <QuickRevenueMixEvidence
-              organization={organization}
-              labels={organization.revenueCompositionHistory.map((point) => `FY${point.fiscalYear}`)}
-              onOpenDetail={onOpenDetail}
-            />
-          </CardShell>
-        </div>
+        {organization.actionLabel === "Revenue Concentration Risk" ? (
+          <>
+            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+              {scoreBreakdownCard}
+              {currentPositionCard}
+              {peerCompareCard}
+            </div>
+            {focusCard}
+            {stressScenarioCard}
+            {revenueMixCard}
+            {financialTrajectoryCard}
+          </>
+        ) : null}
+
+        {organization.actionLabel === "Weak Financial Foundation" ? (
+          <>
+            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+              {scoreBreakdownCard}
+              {currentPositionCard}
+              {peerCompareCard}
+            </div>
+            {focusCard}
+            {stressScenarioCard}
+            {financialTrajectoryCard}
+            {revenueMixCard}
+          </>
+        ) : null}
+
+        {organization.actionLabel === "Needs Data Diligence" ? (
+          <>
+            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+              {scoreBreakdownCard}
+              {currentPositionCard}
+              {peerCompareCard}
+            </div>
+            {focusCard}
+            {financialTrajectoryCard}
+            {revenueMixCard}
+            {stressScenarioCard}
+          </>
+        ) : null}
       </div>
     </section>
   );
@@ -374,6 +482,7 @@ function RecoveryFlightConsole({
               label={routeDeckEyebrow(route.deckType)}
               title={routeDeckTitle(route.deckType)}
               orgName={route.orgName}
+              story={buildRouteStory(route, signal)}
               window={viewWindowLabel(route.recoveryWindow)}
               startGap={formatSignalGap(route.startGap, signal)}
               timeToSafety={formatYearsToSafety(route.timeToSafetyYears)}
@@ -439,11 +548,26 @@ function CrisisReplayConsole({
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Crisis Replay Console</h3>
       <div className="grid gap-3 px-4 pb-4 pt-2.5">
+        <section className="rounded-[1.3rem] border border-black/7 bg-white/82 p-4 shadow-[0_16px_34px_-32px_rgba(15,23,42,0.18)]">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Replay setup</p>
+          <p className="mt-2 text-[1.05rem] font-medium leading-[1.38] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
+            {pathView.narrative}
+          </p>
+          {pathView.driversExplanation ? (
+            <p className="mt-2 text-[13px] leading-[1.45] text-slate-600 [text-wrap:balance]">
+              {pathView.driversExplanation}
+            </p>
+          ) : null}
+        </section>
+
         <div className="grid gap-3 min-[1120px]:grid-cols-[1.05fr_0.95fr]">
           <ReplayReferenceCard
             interventionYear={selectedInterventionYear}
             observedYear={pathView.observedYear}
+            windowLabel={pathView.windowLabel}
+            targetSignal={pathView.targetSignal}
             baseline={pathView.baseline}
+            rankingLabel={pathView.rankingLabel}
           />
 
           <ReplayControlPanel
@@ -578,15 +702,17 @@ function SnapshotMetricCard({
   label,
   value,
   compact = false,
+  hero = false,
 }: {
   label: string;
   value: string;
   compact?: boolean;
+  hero?: boolean;
 }) {
   return (
-    <div className={`min-w-0 rounded-[1.2rem] border border-black/7 bg-white/80 ${compact ? "px-3 py-2.5" : "px-3.5 py-3"}`}>
+    <div className={`min-w-0 rounded-[1.2rem] border ${hero ? "border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(231,241,236,0.95),rgba(249,245,238,0.88))]" : "border-black/7 bg-white/80"} ${compact ? "px-3 py-2.5" : "px-3.5 py-3"}`}>
       <p className="text-[10px] uppercase leading-[1.25] tracking-[0.18em] text-slate-400">{label}</p>
-      <p className={`mt-1.5 break-words font-semibold leading-[1.12] tracking-[-0.05em] text-slate-950 ${compact ? "text-[1rem]" : "text-[1.3rem]"}`}>{value}</p>
+      <p className={`mt-1.5 break-words font-semibold leading-[1.12] tracking-[-0.05em] text-slate-950 ${hero ? "text-[1.2rem]" : compact ? "text-[1rem]" : "text-[1.3rem]"}`}>{value}</p>
     </div>
   );
 }
@@ -607,29 +733,50 @@ function CardShell({
 }
 
 function ScoreBreakdownCard({ model }: { model: DecisionLabModel }) {
-  const drivers = model.scoreDrivers.slice(0, 4);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const drivers = model.scoreDrivers;
   return (
     <div className="grid gap-3">
-      {drivers.map((driver, index) => (
-        <div key={driver.key} className="grid gap-1.5">
-          <div className="flex items-start justify-between gap-4 text-[13px] text-slate-600">
-            <span className="min-w-0 leading-[1.25]">{driver.label}</span>
-            <strong className="shrink-0 text-[15px] tabular-nums text-slate-950">{driver.value}</strong>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-[rgba(15,20,26,0.08)]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${driver.value}%`,
-                background:
-                  index === 0
-                    ? "linear-gradient(90deg,#d4bc8d,#b78445)"
-                    : "linear-gradient(90deg,#a8bfb4,#2f6a57)",
-              }}
-            />
-          </div>
-        </div>
-      ))}
+      {drivers.map((driver, index) => {
+        const expanded = expandedKey === driver.key;
+        const widthPct = Math.max(0, Math.min(100, (Math.abs(driver.value) / driver.max) * 100));
+        const displayValue = driver.signed ? formatSigned(driver.value) : driver.value.toFixed(1);
+        const fill =
+          index === 0
+            ? "linear-gradient(90deg,#d4bc8d,#b78445)"
+            : driver.signed
+              ? "linear-gradient(90deg,#d3c4aa,#8b6745)"
+              : "linear-gradient(90deg,#a8bfb4,#2f6a57)";
+
+        return (
+          <button
+            key={driver.key}
+            type="button"
+            onClick={() => setExpandedKey(expanded ? null : driver.key)}
+            className="grid gap-1.5 text-left"
+          >
+            <div className="flex items-start justify-between gap-4 text-[13px] text-slate-600">
+              <span className="min-w-0 leading-[1.25]">{driver.label}</span>
+              <strong className="shrink-0 text-[15px] tabular-nums text-slate-950">{displayValue}</strong>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-[rgba(15,20,26,0.08)]">
+              <div className="h-full rounded-full" style={{ width: `${widthPct}%`, background: fill }} />
+            </div>
+            {expanded && driver.details?.length ? (
+              <div className="grid gap-1 rounded-[0.95rem] border border-black/6 bg-[rgba(249,245,238,0.92)] px-3 py-2.5">
+                {driver.details.map((detail) => (
+                  <div key={detail.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[11px] text-slate-600">
+                    <span className="min-w-0 leading-[1.25]">{detail.label}</span>
+                    <strong className="shrink-0 text-slate-950">
+                      {detail.value.toFixed(1)} / {detail.max}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -658,9 +805,6 @@ function PeerCompareCard({ model }: { model: DecisionLabModel }) {
 }
 
 function CurrentPositionCard({ organization }: { organization: OrganizationRecord }) {
-  const latestMargin = (organization.historicalFinancials.at(-1)?.operatingMargin ?? 0) * 100;
-  const peerMedian = organization.peerOperatingMarginHistory.at(-1)?.peerMarginMedian ?? 0;
-
   return (
     <div className="grid gap-3">
       <div>
@@ -668,16 +812,78 @@ function CurrentPositionCard({ organization }: { organization: OrganizationRecor
           {organization.recommendation.status}
         </strong>
       </div>
-      <MetricList
-        rows={[
-          { label: "Support type", value: organization.recommendation.interventionType },
-          { label: "Latest margin", value: `${formatSigned(latestMargin)}%` },
-          { label: "Peer median", value: `${formatSigned(peerMedian)}%` },
-          { label: "Stress posture", value: organization.stress.severity25 },
-        ]}
-      />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <SnapshotMetricCard label="Action" value={organization.actionLabel} compact />
+        <SnapshotMetricCard label="Support type" value={organization.recommendation.interventionType} compact />
+      </div>
     </div>
   );
+}
+
+function SnapshotFocusCard({
+  organization,
+  model,
+}: {
+  organization: OrganizationRecord;
+  model: DecisionLabModel;
+}) {
+  const currentRunway = cappedRunwayMonths(organization.operatingRunwayMonths);
+  const shock25 = cappedRunwayMonths(organization.stress.burnMonths25 ?? currentRunway);
+  const shock50 = cappedRunwayMonths(organization.stress.burnMonths50 ?? shock25);
+  const infrastructureGap = model.scoreDrivers.find((driver) => driver.label === "Financial Foundation")?.value ?? 0;
+  const completeness = buildCompletenessChecklist(organization);
+  const yieldOpportunity = compactCurrency(computeUnrealizedAnnualReturns(organization));
+  const assetBandFit =
+    organization.netAssetsEoy !== null && organization.netAssetsEoy >= 1_000_000 && organization.netAssetsEoy <= 20_000_000
+      ? "In sweet spot"
+      : "Outside sweet spot";
+
+  switch (organization.actionLabel) {
+    case "Underinvested Asset Base":
+      return (
+        <MetricList
+          rows={[
+            { label: "Current yield", value: `${organization.investmentYield.toFixed(2)}%` },
+            { label: "5% benchmark", value: "5.00%" },
+            { label: "Unrealized annual returns", value: yieldOpportunity },
+            { label: "Investing history", value: `${organization.consecutiveYearsWithInvestmentIncome} yrs` },
+          ]}
+        />
+      );
+    case "Revenue Concentration Risk":
+      return (
+        <MetricList
+          rows={[
+            { label: "Largest source", value: formatLargestSourceName(organization.stress.largestSource) },
+            { label: "Largest source %", value: `${organization.stress.largestSourcePct.toFixed(1)}%` },
+            { label: "Runway at -25%", value: formatRunwayForCard(shock25) },
+            { label: "Runway at -50%", value: formatRunwayForCard(shock50) },
+          ]}
+        />
+      );
+    case "Weak Financial Foundation":
+      return (
+        <MetricList
+          rows={[
+            { label: "Current runway", value: formatRunwayForCard(currentRunway) },
+            { label: "Operating margin", value: `${formatSigned(organization.operatingMargin)}%` },
+            { label: "Asset band fit", value: assetBandFit },
+            { label: "Foundation score", value: `${infrastructureGap.toFixed(1)} / 40` },
+          ]}
+        />
+      );
+    case "Needs Data Diligence":
+      return (
+        <MetricList
+          rows={[
+            { label: "Data completeness", value: `${completeness.availableCount} of 5 fields` },
+            { label: "Latest filing", value: `FY${organization.latestFilingYear}` },
+            { label: "Missing fields", value: completeness.missingSummary },
+            { label: "Confidence note", value: organization.confidenceNote },
+          ]}
+        />
+      );
+  }
 }
 
 function QuickFinancialEvidence({
@@ -814,7 +1020,16 @@ function QuickRevenueMixEvidence({
 
   return (
     <div className="grid gap-3">
-      <StackedMixPreview history={organization.revenueCompositionHistory} />
+      <StackedMixPreview
+        history={organization.revenueCompositionHistory}
+        concentrationSeries={
+          organization.actionLabel === "Revenue Concentration Risk"
+            ? organization.revenueCompositionHistory.map((point) =>
+                Math.max(point.programPct, point.contributionsPct, point.investmentPct, point.otherPct),
+              )
+            : undefined
+        }
+      />
       <div className="grid gap-2 sm:grid-cols-2">
         {streams.map((stream, index) => (
           <QuickActionButton
@@ -839,6 +1054,116 @@ function QuickRevenueMixEvidence({
       </div>
     </div>
   );
+}
+
+function StressScenarioCard({ organization }: { organization: OrganizationRecord }) {
+  const hasStress = organization.stress.burnMonths25 !== null && organization.stress.burnMonths50 !== null;
+  const [shockPct, setShockPct] = useState(hasStress ? 25 : 0);
+  const currentRunway = cappedRunwayMonths(organization.operatingRunwayMonths);
+  const shock25 = cappedRunwayMonths(organization.stress.burnMonths25 ?? currentRunway);
+  const shock50 = cappedRunwayMonths(organization.stress.burnMonths50 ?? shock25);
+  const shock75 = Math.max(0, shock50 - Math.max(0, shock25 - shock50));
+  const projectedRunway = interpolateShockRunway(shockPct, currentRunway, shock25, shock50, shock75);
+  const redZone = projectedRunway < 3;
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <div className="rounded-[1.05rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-3">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Largest revenue source</p>
+          <p className="mt-1 text-[1rem] font-semibold leading-[1.15] tracking-[-0.04em] text-slate-950">
+            {formatLargestSourceLabel(organization)}
+          </p>
+        </div>
+        <div className={`rounded-[1.05rem] border px-3 py-3 ${redZone ? "border-[#b35b49]/24 bg-[rgba(254,239,235,0.96)]" : "border-[#1f5446]/16 bg-[rgba(231,241,236,0.95)]"}`}>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Runway after {shockPct}% shock</p>
+          <p className="mt-1 text-[1.15rem] font-semibold tracking-[-0.05em] text-slate-950">{formatRunwayForCard(projectedRunway)}</p>
+          <p className={`mt-1 text-[11px] ${redZone ? "text-[#b35b49]" : "text-slate-500"}`}>
+            {redZone ? "Below 3-month red zone" : "Still above the red zone"}
+          </p>
+        </div>
+      </div>
+
+      {hasStress ? (
+        <>
+          <RangeRail
+            value={shockPct}
+            min={0}
+            max={75}
+            step={5}
+            onChange={setShockPct}
+            labels={["0%", "25%", "50%", "75%"]}
+            ariaLabel="Adjust stress shock percentage"
+          />
+          <div className="grid gap-2 sm:grid-cols-3">
+            <SnapshotMetricCard label="Current runway" value={formatRunwayForCard(currentRunway)} compact />
+            <SnapshotMetricCard label="Runway at 25%" value={formatRunwayForCard(shock25)} compact />
+            <SnapshotMetricCard label="Runway at 50%" value={formatRunwayForCard(shock50)} compact />
+          </div>
+        </>
+      ) : (
+        <div className="rounded-[1.05rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-3 text-[12px] text-slate-600">
+          Stress inputs are not complete for this filing, so the post-shock runway read is not available yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildSnapshotDefinition(organization: OrganizationRecord, model: DecisionLabModel): SnapshotDefinition {
+  const netAssets = compactCurrency(organization.netAssetsEoy ?? 0);
+  const totalRevenue = organization.revenueDisplay || compactCurrency(organization.revenueAmount ?? 0);
+  const currentRunway = cappedRunwayMonths(organization.operatingRunwayMonths);
+  const shock25 = cappedRunwayMonths(organization.stress.burnMonths25 ?? currentRunway);
+  const infrastructureGap = model.scoreDrivers.find((driver) => driver.label === "Financial Foundation")?.value ?? 0;
+  const completeness = buildCompletenessChecklist(organization);
+
+  switch (organization.actionLabel) {
+    case "Underinvested Asset Base": {
+      const unrealizedReturns = compactCurrency(computeUnrealizedAnnualReturns(organization));
+      return {
+        pitch: `${formatOrganizationName(organization.orgName)} has ${netAssets} invested at ${organization.investmentYield.toFixed(2)}% yield. At the 5% benchmark, that's ${unrealizedReturns}/year they're leaving on the table.`,
+        metrics: [
+          { label: "Net assets", value: netAssets },
+          { label: "Total revenue", value: totalRevenue },
+          { label: "Current investment yield", value: `${organization.investmentYield.toFixed(2)}%` },
+          { label: "Investment track record", value: `${organization.consecutiveYearsWithInvestmentIncome} years investing` },
+          { label: "Unrealized annual returns", value: unrealizedReturns, emphasis: "hero" },
+        ],
+      };
+    }
+    case "Revenue Concentration Risk":
+      return {
+        pitch: `${formatOrganizationName(organization.orgName)} earns ${organization.stress.largestSourcePct.toFixed(1)}% of revenue from ${formatLargestSourceName(organization.stress.largestSource)}. If that source cuts 25%, they have ${formatRunwayForPitch(shock25)} of cash.`,
+        metrics: [
+          { label: "Net assets", value: netAssets },
+          { label: "Total revenue", value: totalRevenue },
+          { label: "Largest source", value: `${formatLargestSourceName(organization.stress.largestSource)} · ${organization.stress.largestSourcePct.toFixed(1)}%` },
+          { label: "Current cash runway", value: formatRunwayForCard(currentRunway) },
+          { label: "Post-shock runway at -25%", value: formatRunwayForCard(shock25), emphasis: "hero" },
+        ],
+      };
+    case "Weak Financial Foundation":
+      return {
+        pitch: `${formatOrganizationName(organization.orgName)} has ${netAssets} in assets and ${formatRunwayForPitch(currentRunway)} of runway. They need a reserve policy before the next funding cycle.`,
+        metrics: [
+          { label: "Net assets", value: netAssets },
+          { label: "Total revenue", value: totalRevenue },
+          { label: "Current cash runway", value: formatRunwayForCard(currentRunway) },
+          { label: "Operating margin", value: `${formatSigned(organization.operatingMargin)}%` },
+          { label: "Infrastructure gap score", value: `${infrastructureGap.toFixed(1)} / 40`, emphasis: "hero" },
+        ],
+      };
+    case "Needs Data Diligence":
+      return {
+        pitch: `${formatOrganizationName(organization.orgName)} has ${completeness.availableCount} of 5 key financial fields populated. Manual review is needed before outreach.`,
+        metrics: [
+          { label: "Data completeness", value: `${completeness.availableCount} of 5 fields` },
+          { label: "Latest filing year", value: `FY${organization.latestFilingYear}` },
+          { label: "Missing fields", value: completeness.missingSummary },
+        ],
+      };
+  }
 }
 
 function FlightSignalStrip({
@@ -997,6 +1322,7 @@ function RouteDeckCard({
   label,
   title,
   orgName,
+  story,
   window,
   startGap,
   timeToSafety,
@@ -1008,6 +1334,7 @@ function RouteDeckCard({
   label: string;
   title: string;
   orgName: string;
+  story: string;
   window: string;
   startGap: string;
   timeToSafety: string;
@@ -1029,6 +1356,7 @@ function RouteDeckCard({
       <p className={`text-[10px] uppercase tracking-[0.18em] ${active ? "text-[rgba(239,247,242,0.76)]" : "text-slate-400"}`}>{label}</p>
       <strong className="mt-2 block break-words text-[1.15rem] leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">{title}</strong>
       <p className={`mt-2 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{orgName}</p>
+      <p className={`mt-2 break-words text-[12px] leading-[1.3] ${active ? "text-[rgba(239,247,242,0.78)]" : "text-slate-500"}`}>{story}</p>
       <div className={`mt-3 grid gap-2 border-t pt-3 text-[12px] ${active ? "border-white/12 text-[rgba(239,247,242,0.84)]" : "border-black/7 text-slate-600"}`}>
         <div className="flex items-center justify-between gap-3">
           <span>Start gap</span>
@@ -1123,18 +1451,26 @@ function SelectedRouteSpotlight({
 function ReplayReferenceCard({
   interventionYear,
   observedYear,
+  windowLabel,
+  targetSignal,
   baseline,
+  rankingLabel,
 }: {
   interventionYear: number;
   observedYear: number;
+  windowLabel: string;
+  targetSignal: FlightSignal;
   baseline: PathState;
+  rankingLabel: string;
 }) {
   return (
     <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
       <div className="grid gap-2 sm:grid-cols-2">
         <SnapshotMetricCard label="Intervention point" value={`FY${interventionYear}`} compact />
         <SnapshotMetricCard label="Observed next filing" value={`FY${observedYear}`} compact />
-        <SnapshotMetricCard label="Starting risk" value={`${baseline.risk.toFixed(1)}%`} compact />
+        <SnapshotMetricCard label="Replay window" value={windowLabel} compact />
+        <SnapshotMetricCard label="Peer logic" value={flightSignalTitle(targetSignal)} compact />
+        <SnapshotMetricCard label="Risk signal" value={rankingLabel} compact />
         <SnapshotMetricCard label="Starting margin" value={`${formatSigned(baseline.margin)}%`} compact />
       </div>
     </section>
@@ -1356,28 +1692,29 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
   const width = 760;
   const height = 360;
   const margin = { top: 26, right: 18, bottom: 42, left: 58 };
-  const baseline = metricValue(view.baseline, metric);
-  const actual = metricValue(view.actual, metric);
-  const projected = metricValue(view.projected, metric);
-  const replayScale = buildReplayChartScale(metric, baseline, actual, projected);
-  const seriesActual = [replayScale.baselineValue, actual, actual];
-  const seriesProjected = [replayScale.baselineValue, projected, projected];
-  const xScale = scaleLinear().domain([0, 2]).range([margin.left, width - margin.right]);
+  const actualSeries = view.timeline.map((point) => metricValue(point.actual, metric));
+  const projectedSeries = view.timeline.map((point) => metricValue(point.projected, metric));
+  const replayScale = buildReplayChartScale(metric, [...actualSeries, ...projectedSeries]);
+  const xScale = scaleLinear()
+    .domain([0, Math.max(1, view.timeline.length - 1)])
+    .range([margin.left, width - margin.right]);
   const yScale = scaleLinear().domain([replayScale.min, replayScale.max]).range([height - margin.bottom, margin.top]);
   const lineGenerator = d3Line<number>()
     .x((_: number, index: number) => xScale(index))
     .y((value: number) => yScale(value))
     .curve(curveMonotoneX);
   const yTicks = replayScale.ticks;
-  const actualPath = lineGenerator(seriesActual) ?? "";
-  const projectedPath = lineGenerator(seriesProjected) ?? "";
+  const actualPath = lineGenerator(actualSeries) ?? "";
+  const projectedPath = lineGenerator(projectedSeries) ?? "";
+  const interventionIndex = view.timeline.findIndex((point) => point.year === view.interventionYear);
+  const interventionX = xScale(Math.max(0, interventionIndex));
 
   return (
     <section className="rounded-[1.45rem] border border-black/7 bg-white/84 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <strong className="block text-[1.2rem] tracking-[-0.04em] text-slate-950">{pathMetricLabel(metric)} one filing later</strong>
+        <strong className="block text-[1.2rem] tracking-[-0.04em] text-slate-950">{pathMetricLabel(metric)} through replay window</strong>
         <div className="rounded-full border border-black/7 bg-[rgba(249,245,238,0.9)] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
-          FY{view.interventionYear} split
+          {view.windowLabel}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -1387,7 +1724,7 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
         </span>
         <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
           <span className="h-1.5 w-4 rounded-full bg-[rgba(90,139,115,0.98)]" />
-          With Northstar
+          Improved path
         </span>
       </div>
 
@@ -1404,11 +1741,11 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
           );
         })}
         <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="rgba(71,85,105,0.22)" strokeWidth="1.4" />
-        <line x1={xScale(1)} y1={margin.top} x2={xScale(1)} y2={height - margin.bottom} stroke="rgba(71,85,105,0.28)" strokeWidth="1.4" strokeDasharray="7 7" />
+        <line x1={interventionX} y1={margin.top} x2={interventionX} y2={height - margin.bottom} stroke="rgba(71,85,105,0.28)" strokeWidth="1.4" strokeDasharray="7 7" />
         <rect
-          x={xScale(1)}
+          x={interventionX}
           y={margin.top}
-          width={width - margin.right - xScale(1)}
+          width={width - margin.right - interventionX}
           height={height - margin.top - margin.bottom}
           fill="rgba(90,139,115,0.06)"
         />
@@ -1429,26 +1766,20 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-
-        <circle cx={xScale(0)} cy={yScale(replayScale.baselineValue)} r="5.4" fill="rgba(17,21,27,0.98)" />
-        <circle cx={xScale(1)} cy={yScale(actual)} r="5.4" fill="rgba(67,73,71,0.98)" />
-        <circle cx={xScale(2)} cy={yScale(projected)} r="5.4" fill="rgba(90,139,115,0.98)" />
-        <text x={xScale(1)} y={Math.max(margin.top + 14, yScale(actual) - 12)} textAnchor="middle" fontSize="10" fill="rgba(63,69,67,0.88)">
-          {formatPathMetric(actual, metric)}
-        </text>
-        <text x={xScale(2)} y={Math.max(margin.top + 14, yScale(projected) - 12)} textAnchor="middle" fontSize="10" fill="rgba(90,139,115,0.9)">
-          {formatPathMetric(projected, metric)}
-        </text>
-
-        <text x={xScale(0)} y={height - 10} fontSize="11" fill="rgba(71,85,105,0.72)">
-          FY{view.interventionYear}
-        </text>
-        <text x={xScale(1)} y={height - 10} fontSize="11" textAnchor="middle" fill="rgba(71,85,105,0.72)">
-          Actual FY{view.observedYear}
-        </text>
-        <text x={xScale(2)} y={height - 10} fontSize="11" textAnchor="end" fill="rgba(71,85,105,0.72)">
-          With Northstar
-        </text>
+        {view.timeline.map((point, index) => {
+          const x = xScale(index);
+          const actualValue = actualSeries[index] ?? 0;
+          const projectedValue = projectedSeries[index] ?? 0;
+          return (
+            <g key={`replay-point-${point.year}`}>
+              <circle cx={x} cy={yScale(actualValue)} r="5.4" fill="rgba(63,69,67,0.98)" />
+              <circle cx={x} cy={yScale(projectedValue)} r="5.4" fill="rgba(90,139,115,0.98)" />
+              <text x={x} y={height - 10} fontSize="11" textAnchor="middle" fill="rgba(71,85,105,0.72)">
+                FY{point.year}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </section>
   );
@@ -1538,8 +1869,10 @@ function MiniMultiSeriesChart({
 
 function StackedMixPreview({
   history,
+  concentrationSeries,
 }: {
   history: OrganizationRecord["revenueCompositionHistory"];
+  concentrationSeries?: number[];
 }) {
   const width = 760;
   const height = 244;
@@ -1614,6 +1947,29 @@ function StackedMixPreview({
             </g>
           );
         })}
+        {concentrationSeries?.length
+          ? (() => {
+              const concentrationPath = d3Line<number>()
+                .x((_: number, index: number) => xScale(index) + barWidth / 2)
+                .y((value: number) => yScale(value))
+                .curve(curveMonotoneX)(concentrationSeries);
+
+              return concentrationPath ? (
+                <g>
+                  <path d={concentrationPath} fill="none" stroke="rgba(31,84,70,0.84)" strokeWidth="2.6" strokeLinecap="round" />
+                  {concentrationSeries.map((value, index) => (
+                    <circle
+                      key={`mix-overlay-${history[index]?.fiscalYear ?? index}`}
+                      cx={xScale(index) + barWidth / 2}
+                      cy={yScale(value)}
+                      r="2.8"
+                      fill="rgba(31,84,70,0.9)"
+                    />
+                  ))}
+                </g>
+              ) : null;
+            })()
+          : null}
         {labelIndexes.map((index) => (
           <text
             key={`mix-label-${index}`}
@@ -1634,6 +1990,12 @@ function StackedMixPreview({
             {item.label}
           </span>
         ))}
+        {concentrationSeries?.length ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+            <span className="h-1.5 w-4 rounded-full bg-[rgba(31,84,70,0.84)]" />
+            Largest source %
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -2072,10 +2434,10 @@ function getAvailableFlightSignals(organization: OrganizationRecord): FlightSign
     return Array.from(new Set(inferredSignals));
   }
 
-  if (organization.actionLabel === "Diversify") {
+  if (organization.actionLabel === "Revenue Concentration Risk") {
     return ["concentration"];
   }
-  if (organization.actionLabel === "Stabilize") {
+  if (organization.actionLabel === "Weak Financial Foundation") {
     return ["runway"];
   }
   return ["margin"];
@@ -2190,7 +2552,10 @@ function signalMatches(metricName: string, signal: FlightSignal) {
 }
 
 export function buildPathView(organization: OrganizationRecord, interventionYear: number, scenarioId: string): PathView {
-  const years = Array.from(new Set(organization.historicalFinancials.map((point) => point.fiscalYear))).sort((a, b) => a - b);
+  const curatedTrajectory = getCuratedReplayTrajectory(organization);
+  const years = curatedTrajectory.length
+    ? curatedTrajectory.map((point) => point.fiscalYear).sort((a, b) => a - b)
+    : Array.from(new Set(organization.historicalFinancials.map((point) => point.fiscalYear))).sort((a, b) => a - b);
   if (years.length === 0) {
     const fallback: PathState = {
       risk: clamp(organization.distress.probability, 1, 99),
@@ -2201,9 +2566,15 @@ export function buildPathView(organization: OrganizationRecord, interventionYear
     return {
       interventionYear: organization.latestFilingYear,
       observedYear: organization.latestFilingYear,
+      windowLabel: `FY${organization.latestFilingYear}`,
+      targetSignal: getPrimaryFlightSignal(organization),
       baseline: fallback,
       actual: fallback,
       projected: fallback,
+      timeline: [{ year: organization.latestFilingYear, actual: fallback, projected: fallback }],
+      narrative: `${formatOrganizationName(organization.orgName)} does not have enough historical filing depth to replay a clean intervention window yet.`,
+      rankingLabel: `${fallback.risk.toFixed(1)}% distress`,
+      driversExplanation: null,
       deltaRisk: 0,
       deltaDiversity: 0,
       deltaMargin: 0,
@@ -2211,26 +2582,54 @@ export function buildPathView(organization: OrganizationRecord, interventionYear
     };
   }
 
-  const interventionResolvedIndex = findInterventionIndex(years, interventionYear);
+  const preferredInterventionYear = organization.crisisReplay?.callFiscalYear ?? interventionYear;
+  const interventionResolvedIndex = findInterventionIndex(years, preferredInterventionYear);
   const interventionYearResolved = years[interventionResolvedIndex];
   const observedIndex = Math.min(interventionResolvedIndex + 1, years.length - 1);
   const observedYear = years[observedIndex];
-  const baseline = derivePathStateAtYear(organization, interventionYearResolved);
-  const actual = derivePathStateAtYear(organization, observedYear);
-  const moveDelta = getPathDeltas(scenarioId, organization.actionLabel);
-  const projected: PathState = {
-    risk: clamp(actual.risk - moveDelta.riskReduction, 2, 95),
-    diversity: clamp(actual.diversity + moveDelta.diversityGain, 0, 1),
-    margin: actual.margin + moveDelta.marginGain,
-    cushion: Math.max(0, actual.cushion + moveDelta.cushionGain),
-  };
+  const windowStartIndex = Math.max(0, interventionResolvedIndex - 2);
+  const windowEndIndex = Math.min(years.length - 1, interventionResolvedIndex + 2);
+  const timelineYears = years.slice(windowStartIndex, windowEndIndex + 1);
+  const actualTimeline = timelineYears.map((year) => derivePathStateAtYear(organization, year, curatedTrajectory));
+  const targetSignal = resolveReplaySignal(organization, scenarioId);
+  const replayProbability = getReplayDistressProbability(organization);
+  const baselineIndex = timelineYears.findIndex((year) => year === interventionYearResolved);
+  if (baselineIndex >= 0 && replayProbability !== null) {
+    actualTimeline[baselineIndex] = {
+      ...actualTimeline[baselineIndex],
+      risk: clamp(replayProbability, 2, 95),
+    };
+  }
+  const projectedTimeline = buildProjectedReplayTimeline(
+    organization,
+    targetSignal,
+    scenarioId,
+    timelineYears,
+    interventionYearResolved,
+    actualTimeline,
+  );
+  const observedTimelineIndex = timelineYears.findIndex((year) => year === observedYear);
+  const baseline = actualTimeline[Math.max(0, baselineIndex)] ?? actualTimeline[0];
+  const actual = actualTimeline[Math.max(0, observedTimelineIndex)] ?? actualTimeline.at(-1) ?? baseline;
+  const projected = projectedTimeline[Math.max(0, observedTimelineIndex)] ?? projectedTimeline.at(-1) ?? actual;
+  const timeline = timelineYears.map((year, index) => ({
+    year,
+    actual: actualTimeline[index] ?? baseline,
+    projected: projectedTimeline[index] ?? actualTimeline[index] ?? baseline,
+  }));
 
   return {
     interventionYear: interventionYearResolved,
     observedYear,
+    windowLabel: `FY${timelineYears[0]}-${timelineYears.at(-1)}`,
+    targetSignal,
     baseline,
     actual,
     projected,
+    timeline,
+    narrative: buildReplayNarrative(organization, interventionYearResolved, observedYear, baseline, actual),
+    rankingLabel: buildReplayRankingLabel(organization, baseline),
+    driversExplanation: buildReplayDriversExplanation(organization),
     deltaRisk: actual.risk - projected.risk,
     deltaDiversity: projected.diversity - actual.diversity,
     deltaMargin: projected.margin - actual.margin,
@@ -2238,33 +2637,198 @@ export function buildPathView(organization: OrganizationRecord, interventionYear
   };
 }
 
-function getPathDeltas(scenarioId: string, actionLabel: OrganizationRecord["actionLabel"]) {
-  if (scenarioId.includes("downside")) {
-    return { riskReduction: 6, diversityGain: 0.04, marginGain: 1.2, cushionGain: 1.8 };
+function resolveReplaySignal(organization: OrganizationRecord, scenarioId: string): FlightSignal {
+  if (/reserve|bridge/i.test(scenarioId)) {
+    return "runway";
   }
-  if (scenarioId.includes("reserve")) {
+  if (/diversification/i.test(scenarioId)) {
+    return "concentration";
+  }
+  if (/portfolio|yield/i.test(scenarioId)) {
+    return "margin";
+  }
+
+  const primary = getPrimaryFlightSignal(organization);
+  return primary;
+}
+
+function buildProjectedReplayTimeline(
+  organization: OrganizationRecord,
+  targetSignal: FlightSignal,
+  scenarioId: string,
+  timelineYears: number[],
+  interventionYear: number,
+  actualTimeline: PathState[],
+) {
+  const interventionIndex = Math.max(0, timelineYears.findIndex((year) => year === interventionYear));
+  const targetStartValue = signalStateValue(actualTimeline[interventionIndex] ?? actualTimeline[0], targetSignal);
+  const postLength = Math.max(2, timelineYears.length - interventionIndex);
+  const threshold = flightSafetyThreshold(targetSignal);
+  const analogs = selectReplayAnalogs(organization, targetSignal, targetStartValue);
+  const projectedSignalSeries = buildMedianSignalTrajectory(analogs, targetSignal, targetStartValue, postLength, threshold);
+
+  return timelineYears.map((_, index) => {
+    const actualState = actualTimeline[index] ?? actualTimeline.at(-1) ?? {
+      risk: organization.distress.probability,
+      diversity: organization.revenueDiversificationIndex,
+      margin: organization.operatingMargin,
+      cushion: organization.operatingRunwayMonths,
+    };
+
+    if (index <= interventionIndex) {
+      return actualState;
+    }
+
+    const trajectoryIndex = index - interventionIndex;
+    const projectedSignalValue = projectedSignalSeries[trajectoryIndex] ?? projectedSignalSeries.at(-1) ?? targetStartValue;
+    return projectReplayState(actualState, projectedSignalValue, targetSignal, scenarioId);
+  });
+}
+
+function selectReplayAnalogs(
+  organization: OrganizationRecord,
+  signal: FlightSignal,
+  targetStartValue: number,
+) {
+  const exactMatches = organization.analogs.filter((analog) => signalMatches(analog.metricName, signal));
+  const fallbackSignal = getPrimaryFlightSignal(organization);
+  const fallbackMatches = organization.analogs.filter((analog) => signalMatches(analog.metricName, fallbackSignal));
+  const source = exactMatches.length ? exactMatches : fallbackMatches.length ? fallbackMatches : organization.analogs;
+
+  if (source.length) {
+    return source;
+  }
+
+  return [
+    {
+      orgName: organization.orgName,
+      state: organization.state,
+      metricName: signal === "concentration" ? "revenue diversification index" : signal === "runway" ? "operating runway proxy months" : "operating margin",
+      preValue: targetStartValue,
+      postValue:
+        signal === "concentration"
+          ? Math.max(targetStartValue, 0.5)
+          : signal === "runway"
+            ? Math.max(targetStartValue, 6)
+            : Math.max(targetStartValue, 2),
+      recoveryWindow: `${interventionYearLabel(organization.firstFilingYear)}-${interventionYearLabel(organization.latestFilingYear)}`,
+    },
+  ];
+}
+
+function buildMedianSignalTrajectory(
+  analogs: OrganizationRecord["analogs"],
+  signal: FlightSignal,
+  startValue: number,
+  length: number,
+  threshold: number,
+) {
+  const seriesCollection = analogs.map((analog) =>
+    buildRouteSeries({
+      startValue,
+      endValue: normalizeSignalValue(analog.postValue, signal),
+      points: length,
+      threshold,
+      signal,
+    }),
+  );
+
+  return Array.from({ length }, (_, index) => median(seriesCollection.map((series) => series[index] ?? series.at(-1) ?? startValue)));
+}
+
+function projectReplayState(
+  actualState: PathState,
+  projectedSignalValue: number,
+  signal: FlightSignal,
+  scenarioId: string,
+): PathState {
+  const multiplier = /reserve|bridge|diversification|portfolio|yield/i.test(scenarioId) ? 1.12 : 1.0;
+
+  if (signal === "concentration") {
+    const delta = Math.max(0, projectedSignalValue - actualState.diversity);
     return {
-      riskReduction: actionLabel === "Stabilize" ? 13 : 10,
-      diversityGain: 0.03,
-      marginGain: 1.0,
-      cushionGain: actionLabel === "Stabilize" ? 6.4 : 4.6,
+      risk: clamp(actualState.risk - delta * 42 * multiplier, 2, 95),
+      diversity: clamp(projectedSignalValue, 0, 1),
+      margin: actualState.margin + delta * 7.5 * multiplier,
+      cushion: Math.max(0, actualState.cushion + delta * 13 * multiplier),
     };
   }
-  if (scenarioId.includes("diversification")) {
+
+  if (signal === "runway") {
+    const delta = Math.max(0, projectedSignalValue - actualState.cushion);
     return {
-      riskReduction: actionLabel === "Diversify" ? 15 : 12,
-      diversityGain: actionLabel === "Diversify" ? 0.22 : 0.16,
-      marginGain: actionLabel === "Diversify" ? 2.8 : 2.1,
-      cushionGain: 2.5,
+      risk: clamp(actualState.risk - delta * 1.5 * multiplier, 2, 95),
+      diversity: clamp(actualState.diversity + delta * 0.01 * multiplier, 0, 1),
+      margin: actualState.margin + delta * 0.55 * multiplier,
+      cushion: Math.max(0, projectedSignalValue),
     };
   }
-  if (actionLabel === "Stabilize") {
-    return { riskReduction: 12, diversityGain: 0.06, marginGain: 1.7, cushionGain: 2.3 };
+
+  const delta = Math.max(0, projectedSignalValue - actualState.margin);
+  return {
+    risk: clamp(actualState.risk - delta * 1.15 * multiplier, 2, 95),
+    diversity: clamp(actualState.diversity + delta * 0.004 * multiplier, 0, 1),
+    margin: projectedSignalValue,
+    cushion: Math.max(0, actualState.cushion + delta * 0.18 * multiplier),
+  };
+}
+
+function signalStateValue(state: PathState, signal: FlightSignal) {
+  if (signal === "concentration") {
+    return state.diversity;
   }
-  return { riskReduction: 11, diversityGain: 0.08, marginGain: 1.8, cushionGain: 1.9 };
+  if (signal === "runway") {
+    return state.cushion;
+  }
+  return state.margin;
+}
+
+function normalizeSignalValue(value: number, signal: FlightSignal) {
+  if (signal === "concentration") {
+    return clamp(value, 0, 1);
+  }
+  if (signal === "runway") {
+    return Math.max(0, value);
+  }
+  return value;
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+  }
+  return sorted[middle] ?? 0;
 }
 
 export function findBestReplaySetup(organization: OrganizationRecord): ReplaySetup {
+  if (organization.crisisReplay?.callFiscalYear) {
+    const scenarios = organization.scenarioCards.length
+      ? organization.scenarioCards
+      : [{ id: "default", title: "Default" }];
+    const interventionYear = organization.crisisReplay.callFiscalYear;
+    let bestScenarioId = scenarios[0]?.id ?? "default";
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const scenario of scenarios) {
+      const view = buildPathView(organization, interventionYear, scenario.id);
+      const allImproving = view.deltaRisk > 0 && view.deltaMargin > 0 && view.deltaCushion > 0 && view.deltaDiversity > 0;
+      const improvementScore =
+        view.deltaRisk / 18 +
+        view.deltaMargin / 4 +
+        view.deltaCushion / 12 +
+        view.deltaDiversity / 0.18;
+      const score = improvementScore + (allImproving ? 3 : -6);
+      if (score > bestScore) {
+        bestScore = score;
+        bestScenarioId = scenario.id;
+      }
+    }
+
+    return { interventionYear, scenarioId: bestScenarioId };
+  }
+
   const years = getInterventionYears(organization);
   const scenarios = organization.scenarioCards.length
     ? organization.scenarioCards
@@ -2299,7 +2863,23 @@ export function findBestReplaySetup(organization: OrganizationRecord): ReplaySet
   return best;
 }
 
-function derivePathStateAtYear(organization: OrganizationRecord, year: number): PathState {
+function derivePathStateAtYear(
+  organization: OrganizationRecord,
+  year: number,
+  curatedTrajectory: CrisisReplayTrajectoryPoint[] = [],
+): PathState {
+  const replayPoint = curatedTrajectory.find((point) => point.fiscalYear === year);
+  if (replayPoint) {
+    const normalizedMargin = Math.abs(replayPoint.operatingMargin) <= 5 ? replayPoint.operatingMargin * 100 : replayPoint.operatingMargin;
+    const diversity = clamp(1 - replayPoint.largestSourcePct / 100, 0, 1);
+    return {
+      risk: clamp(replayPoint.distressProbability ?? estimateRisk(organization.distress.baseline, normalizedMargin, replayPoint.cashRunwayMonths, diversity), 2, 95),
+      diversity,
+      margin: normalizedMargin,
+      cushion: replayPoint.cashRunwayMonths,
+    };
+  }
+
   const financialPoint = organization.historicalFinancials.find((point) => point.fiscalYear === year) ?? organization.historicalFinancials.at(-1);
   const compositionPoint = organization.revenueCompositionHistory.find((point) => point.fiscalYear === year) ?? organization.revenueCompositionHistory.at(-1);
   const margin = (financialPoint?.operatingMargin ?? organization.operatingMargin) * 100;
@@ -2338,6 +2918,10 @@ function findInterventionIndex(years: number[], interventionYear: number) {
     }
   }
   return index;
+}
+
+function interventionYearLabel(year: number) {
+  return Number.isFinite(year) ? year : 0;
 }
 
 function computeReserveCushion(expenses: number, liquidReserves: number) {
@@ -2379,45 +2963,150 @@ function formatPathMetric(value: number, metric: PathMetric) {
   return value.toFixed(2);
 }
 
-function buildReplayChartScale(metric: PathMetric, baseline: number, actual: number, projected: number) {
+function cappedRunwayMonths(value: number | null | undefined) {
+  if (!Number.isFinite(value ?? NaN)) {
+    return 0;
+  }
+  return clamp(value ?? 0, 0, 120);
+}
+
+function computeUnrealizedAnnualReturns(organization: OrganizationRecord) {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  const yieldGap = Math.max(5 - organization.investmentYield, 0) / 100;
+  return Math.max(0, netAssets * yieldGap);
+}
+
+function buildCompletenessChecklist(organization: OrganizationRecord) {
+  const fields = [
+    { label: "Net assets", present: (organization.netAssetsEoy ?? 0) > 0 },
+    { label: "Revenue", present: (organization.revenueAmount ?? 0) > 0 },
+    { label: "Investment yield", present: Number.isFinite(organization.investmentYield) && organization.investmentYield > 0 },
+    { label: "Stress inputs", present: organization.stress.burnMonths25 !== null || organization.stress.largestSourcePct > 0 },
+    { label: "Multi-year history", present: organization.filingYearsObserved > 1 },
+  ];
+  const missing = fields.filter((field) => !field.present).map((field) => field.label);
+  return {
+    availableCount: fields.length - missing.length,
+    missingSummary: missing.length ? missing.join(" · ") : "None",
+  };
+}
+
+function buildReplayNarrative(
+  organization: OrganizationRecord,
+  interventionYear: number,
+  observedYear: number,
+  baseline: PathState,
+  actual: PathState,
+) {
+  const curatedSummary =
+    interventionYear === organization.crisisReplay?.callFiscalYear
+      ? organization.crisisReplay.t1OutcomeSummary ?? organization.crisisReplay.t2OutcomeSummary
+      : null;
+  const rankingLabel = buildReplayRankingLabel(organization, baseline);
+  if (curatedSummary) {
+    return `Northstar ranked ${formatOrganizationName(organization.orgName)} ${rankingLabel} in FY${interventionYear} — financials ${baseline.margin >= 0 && baseline.cushion >= 3 ? "still looked healthy" : "already looked fragile"} at ${formatSigned(baseline.margin)}% margin and ${formatRunwayForPitch(baseline.cushion)} of runway. By FY${observedYear}, ${curatedSummary}.`;
+  }
+
+  const lookedHealthy = baseline.margin >= 0 && baseline.cushion >= 3;
+  const outcome =
+    actual.margin < 0
+      ? `margin fell to ${formatSigned(actual.margin)}%`
+      : actual.cushion < 3
+        ? `reserve cushion thinned to ${formatRunwayForCard(actual.cushion)}`
+        : `risk stayed elevated at ${actual.risk.toFixed(1)}%`;
+
+  return `Northstar ranked ${formatOrganizationName(organization.orgName)} ${rankingLabel} in FY${interventionYear} — financials ${lookedHealthy ? "still looked workable" : "already looked fragile"} at ${formatSigned(baseline.margin)}% margin and ${formatRunwayForPitch(baseline.cushion)} of runway. By FY${observedYear}, ${outcome}.`;
+}
+
+function getReplayDistressProbability(organization: OrganizationRecord) {
+  if (organization.crisisReplay?.predictedDistressProbabilityXgboost !== null && organization.crisisReplay?.predictedDistressProbabilityXgboost !== undefined) {
+    return organization.crisisReplay.predictedDistressProbabilityXgboost;
+  }
+  if (organization.crisisReplay?.predictedDistressProbability !== null && organization.crisisReplay?.predictedDistressProbability !== undefined) {
+    return organization.crisisReplay.predictedDistressProbability;
+  }
+  return null;
+}
+
+function buildReplayRankingLabel(organization: OrganizationRecord, baseline: PathState) {
+  const percentileTop = organization.crisisReplay?.riskPercentileTop;
+  if (percentileTop !== null && percentileTop !== undefined && Number.isFinite(percentileTop)) {
+    return `in the top ${Math.round(percentileTop)}% of distress risk for its cohort`;
+  }
+  return `at ${baseline.risk.toFixed(1)}% distress`;
+}
+
+function buildReplayDriversExplanation(organization: OrganizationRecord) {
+  const explanation = organization.crisisReplay?.xgboostShapExplanation?.trim();
+  if (!explanation) {
+    return null;
+  }
+  return /[.!?]$/.test(explanation) ? explanation : `${explanation}.`;
+}
+
+function interpolateShockRunway(shockPct: number, current: number, at25: number, at50: number, at75: number) {
+  if (shockPct <= 25) {
+    const ratio = shockPct / 25;
+    return current + (at25 - current) * ratio;
+  }
+  if (shockPct <= 50) {
+    const ratio = (shockPct - 25) / 25;
+    return at25 + (at50 - at25) * ratio;
+  }
+  const ratio = (shockPct - 50) / 25;
+  return at50 + (at75 - at50) * ratio;
+}
+
+function formatLargestSourceName(value: string) {
+  return value === "largest revenue source" ? "largest revenue source" : value;
+}
+
+function formatLargestSourceLabel(organization: OrganizationRecord) {
+  const amount = organization.revenueAmount ? compactCurrency((organization.revenueAmount * organization.stress.largestSourcePct) / 100) : null;
+  return `${formatLargestSourceName(organization.stress.largestSource)} · ${organization.stress.largestSourcePct.toFixed(1)}%${amount ? ` (${amount})` : ""}`;
+}
+
+function formatRunwayForPitch(value: number) {
+  return value >= 12 ? `${(value / 12).toFixed(1)} years` : `${value.toFixed(1)} months`;
+}
+
+function formatRunwayForCard(value: number) {
+  return value >= 12 ? `${(value / 12).toFixed(1)} yrs` : `${value.toFixed(1)} mo`;
+}
+
+function buildReplayChartScale(metric: PathMetric, values: number[]) {
+  const min = d3Min(values) ?? 0;
+  const max = d3Max(values) ?? 1;
+
   if (metric !== "margin") {
-    const min = d3Min([baseline, actual, projected]) ?? 0;
-    const max = d3Max([baseline, actual, projected]) ?? 1;
     const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
     const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
     return {
       min: paddedMin,
       max: paddedMax,
-      baselineValue: baseline,
       ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
     };
   }
 
-  const comparisonMin = Math.min(actual, projected);
-  const comparisonMax = Math.max(actual, projected);
-  const comparisonSpan = Math.max(4, comparisonMax - comparisonMin);
-  const baselineGap = Math.max(Math.abs(baseline - comparisonMin), Math.abs(baseline - comparisonMax));
+  const comparisonSpan = Math.max(4, max - min);
+  const baselineGap = Math.max(...values.map((value) => Math.abs(value - min), 0), ...values.map((value) => Math.abs(value - max), 0));
   const shouldZoom = baselineGap > comparisonSpan * 6;
 
   if (!shouldZoom) {
-    const min = d3Min([baseline, actual, projected]) ?? 0;
-    const max = d3Max([baseline, actual, projected]) ?? 1;
     const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
     const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
     return {
       min: paddedMin,
       max: paddedMax,
-      baselineValue: baseline,
       ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
     };
   }
 
-  const paddedMin = comparisonMin - comparisonSpan * 1.2;
-  const paddedMax = comparisonMax + comparisonSpan * 1.2;
+  const paddedMin = min - comparisonSpan * 1.2;
+  const paddedMax = max + comparisonSpan * 1.2;
   return {
     min: paddedMin,
     max: paddedMax,
-    baselineValue: Math.max(paddedMin, Math.min(paddedMax, baseline)),
     ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
   };
 }
@@ -2551,15 +3240,18 @@ function flightSignalTitle(signal: FlightSignal) {
 
 function financialScenarioLabel(scenario: { id: string; title: string }) {
   if (/downside/i.test(scenario.id) || /downside/i.test(scenario.title)) {
-    return "Contingency plan";
+    return "Financial Resilience X-Ray";
   }
   if (/reserve|bridge/i.test(scenario.id) || /reserve|bridge/i.test(scenario.title)) {
-    return "Reserves policy";
+    return "Reserve Policy Design";
   }
   if (/diversification/i.test(scenario.id) || /diversification/i.test(scenario.title)) {
-    return "Funding strategy";
+    return "Revenue Diversification Advisory";
   }
-  return scenario.title;
+  if (/portfolio|yield/i.test(scenario.id) || /portfolio|yield/i.test(scenario.title)) {
+    return "Portfolio Optimization";
+  }
+  return "Financial Resilience X-Ray";
 }
 
 function routeDeckEyebrow(deckType: FlightDeckType) {
@@ -2580,6 +3272,37 @@ function routeDeckTitle(deckType: FlightDeckType) {
     return "Fastest safety";
   }
   return "Best finish";
+}
+
+function buildRouteStory(route: FlightRouteView, signal: FlightSignal) {
+  const years = Math.max(1, route.durationYears);
+  const safetyMoment = route.safetyYear ? ` Clear by FY${route.safetyYear}.` : " Safety line not cleared.";
+
+  if (signal === "concentration") {
+    return `Broadened revenue mix from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
+  }
+  if (signal === "runway") {
+    return `Built reserve cushion from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
+  }
+  return `Repaired operating margin from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
+}
+
+function getCuratedReplayTrajectory(organization: OrganizationRecord) {
+  const trajectory = organization.crisisReplay?.trajectory ?? [];
+  return [...trajectory].sort((left, right) => left.fiscalYear - right.fiscalYear);
+}
+
+function snapshotFocusEyebrow(actionLabel: OrganizationRecord["actionLabel"]) {
+  switch (actionLabel) {
+    case "Underinvested Asset Base":
+      return "Yield opportunity";
+    case "Revenue Concentration Risk":
+      return "Concentration profile";
+    case "Weak Financial Foundation":
+      return "Foundation read";
+    case "Needs Data Diligence":
+      return "Data completeness";
+  }
 }
 
 function activeModeEyebrow(mode: DecisionLabMode) {

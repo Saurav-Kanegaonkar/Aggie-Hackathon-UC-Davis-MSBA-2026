@@ -1,4 +1,9 @@
-import { formatOrganizationName, getInboxCopy, getNorthstarScoreDrivers } from "./advisorLanguage";
+import {
+  formatOrganizationName,
+  getInboxCopy,
+  getNorthstarComponentBreakdown,
+  type NorthstarComponentDetail,
+} from "./advisorLanguage";
 import type { OrganizationRecord } from "../types";
 
 function parseGap(value: string): number {
@@ -34,15 +39,18 @@ export interface DecisionLabModel {
     format: "percent" | "ratio";
   }>;
   scoreDrivers: Array<{
-    key: keyof ReturnType<typeof getNorthstarScoreDrivers>;
+    key: string;
     label: string;
     value: number;
+    max: number;
+    signed?: boolean;
+    details?: NorthstarComponentDetail[];
   }>;
 }
 
 export function buildDecisionLabModel(organization: OrganizationRecord): DecisionLabModel {
   const inboxCopy = getInboxCopy(organization);
-  const scoreDrivers = getNorthstarScoreDrivers(organization);
+  const scoreDrivers = getNorthstarComponentBreakdown(organization);
 
   return {
     organizationName: formatOrganizationName(organization.orgName),
@@ -71,12 +79,13 @@ export function buildDecisionLabModel(organization: OrganizationRecord): Decisio
         format: "percent",
       },
     ],
-    scoreDrivers: [
-      { key: "distressProtection", label: "Distress readiness", value: scoreDrivers.distressProtection },
-      { key: "operatingMargin", label: "Operating margin", value: scoreDrivers.operatingMargin },
-      { key: "revenueMix", label: "Diversification opportunity", value: scoreDrivers.revenueMix },
-      { key: "evidenceQuality", label: "Evidence quality", value: scoreDrivers.evidenceQuality },
-      { key: "recommendationPriority", label: "Priority lane", value: scoreDrivers.recommendationPriority },
-    ],
+    scoreDrivers: scoreDrivers.map((driver) => ({
+      key: driver.key,
+      label: driver.label,
+      value: Number(driver.value.toFixed(1)),
+      max: driver.max,
+      signed: driver.signed,
+      details: driver.details,
+    })),
   };
 }

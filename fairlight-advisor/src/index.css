@@ -28,14 +28,15 @@ body,
 
 html {
   background: #f6f1e8;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
   color: var(--northstar-ink);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 30%),
@@ -43,6 +44,10 @@ body {
     radial-gradient(circle at 18% 78%, rgba(232, 216, 189, 0.16), transparent 26%),
     linear-gradient(180deg, #f8f4ee 0%, #f3eee6 46%, #ece7df 100%);
   font-family: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+#root {
+  min-height: 100%;
 }
 
 .northstar-display {

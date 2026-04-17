@@ -1,4 +1,4 @@
-export type ActionLabel = "Amplify" | "Deep Review" | "Diversify" | "Stabilize";
+export type ActionLabel = "Underinvested Asset Base" | "Needs Data Diligence" | "Revenue Concentration Risk" | "Weak Financial Foundation";
 export type DistressTier = "High" | "Medium" | "Low";
 export type ConfidenceTier = "High" | "Medium" | "Low";
 
@@ -86,6 +86,35 @@ export interface RevenueCompositionPoint {
   otherPct: number;
 }
 
+export interface CrisisReplayTrajectoryPoint {
+  fiscalYear: number;
+  netAssets: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  operatingMargin: number;
+  cashRunwayMonths: number;
+  largestSourcePct: number;
+  distressProbability?: number | null;
+  northstarScore?: number | null;
+}
+
+export interface CrisisReplaySummary {
+  callFiscalYear: number;
+  predictedDistressProbability: number;
+  predictedDistressProbabilityLogisticV2?: number | null;
+  predictedDistressProbabilityXgboost?: number | null;
+  riskPercentileTop?: number | null;
+  xgboostShapExplanation?: string | null;
+  netAssetsAtCall?: number | null;
+  revenueAtCall?: number | null;
+  marginAtCall?: number | null;
+  runwayAtCall?: number | null;
+  t1OutcomeSummary?: string;
+  t2OutcomeSummary?: string;
+  demoStrengthScore?: number | null;
+  trajectory: CrisisReplayTrajectoryPoint[];
+}
+
 export interface ScoreDrivers {
   distressProtection: number;
   operatingMargin: number;
@@ -106,6 +135,10 @@ export interface OrganizationRecord {
   sizeBucket: string;
   revenueAmount: number | null;
   revenueDisplay: string;
+  netAssetsEoy: number | null;
+  investmentYield: number;
+  dataCompletenessScore: number;
+  consecutiveYearsWithInvestmentIncome: number;
   operatingRunwayMonths: number;
   operatingMargin: number;
   revenueDiversificationIndex: number;
@@ -130,6 +163,7 @@ export interface OrganizationRecord {
   analogs: AnalogRecord[];
   scenarioCards: ScenarioCard[];
   recommendation: RecommendationSummary;
+  crisisReplay?: CrisisReplaySummary;
 }
 
 export interface AdvisorDataset {
