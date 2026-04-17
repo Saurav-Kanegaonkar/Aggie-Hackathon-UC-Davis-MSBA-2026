@@ -641,19 +641,19 @@ export function DecisionLabDetailOverlay({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-4 backdrop-blur-[12px] sm:p-5 md:p-6" data-testid="decision-lab-detail-overlay">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-3 backdrop-blur-[12px] sm:p-4 md:p-5" data-testid="decision-lab-detail-overlay">
       <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail backdrop" />
       <section
-        className="relative z-[1] flex h-[min(88dvh,820px)] w-[min(94vw,1500px)] flex-col rounded-[2.6rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
+        className="relative z-[1] flex h-[min(84dvh,760px)] w-[min(92vw,1220px)] flex-col rounded-[2.3rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-1.5 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
         role="dialog"
         aria-modal="true"
         aria-label={detail.title}
       >
-        <div className="flex h-full flex-col rounded-[calc(2.6rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-8">
+        <div className="flex h-full flex-col rounded-[calc(2.3rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h4 className="text-[2rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.7rem]">{detail.title}</h4>
-              {detail.subtitle ? <p className="mt-3 max-w-5xl text-[15px] leading-relaxed text-slate-600 md:text-[16px]">{detail.subtitle}</p> : null}
+              <h4 className="text-[1.8rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.35rem]">{detail.title}</h4>
+              {detail.subtitle ? <p className="mt-2.5 max-w-4xl text-[14px] leading-relaxed text-slate-600 md:text-[15px]">{detail.subtitle}</p> : null}
             </div>
             <div className="flex items-center gap-3">
               {detail.guideTitle && detail.guideBullets?.length ? (
@@ -676,18 +676,18 @@ export function DecisionLabDetailOverlay({
               </button>
             </div>
           </div>
-          <div className="relative mt-5 min-h-0 flex-1">
+          <div className="relative mt-4 min-h-0 flex-1">
             <div
               className={`absolute inset-0 rounded-[1.9rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
             >
-              <div className="h-full overflow-hidden rounded-[2.2rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-5 md:p-6">{detail.content}</div>
+              <div className="h-full overflow-hidden rounded-[1.9rem] border border-black/6 bg-[rgba(247,243,235,0.8)] p-4 md:p-5">{detail.content}</div>
             </div>
 
             {detail.guideTitle && detail.guideBullets?.length ? (
               <div
-                className={`absolute inset-0 rounded-[2.2rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-6 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-8 ${
+                className={`absolute inset-0 rounded-[1.9rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-5 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-6 ${
                   showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
                 }`}
               >
@@ -730,10 +730,10 @@ export function ChartDetailModal({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-5">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-4">
       <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail" />
-      <section className="relative z-[1] h-[min(96dvh,1180px)] w-[min(98vw,1760px)] rounded-[3rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-2 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]">
-        <div className="flex h-full flex-col rounded-[calc(3rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-10">
+      <section className="relative z-[1] h-[min(86dvh,820px)] w-[min(92vw,1280px)] rounded-[2.4rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-1.5 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]">
+        <div className="flex h-full flex-col rounded-[calc(2.4rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-[2.35rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.9rem]">{title}</h4>

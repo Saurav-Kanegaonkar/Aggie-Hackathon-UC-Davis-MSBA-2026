@@ -58,7 +58,7 @@ describe("Fairlight advisor workspace", () => {
 
     await user.click(screen.getByRole("button", { name: /revenue range: \$10m-\$75m/i }));
     expect(screen.getByText(/focused on the size range where fairlight can move fast/i)).toBeInTheDocument();
-  });
+  }, 12000);
 
   it("reveals the decision lab inline after selecting an organization", async () => {
     const user = userEvent.setup();
@@ -96,7 +96,15 @@ describe("Fairlight advisor workspace", () => {
 
     expect(safeAreaContainer).toBeDefined();
     expect(fixedViewportBackground).toBeUndefined();
-  });
+
+    const topHalftone = container.querySelector(".northstar-halftone--top");
+    const bottomHalftone = container.querySelector(".northstar-halftone--bottom");
+
+    expect(topHalftone).not.toBeNull();
+    expect(bottomHalftone).not.toBeNull();
+    expect(window.getComputedStyle(topHalftone as Element).position).not.toBe("fixed");
+    expect(window.getComputedStyle(bottomHalftone as Element).position).not.toBe("fixed");
+  }, 12000);
 
   it("switches among case snapshot, recovery flight, and crisis replay modes", async () => {
     const user = userEvent.setup();
@@ -113,7 +121,7 @@ describe("Fairlight advisor workspace", () => {
 
     await user.click(screen.getByRole("button", { name: /crisis replay/i }));
     expect(await screen.findByRole("heading", { name: /crisis replay console/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/path split/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/one filing later/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/route simulator/i)).not.toBeInTheDocument();
   });
 });

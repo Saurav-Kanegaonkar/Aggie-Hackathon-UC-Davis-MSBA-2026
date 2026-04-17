@@ -1,6 +1,5 @@
 import { ArrowArcLeft, ChartLineUp, Compass, Path } from "@phosphor-icons/react";
-import { area as d3Area, curveCatmullRom, curveMonotoneX, line as d3Line, max as d3Max, min as d3Min, scaleLinear, stack as d3Stack } from "d3";
-import { motion } from "framer-motion";
+import { area as d3Area, curveCatmullRom, curveMonotoneX, line as d3Line, max as d3Max, min as d3Min, scaleLinear } from "d3";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { formatOrganizationName } from "../lib/advisorLanguage";
@@ -24,18 +23,32 @@ interface FlightRoute {
   recoveryWindow: string;
 }
 
+type FlightDeckType = "closest" | "fastest" | "strongest";
+
 interface FlightRouteView extends FlightRoute {
+  deckType: FlightDeckType;
   series: number[];
+  windowYears: number[];
+  startGap: number;
+  safetyIndex: number | null;
+  safetyYear: number | null;
+  timeToSafetyYears: number | null;
+  totalChange: number;
 }
 
 interface FlightView {
   routes: FlightRouteView[];
   selectedRoute: FlightRouteView;
-  years: number[];
-  orgSeries: number[];
+  chartYears: number[];
+  orgComparisonSeries: number[];
+  orgMatchedYears: number[];
+  orgMatchedStartYear: number;
   selectedIndex: number;
-  selectedYear: number;
+  selectedRouteYear: number;
+  orgMatchedYear: number;
   routeValueAtSelection: number;
+  orgValueAtSelection: number;
+  safetyThreshold: number;
 }
 
 interface PathState {
@@ -57,6 +70,11 @@ interface PathView {
   deltaCushion: number;
 }
 
+interface ReplaySetup {
+  interventionYear: number;
+  scenarioId: string;
+}
+
 export function DecisionLab({
   onReturnToPortfolio,
   organization,
@@ -74,12 +92,9 @@ export function DecisionLab({
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
   const [flightProgress, setFlightProgress] = useState(55);
 
-  const interventionYears = useMemo(() => getInterventionYears(organization), [organization]);
-  const [interventionIndex, setInterventionIndex] = useState(Math.max(0, interventionYears.length - 3));
-  const [pathStrategyId, setPathStrategyId] = useState(() => {
-    const diversification = organization.scenarioCards.find((card) => card.id.includes("diversification"));
-    return diversification?.id ?? organization.scenarioCards[0]?.id ?? "default";
-  });
+  const replaySetup = useMemo(() => findBestReplaySetup(organization), [organization]);
+  const selectedInterventionYear = replaySetup.interventionYear;
+  const [pathStrategyId, setPathStrategyId] = useState(() => replaySetup.scenarioId);
   const [pathMetric, setPathMetric] = useState<PathMetric>("risk");
 
   useEffect(() => {
@@ -87,14 +102,10 @@ export function DecisionLab({
     setActiveRouteId(null);
     setFlightProgress(55);
     setRecommendationOpen(false);
-    setInterventionIndex(Math.max(0, getInterventionYears(organization).length - 3));
-    const diversification = organization.scenarioCards.find((card) => card.id.includes("diversification"));
-    setPathStrategyId(diversification?.id ?? organization.scenarioCards[0]?.id ?? "default");
+    setPathStrategyId(replaySetup.scenarioId);
     setPathMetric("risk");
-  }, [organization]);
+  }, [organization, replaySetup.scenarioId]);
 
-  const selectedInterventionYear =
-    interventionYears[Math.max(0, Math.min(interventionIndex, interventionYears.length - 1))] ?? organization.latestFilingYear;
   const pathScenario =
     organization.scenarioCards.find((card) => card.id === pathStrategyId) ?? organization.scenarioCards[0];
 
@@ -108,53 +119,36 @@ export function DecisionLab({
   );
 
   const latestRevenueMix = organization.revenueCompositionHistory.at(-1);
-  const contextRows = useMemo(() => {
+  const contextSummary = useMemo(() => {
     if (activeMode === "flight") {
-      return [
-        { label: "Route window", value: viewWindowLabel(flightView.selectedRoute.recoveryWindow) },
-        { label: "Selected year", value: `FY${flightView.selectedYear}` },
-      ];
+      return `Flight · ${viewWindowLabel(flightView.selectedRoute.recoveryWindow)} · match FY${flightView.orgMatchedStartYear}`;
     }
     if (activeMode === "replay") {
-      return [
-        { label: "Intervention", value: `FY${selectedInterventionYear}` },
-        { label: "Compare metric", value: pathMetricLabel(pathMetric) },
-      ];
+      return `Replay · FY${selectedInterventionYear} · ${pathMetricLabel(pathMetric)}`;
     }
-    return [
-      { label: "Latest filing", value: `FY${organization.latestFilingYear}` },
-      { label: "Largest source", value: latestRevenueMix ? dominantRevenueLabel(latestRevenueMix) : "Unavailable" },
-    ];
+    return `Snapshot · FY${organization.latestFilingYear} · ${latestRevenueMix ? dominantRevenueLabel(latestRevenueMix) : "Largest source unavailable"}`;
   }, [
     activeMode,
-    flightLens,
-    flightSignal,
-    flightView.selectedRoute.postValue,
-    flightView.selectedYear,
+    flightView.orgMatchedStartYear,
+    flightView.selectedRoute.recoveryWindow,
     latestRevenueMix,
     organization.latestFilingYear,
-    organization.revenueDisplay,
     pathMetric,
-    pathScenario?.title,
-    pathView.deltaRisk,
     selectedInterventionYear,
   ]);
 
   return (
-    <motion.section
-      layout
-      className="relative rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-1.5 shadow-[0_28px_84px_-54px_rgba(15,23,42,0.28)]"
-    >
+    <section className="relative rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-1.5 shadow-[0_28px_84px_-54px_rgba(15,23,42,0.28)]">
       <h2 className="sr-only">Decision Lab</h2>
       <div className="rounded-[calc(2.2rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(249,245,239,0.93))] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)] sm:px-2.5">
-        <div className="grid gap-2 min-[960px]:grid-cols-[202px_minmax(0,1fr)]">
+        <div className="grid gap-2 min-[960px]:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="grid gap-2.5">
             <section className="flex h-full flex-col rounded-[1.45rem] border border-black/6 bg-white/84 p-2.5 shadow-[0_18px_44px_-36px_rgba(15,23,42,0.18)]">
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={onReturnToPortfolio}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#5d7468]/16 bg-[rgba(232,241,235,0.96)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[#486156] transition-colors hover:bg-[rgba(237,245,240,0.98)]"
+                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#5d7468]/16 bg-[rgba(232,241,235,0.96)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[#486156] hover:bg-[rgba(237,245,240,0.98)]"
                 >
                   <ArrowArcLeft size={13} weight="bold" />
                   Inbox
@@ -165,42 +159,36 @@ export function DecisionLab({
                 {formatOrganizationName(organization.orgName)}
               </h3>
 
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <SidebarPill label="State" value={organization.state} />
-                <SidebarPill label="Revenue bucket" value={organization.sizeBucket} />
-                <SidebarPill label="Filing coverage" value={`${organization.filingYearsObserved} yrs`} />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+                <span>{organization.state}</span>
+                <span aria-hidden="true">•</span>
+                <span>{organization.sizeBucket}</span>
+                <span aria-hidden="true">•</span>
+                <span>{organization.filingYearsObserved} yrs</span>
               </div>
 
-              <div className="mt-2.5 grid gap-1.5">
-                <SidebarMetricRow label="Northstar score" value={String(model.northstarScore)} />
-                <SidebarMetricRow label="Action" value={organization.actionLabel} />
-                <SidebarMetricRow label="Risk next year" value={`${organization.distress.probability.toFixed(1)}%`} />
-              </div>
-
-              <div className="mt-2.5 rounded-[1.05rem] border border-black/6 bg-[rgba(247,242,234,0.82)] p-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{activeModeEyebrow(activeMode)}</p>
-                <div className="mt-2 space-y-1.5">
-                  {contextRows.map((row) => (
-                    <SidebarMiniRow key={row.label} label={row.label} value={row.value} />
-                  ))}
+              <div className="mt-3 rounded-[1.15rem] border border-black/6 bg-[rgba(247,242,234,0.82)] px-3 py-3">
+                <div className="grid gap-1.5">
+                  <SidebarMetricRow label="Northstar" value={String(model.northstarScore)} />
+                  <SidebarMetricRow label="Action" value={organization.actionLabel} />
+                  <SidebarMetricRow label="Next-year risk" value={`${organization.distress.probability.toFixed(1)}%`} />
                 </div>
-              </div>
-
-              <div className="mt-auto rounded-[1.05rem] border border-[#cbb07a]/24 bg-[rgba(237,231,218,0.72)] px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[#86755e]">Recommendation</p>
-                <button
-                  type="button"
-                  onClick={() => setRecommendationOpen((value) => !value)}
-                  className="mt-2 cursor-pointer text-left text-[11px] font-medium uppercase tracking-[0.16em] text-[#6b5840] transition-colors hover:text-[#493a27]"
-                >
-                  {recommendationOpen ? "Hide full call" : "Open full call"}
-                </button>
+                <div className="mt-2.5 border-t border-black/6 pt-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{activeModeEyebrow(activeMode)}</p>
+                  <p className="mt-1 text-[11px] font-medium leading-[1.25] text-slate-700">{contextSummary}</p>
+                </div>
               </div>
             </section>
           </aside>
 
           <div className="space-y-0">
             <ConsoleSwitch activeMode={activeMode} onChange={setActiveMode} />
+
+            <RecommendationDock
+              organization={organization}
+              open={recommendationOpen}
+              onToggle={() => setRecommendationOpen((value) => !value)}
+            />
 
             {activeMode === "snapshot" ? (
               <SnapshotConsole
@@ -225,9 +213,6 @@ export function DecisionLab({
             {activeMode === "replay" ? (
               <CrisisReplayConsole
                 organization={organization}
-                interventionYears={interventionYears}
-                interventionIndex={interventionIndex}
-                setInterventionIndex={setInterventionIndex}
                 selectedInterventionYear={selectedInterventionYear}
                 strategyId={pathStrategyId}
                 setStrategyId={setPathStrategyId}
@@ -236,20 +221,12 @@ export function DecisionLab({
                 pathView={pathView}
               />
             ) : null}
-
-            {recommendationOpen ? (
-              <RecommendationDock
-                organization={organization}
-                open={recommendationOpen}
-                onToggle={() => setRecommendationOpen((value) => !value)}
-              />
-            ) : null}
           </div>
         </div>
       </div>
 
       {activeDetail ? <DecisionLabDetailOverlay detail={activeDetail} onClose={() => setActiveDetail(null)} /> : null}
-    </motion.section>
+    </section>
   );
 }
 
@@ -275,7 +252,7 @@ function ConsoleSwitch({
             key={item.mode}
             type="button"
             onClick={() => onChange(item.mode)}
-            className={`cursor-pointer border-r border-black/8 px-4 py-3 text-left transition-colors last:border-r-0 ${
+            className={`cursor-pointer border-r border-black/8 px-4 py-3 text-left last:border-r-0 ${
               active
                 ? "bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-white"
                 : "bg-[rgba(255,255,255,0.46)] text-slate-700 hover:bg-white/80"
@@ -326,7 +303,7 @@ function SnapshotConsole({
           <SnapshotMetricCard label="Portfolio baseline" value={`${organization.distress.baseline.toFixed(1)}%`} compact />
         </div>
 
-        <div className="grid gap-3 min-[960px]:grid-cols-3">
+        <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
           <CardShell eyebrow="Score breakdown">
             <ScoreBreakdownCard model={model} />
           </CardShell>
@@ -386,32 +363,43 @@ function RecoveryFlightConsole({
       <div className="grid gap-3 px-4 pb-4 pt-2.5">
         <FlightSignalStrip
           label={flightSignalTitle(signal)}
-          currentValue={formatSignal(getCurrentSignalValue(organization, signal), signal)}
+          matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? getCurrentSignalValue(organization, signal), signal)}`}
+          safetyLine={formatSignal(view.safetyThreshold, signal)}
         />
 
         <div className="grid gap-2.5 min-[960px]:grid-cols-3">
-          {view.routes.slice(0, 3).map((route, index) => (
+          {view.routes.map((route) => (
             <RouteDeckCard
               key={route.id}
-              label={`Route ${String.fromCharCode(65 + index)}`}
-              title={routeDeckTitle(index)}
+              label={routeDeckEyebrow(route.deckType)}
+              title={routeDeckTitle(route.deckType)}
+              orgName={route.orgName}
               window={viewWindowLabel(route.recoveryWindow)}
-              endpoint={formatSignal(route.postValue, signal)}
+              startGap={formatSignalGap(route.startGap, signal)}
+              timeToSafety={formatYearsToSafety(route.timeToSafetyYears)}
+              endRead={formatSignal(route.postValue, signal)}
+              safetyYear={route.safetyYear}
               active={route.id === view.selectedRoute.id}
               onClick={() => {
                 setActiveRouteId(route.id);
-                setLens(index === 0 ? "closest" : index === 1 ? "fastest" : "strongest");
+                setLens(route.deckType);
               }}
             />
           ))}
         </div>
 
         <SelectedRouteSpotlight
+          deckType={view.selectedRoute.deckType}
           routeName={view.selectedRoute.orgName}
           recoveryWindow={view.selectedRoute.recoveryWindow}
-          signalLabel={flightSignalTitle(signal)}
-          currentValue={formatSignal(view.routeValueAtSelection, signal)}
-          targetValue={formatSignal(view.selectedRoute.postValue, signal)}
+          matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? 0, signal)}`}
+          peerStart={`FY${view.selectedRoute.windowYears[0] ?? view.selectedRoute.recoveryWindow.slice(0, 4)} · ${formatSignal(view.selectedRoute.preValue, signal)}`}
+          selectedRouteYear={view.selectedRouteYear}
+          orgMatchedYear={view.orgMatchedYear}
+          orgValue={formatSignal(view.orgValueAtSelection, signal)}
+          peerValue={formatSignal(view.routeValueAtSelection, signal)}
+          endRead={formatSignal(view.selectedRoute.postValue, signal)}
+          safetyYear={view.selectedRoute.safetyYear}
         />
 
         <RecoveryFlightChart signal={signal} view={view} />
@@ -421,18 +409,9 @@ function RecoveryFlightConsole({
           min={0}
           max={100}
           onChange={setProgress}
-          labels={buildSliderLabels(view.years)}
+          labels={buildFlightSliderLabels(view.selectedRoute.timeToSafetyYears)}
           ariaLabel="Scrub through recovery route"
           compact={false}
-        />
-
-        <CompactStatStrip
-          items={[
-            { label: "Selected year", value: `FY${view.selectedYear}` },
-            { label: "Current read", value: formatSignal(view.routeValueAtSelection, signal) },
-            { label: "Route window", value: viewWindowLabel(view.selectedRoute.recoveryWindow) },
-            { label: "Matched peers", value: String(view.routes.length) },
-          ]}
         />
       </div>
     </section>
@@ -441,9 +420,6 @@ function RecoveryFlightConsole({
 
 function CrisisReplayConsole({
   organization,
-  interventionYears,
-  interventionIndex,
-  setInterventionIndex,
   selectedInterventionYear,
   strategyId,
   setStrategyId,
@@ -452,9 +428,6 @@ function CrisisReplayConsole({
   pathView,
 }: {
   organization: OrganizationRecord;
-  interventionYears: number[];
-  interventionIndex: number;
-  setInterventionIndex: (value: number) => void;
   selectedInterventionYear: number;
   strategyId: string;
   setStrategyId: (value: string) => void;
@@ -467,27 +440,11 @@ function CrisisReplayConsole({
       <h3 className="sr-only">Crisis Replay Console</h3>
       <div className="grid gap-3 px-4 pb-4 pt-2.5">
         <div className="grid gap-3 min-[1120px]:grid-cols-[1.05fr_0.95fr]">
-          <ActionCard
-            step="Intervention year"
-            title={`FY${selectedInterventionYear}`}
-            footer={`Observed next filing FY${pathView.observedYear}`}
-          >
-            <RangeRail
-              value={Math.max(0, Math.min(interventionIndex, interventionYears.length - 1))}
-              min={0}
-              max={Math.max(0, interventionYears.length - 1)}
-              step={1}
-              onChange={setInterventionIndex}
-              labels={buildSliderLabels(interventionYears)}
-              ariaLabel="Replay intervention year"
-            />
-            <MetricList
-              rows={[
-                { label: "Starting risk", value: `${pathView.baseline.risk.toFixed(1)}%` },
-                { label: "Starting margin", value: `${formatSigned(pathView.baseline.margin)}%` },
-              ]}
-            />
-          </ActionCard>
+          <ReplayReferenceCard
+            interventionYear={selectedInterventionYear}
+            observedYear={pathView.observedYear}
+            baseline={pathView.baseline}
+          />
 
           <ReplayControlPanel
             strategyId={strategyId}
@@ -506,9 +463,9 @@ function CrisisReplayConsole({
             title="Actual path"
             stats={[
               { label: "Risk", value: `${pathView.actual.risk.toFixed(1)}%` },
-              { label: "Funding diversity", value: pathView.actual.diversity.toFixed(2) },
+              { label: "Revenue mix", value: pathView.actual.diversity.toFixed(2) },
               { label: "Operating margin", value: `${formatSigned(pathView.actual.margin)}%` },
-              { label: "Reserve cushion", value: `${pathView.actual.cushion.toFixed(1)} mo` },
+              { label: "Reserve cushion", value: formatDurationValue(pathView.actual.cushion) },
             ]}
           />
           <StatePanel
@@ -516,9 +473,9 @@ function CrisisReplayConsole({
             title="Improved path"
             stats={[
               { label: "Risk", value: `${pathView.projected.risk.toFixed(1)}%` },
-              { label: "Funding diversity", value: pathView.projected.diversity.toFixed(2) },
+              { label: "Revenue mix", value: pathView.projected.diversity.toFixed(2) },
               { label: "Operating margin", value: `${formatSigned(pathView.projected.margin)}%` },
-              { label: "Reserve cushion", value: `${pathView.projected.cushion.toFixed(1)} mo` },
+              { label: "Reserve cushion", value: formatDurationValue(pathView.projected.cushion) },
             ]}
             emphasized
           />
@@ -537,11 +494,11 @@ function CrisisReplayConsole({
           />
           <SnapshotMetricCard
             label="Cushion delta"
-            value={`${pathView.deltaCushion >= 0 ? "+" : ""}${pathView.deltaCushion.toFixed(1)} mo`}
+            value={formatDeltaDuration(pathView.deltaCushion)}
             compact
           />
           <SnapshotMetricCard
-            label="Diversity delta"
+            label="Revenue mix delta"
             value={`${pathView.deltaDiversity >= 0 ? "+" : ""}${pathView.deltaDiversity.toFixed(2)}`}
             compact
           />
@@ -561,45 +518,44 @@ function RecommendationDock({
   onToggle: () => void;
 }) {
   return (
-    <section className="rounded-[1.35rem] border border-black/6 bg-[rgba(248,244,236,0.74)] p-3.5">
+    <section className={`border border-t-0 border-black/8 bg-[rgba(248,244,236,0.8)] ${open ? "px-3 pb-3 pt-2.5" : "px-3 py-2"}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Recommendation</p>
-          <p className="mt-1 text-[13px] text-slate-600">Expanded call summary for the current organization.</p>
+        <div className="min-w-0 flex items-baseline gap-3">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Full call</p>
+          <p className="truncate text-[13px] font-medium text-slate-700">{organization.recommendation.status}</p>
         </div>
         <button
           type="button"
           onClick={onToggle}
-          className="cursor-pointer rounded-full border border-black/6 bg-white/84 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-700 transition-colors hover:bg-white"
+          className="cursor-pointer rounded-full border border-black/6 bg-white/84 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-700 hover:bg-white"
         >
-          {open ? "Hide recommendation" : "Show recommendation"}
+          {open ? "Hide full call" : "Show full call"}
         </button>
       </div>
 
       {open ? (
-        <div className="mt-3 grid gap-3 xl:grid-cols-[1.08fr_0.92fr]">
+        <div className="mt-3 grid gap-3 min-[1120px]:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[1.25rem] border border-black/7 bg-white/84 p-4">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Current recommendation</p>
-            <h4 className="mt-2 text-[1.6rem] font-semibold tracking-[-0.05em] text-slate-950">{organization.recommendation.status}</h4>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <SnapshotMetricCard label="Type of support" value={organization.recommendation.interventionType} compact />
-              <SnapshotMetricCard label="Confidence" value={organization.confidenceTier} compact />
+            <div className="grid gap-3 min-[960px]:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Recommendation</p>
+                <h4 className="mt-2 text-[1.45rem] font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950">
+                  {organization.recommendation.status}
+                </h4>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 min-[960px]:grid-cols-1">
+                <SnapshotMetricCard label="Support type" value={organization.recommendation.interventionType} compact />
+                <SnapshotMetricCard label="Confidence" value={organization.confidenceTier} compact />
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DrawerCard
-              title="Why this call holds"
-              rows={organization.recommendation.caveats.slice(0, 2).map((item, index) => ({
-                label: `Point ${index + 1}`,
-                value: item,
-              }))}
-            />
-            <DrawerCard
-              title="What to check next"
+          <div className="rounded-[1.25rem] border border-black/7 bg-white/84 p-4">
+            <MetricList
               rows={[
                 { label: "Surfaced because", value: organization.whySurfaced },
                 { label: "Decision reason", value: organization.decisionReason },
+                { label: "Watch next", value: organization.recommendation.caveats[0] ?? "No additional watch item" },
               ]}
             />
           </div>
@@ -609,29 +565,11 @@ function RecommendationDock({
   );
 }
 
-function SidebarPill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-full border border-black/7 bg-[rgba(248,244,236,0.92)] px-2.5 py-1.5">
-      <p className="text-[9px] uppercase tracking-[0.15em] text-slate-400">{label}</p>
-      <p className="mt-0.5 break-words text-[10.5px] font-medium leading-[1.2] text-slate-900">{value}</p>
-    </div>
-  );
-}
-
 function SidebarMetricRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
       <p className="min-w-0 text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <p className="min-w-0 break-words text-right text-[0.98rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{value}</p>
-    </div>
-  );
-}
-
-function SidebarMiniRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,7.6rem)] items-start gap-3 border-t border-black/6 pt-2 first:border-t-0 first:pt-0">
-      <span className="min-w-0 text-[11px] leading-[1.2] text-slate-500">{label}</span>
-      <strong className="min-w-0 break-words text-right text-[12px] font-semibold leading-[1.15] text-slate-950">{value}</strong>
     </div>
   );
 }
@@ -861,7 +799,7 @@ function QuickRevenueMixEvidence({
     {
       key: "otherPct",
       label: "Other",
-      color: "#b5c0cf",
+      color: "#c7c0b2",
       values: organization.revenueCompositionHistory.map((point) => point.otherPct),
     },
   ] as const;
@@ -903,24 +841,30 @@ function QuickRevenueMixEvidence({
   );
 }
 
-function ActionCard({
-  step,
-  title,
-  footer,
-  children,
+function FlightSignalStrip({
+  label,
+  matchedStart,
+  safetyLine,
 }: {
-  step: string;
-  title: string;
-  footer?: string;
-  children: ReactNode;
+  label: string;
+  matchedStart: string;
+  safetyLine: string;
 }) {
   return (
-    <div className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{step}</p>
-      <strong className="mt-2 block break-words text-[1.1rem] leading-[1.12] tracking-[-0.04em] text-slate-950 [text-wrap:balance]">{title}</strong>
-      <div className="mt-2.5 grid gap-2.5">{children}</div>
-      {footer ? <p className="mt-2.5 break-words text-[12px] leading-[1.3] text-slate-500">{footer}</p> : null}
-    </div>
+    <section className="rounded-[1.2rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3.5 py-3">
+      <div className="grid gap-2.5 min-[960px]:grid-cols-[minmax(0,1fr)_auto_auto] min-[960px]:items-end">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Weak signal</p>
+          <p className="mt-1 text-[1.05rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{label}</p>
+        </div>
+        <div className="rounded-full border border-black/7 bg-white/84 px-3 py-1.5 text-[12px] font-medium text-slate-700">
+          Safety line {safetyLine}
+        </div>
+        <div className="rounded-full border border-[#1f5446]/18 bg-[rgba(231,241,236,0.9)] px-3 py-1.5 text-[12px] font-medium text-[#173a32]">
+          Matched start {matchedStart}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -928,34 +872,12 @@ function MetricList({ rows }: { rows: Array<{ label: string; value: string }> })
   return (
     <div className="grid gap-2">
       {rows.map((row) => (
-        <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,12rem)] items-start gap-3 border-t border-black/6 pt-2 text-[12px] text-slate-600 first:border-t-0 first:pt-0">
+        <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,14rem)] items-start gap-3 border-t border-black/6 pt-2 text-[12px] text-slate-600 first:border-t-0 first:pt-0">
           <span className="min-w-0 leading-[1.25]">{row.label}</span>
           <strong className="min-w-0 break-words text-right leading-[1.2] text-slate-950">{row.value}</strong>
         </div>
       ))}
     </div>
-  );
-}
-
-function FlightSignalStrip({
-  label,
-  currentValue,
-}: {
-  label: string;
-  currentValue: string;
-}) {
-  return (
-    <section className="rounded-[1.2rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3.5 py-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Weak signal</p>
-          <p className="mt-1 text-[1.05rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{label}</p>
-        </div>
-        <div className="rounded-full border border-[#1f5446]/18 bg-[rgba(231,241,236,0.9)] px-3 py-1.5 text-[12px] font-medium text-[#173a32]">
-          {currentValue} current
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -985,13 +907,13 @@ function ReplayControlPanel({
                   key={scenario.id}
                   type="button"
                   onClick={() => setStrategyId(scenario.id)}
-                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-2.5 text-[13px] font-medium leading-[1.15] transition-colors ${
+                  className={`min-w-0 cursor-pointer whitespace-nowrap rounded-[0.95rem] border px-3 py-2.5 text-[12px] font-medium leading-[1.15] ${
                     active
                       ? "border-[#1f5446]/30 bg-[rgba(231,241,236,0.96)] text-[#173a32]"
                       : "border-black/8 bg-white/78 text-slate-700 hover:bg-[rgba(250,246,239,0.9)]"
                   }`}
                 >
-                  {shortScenarioLabel(scenario.title)}
+                  {financialScenarioLabel(scenario)}
                 </button>
               );
             })}
@@ -1012,7 +934,7 @@ function ReplayControlPanel({
                   key={option.key}
                   type="button"
                   onClick={() => setMetric(option.key as PathMetric)}
-                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-2.5 text-[13px] font-medium leading-[1.15] transition-colors ${
+                  className={`min-w-0 cursor-pointer whitespace-nowrap rounded-[0.95rem] border px-3 py-2.5 text-[12px] font-medium leading-[1.15] ${
                     active
                       ? "border-[#1f5446]/30 bg-[rgba(231,241,236,0.96)] text-[#173a32]"
                       : "border-black/8 bg-white/78 text-slate-700 hover:bg-[rgba(250,246,239,0.9)]"
@@ -1074,15 +996,23 @@ function RangeRail({
 function RouteDeckCard({
   label,
   title,
+  orgName,
   window,
-  endpoint,
+  startGap,
+  timeToSafety,
+  endRead,
+  safetyYear,
   active,
   onClick,
 }: {
   label: string;
   title: string;
+  orgName: string;
   window: string;
-  endpoint: string;
+  startGap: string;
+  timeToSafety: string;
+  endRead: string;
+  safetyYear: number | null;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1090,7 +1020,7 @@ function RouteDeckCard({
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-[1.35rem] border px-4 py-4 text-left transition-colors ${
+      className={`min-w-0 cursor-pointer rounded-[1.35rem] border px-4 py-4 text-left ${
         active
           ? "border-transparent bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-[rgba(239,247,242,0.98)]"
           : "border-black/7 bg-[rgba(249,245,238,0.92)] text-slate-950 hover:bg-white/82"
@@ -1098,66 +1028,114 @@ function RouteDeckCard({
     >
       <p className={`text-[10px] uppercase tracking-[0.18em] ${active ? "text-[rgba(239,247,242,0.76)]" : "text-slate-400"}`}>{label}</p>
       <strong className="mt-2 block break-words text-[1.15rem] leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">{title}</strong>
+      <p className={`mt-2 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{orgName}</p>
+      <div className={`mt-3 grid gap-2 border-t pt-3 text-[12px] ${active ? "border-white/12 text-[rgba(239,247,242,0.84)]" : "border-black/7 text-slate-600"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span>Start gap</span>
+          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{startGap}</strong>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>Time to safety</span>
+          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{timeToSafety}</strong>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>End read</span>
+          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{endRead}</strong>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>Safety reached</span>
+          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>
+            {safetyYear ? `FY${safetyYear}` : "Not reached"}
+          </strong>
+        </div>
+      </div>
       <p className={`mt-3 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{window}</p>
-      <p className={`mt-1 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>Target {endpoint}</p>
     </button>
   );
 }
 
 function SelectedRouteSpotlight({
+  deckType,
   routeName,
   recoveryWindow,
-  signalLabel,
-  currentValue,
-  targetValue,
+  matchedStart,
+  peerStart,
+  selectedRouteYear,
+  orgMatchedYear,
+  orgValue,
+  peerValue,
+  endRead,
+  safetyYear,
 }: {
+  deckType: FlightDeckType;
   routeName: string;
   recoveryWindow: string;
-  signalLabel: string;
-  currentValue: string;
-  targetValue: string;
+  matchedStart: string;
+  peerStart: string;
+  selectedRouteYear: number;
+  orgMatchedYear: number;
+  orgValue: string;
+  peerValue: string;
+  endRead: string;
+  safetyYear: number | null;
 }) {
   return (
     <section className="rounded-[1.45rem] border border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(232,241,235,0.95),rgba(246,249,246,0.9))] px-4 py-3.5">
-      <div className="grid gap-3 min-[1120px]:grid-cols-[minmax(0,1.12fr)_auto_auto] min-[1120px]:items-end">
+      <div className="grid gap-3 min-[1120px]:grid-cols-[minmax(0,1.05fr)_repeat(5,minmax(0,0.5fr))] min-[1120px]:items-end">
         <div className="min-w-0 rounded-[1.1rem] border border-[#1f5446]/14 bg-white/88 px-3.5 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#557062]">Selected route</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[#557062]">{routeDeckEyebrow(deckType)}</p>
           <strong className="mt-1 block break-words text-[1.28rem] leading-[1.02] tracking-[-0.06em] text-slate-950">
             {routeName}
           </strong>
         </div>
         <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{signalLabel}</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Matched start</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{matchedStart}</p>
+        </div>
+        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Peer start</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerStart}</p>
+        </div>
+        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">You @ FY{orgMatchedYear}</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{orgValue}</p>
+        </div>
+        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Peer @ FY{selectedRouteYear}</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerValue}</p>
+        </div>
+        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Safety reached</p>
           <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">
-            {currentValue} to {targetValue}
+            {safetyYear ? `FY${safetyYear}` : "Not reached"}
           </p>
         </div>
         <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Observed window</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{viewWindowLabel(recoveryWindow)}</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">End read</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{endRead}</p>
         </div>
       </div>
+      <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[#557062]">{viewWindowLabel(recoveryWindow)}</p>
     </section>
   );
 }
 
-function DrawerCard({
-  title,
-  rows,
+function ReplayReferenceCard({
+  interventionYear,
+  observedYear,
+  baseline,
 }: {
-  title: string;
-  rows: Array<{ label: string; value: string }>;
+  interventionYear: number;
+  observedYear: number;
+  baseline: PathState;
 }) {
   return (
-    <section className="min-w-0 rounded-[1.45rem] border border-black/7 bg-white/84 p-4">
-      <strong className="block break-words text-[1.1rem] leading-[1.15] tracking-[-0.04em] text-slate-950 [text-wrap:balance]">{title}</strong>
-      <div className="mt-4 grid gap-2">
-        {rows.map((row) => (
-          <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,12rem)] items-start gap-3 border-t border-black/6 pt-2 text-[12px] text-slate-600 first:border-t-0 first:pt-0">
-            <span className="min-w-0 leading-[1.25]">{row.label}</span>
-            <strong className="min-w-0 break-words text-right leading-[1.2] text-slate-950">{row.value}</strong>
-          </div>
-        ))}
+    <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <SnapshotMetricCard label="Intervention point" value={`FY${interventionYear}`} compact />
+        <SnapshotMetricCard label="Observed next filing" value={`FY${observedYear}`} compact />
+        <SnapshotMetricCard label="Starting risk" value={`${baseline.risk.toFixed(1)}%`} compact />
+        <SnapshotMetricCard label="Starting margin" value={`${formatSigned(baseline.margin)}%`} compact />
       </div>
     </section>
   );
@@ -1209,33 +1187,12 @@ function QuickActionButton({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className="min-w-0 cursor-pointer rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-2.5 text-left transition-colors hover:bg-white/84"
+      className="min-w-0 cursor-pointer rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-2.5 text-left hover:bg-white/84"
     >
       <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <p className="mt-1.5 break-words text-[1rem] font-semibold leading-[1.15] tracking-[-0.04em] text-slate-950">{value}</p>
       <p className="mt-1 break-words text-[12px] leading-[1.25] text-slate-500">{detail}</p>
     </button>
-  );
-}
-
-function CompactStatStrip({
-  items,
-}: {
-  items: Array<{ label: string; value: string }>;
-}) {
-  return (
-    <section className="rounded-[1.2rem] border border-black/7 bg-white/82 px-3.5 py-3">
-      <div className="grid gap-2 sm:grid-cols-2 min-[1120px]:grid-cols-4">
-        {items.map((item) => (
-          <div key={item.label} className="min-w-0 rounded-[0.95rem] border border-black/6 bg-[rgba(249,245,238,0.82)] px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
-            <p className="mt-1 break-words text-[0.95rem] font-semibold leading-[1.12] tracking-[-0.04em] text-slate-950">
-              {item.value}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -1250,13 +1207,12 @@ function RecoveryFlightChart({
   const height = 360;
   const margin = { top: 26, right: 18, bottom: 42, left: 58 };
   const chartHeight = height - margin.top - margin.bottom;
-  const routeSeries = view.routes.map((route) => route.series);
-  const values = [view.orgSeries, ...routeSeries].flat();
+  const values = [view.orgComparisonSeries, view.selectedRoute.series].flat();
   const min = d3Min(values) ?? 0;
   const max = d3Max(values) ?? 1;
   const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
   const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
-  const xScale = scaleLinear().domain([0, Math.max(1, view.years.length - 1)]).range([margin.left, width - margin.right]);
+  const xScale = scaleLinear().domain([0, Math.max(1, view.chartYears.length - 1)]).range([margin.left, width - margin.right]);
   const yScale = scaleLinear().domain([paddedMin, paddedMax]).range([height - margin.bottom, margin.top]);
   const lineGenerator = d3Line<number>()
     .x((_: number, index: number) => xScale(index))
@@ -1270,30 +1226,45 @@ function RecoveryFlightChart({
   const yTicks = Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse();
   const scrubX = xScale(view.selectedIndex);
   const selectedRouteArea = areaGenerator(view.selectedRoute.series) ?? "";
-  const selectedCurrentY = yScale(view.orgSeries[view.selectedIndex] ?? view.orgSeries.at(-1) ?? 0);
+  const selectedCurrentY = yScale(view.orgComparisonSeries[view.selectedIndex] ?? view.orgComparisonSeries.at(-1) ?? 0);
   const selectedRouteY = yScale(view.selectedRoute.series[view.selectedIndex] ?? view.selectedRoute.series.at(-1) ?? 0);
+  const thresholdY = yScale(view.safetyThreshold);
+  const palette = ["#7da0c8", "#d0a66a", "#72aa8e"];
+  const selectedRouteColor = palette[Math.max(0, view.routes.findIndex((route) => route.id === view.selectedRoute.id)) % palette.length];
 
   return (
     <section className="rounded-[1.45rem] border border-black/7 bg-white/84 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <strong className="block text-[1.2rem] tracking-[-0.04em] text-slate-950">
-          {signal === "concentration" ? "Funding diversity over time" : signal === "runway" ? "Reserve cushion over time" : "Operating margin over time"}
+          {signal === "concentration" ? "Revenue mix from matched start" : signal === "runway" ? "Reserve cushion from matched start" : "Operating margin from matched start"}
         </strong>
         <div className="rounded-full border border-black/7 bg-[rgba(249,245,238,0.9)] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
-          FY{view.selectedYear}
+          FY{view.selectedRouteYear}
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+          <span className="h-1.5 w-4 rounded-full bg-[rgba(17,21,27,0.9)]" />
+          Your observed path · FY{view.orgMatchedYears[0]}-FY{view.orgMatchedYears.at(-1)}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+          <span className="h-1.5 w-4 rounded-full" style={{ background: selectedRouteColor }} />
+          {routeDeckTitle(view.selectedRoute.deckType)} · FY{view.selectedRoute.windowYears[0]}-FY{view.selectedRoute.windowYears.at(-1)}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+          <span className="h-1.5 w-4 border-t-2 border-dashed border-[#2d5a4c]" />
+          Safety line
+        </span>
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} className="mt-4 h-[380px] w-full rounded-[1rem] bg-[rgba(249,245,238,0.9)]">
         <defs>
           <clipPath id="flight-progress-clip">
-            <motion.rect
+            <rect
               x={margin.left - 6}
               y={margin.top - 8}
               height={chartHeight + 18}
-              initial={false}
-              animate={{ width: Math.max(12, scrubX - margin.left + 12) }}
-              transition={{ type: "spring", stiffness: 180, damping: 28 }}
+              width={Math.max(12, scrubX - margin.left + 12)}
             />
           </clipPath>
           <linearGradient id="flight-route-fill" x1="0" x2="0" y1="0" y2="1">
@@ -1301,9 +1272,6 @@ function RecoveryFlightChart({
             <stop offset="100%" stopColor="rgba(114,170,142,0.02)" />
           </linearGradient>
         </defs>
-        <text x="16" y="26" fontSize="11" fill="rgba(71,85,105,0.76)" letterSpacing="1.3">
-          {signal === "concentration" ? "Funding diversity" : signal === "runway" ? "Reserve cushion" : "Operating margin"}
-        </text>
         {yTicks.map((tick) => {
           const y = yScale(tick);
           return (
@@ -1316,45 +1284,41 @@ function RecoveryFlightChart({
           );
         })}
         <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="rgba(71,85,105,0.22)" strokeWidth="1.4" />
+        <line x1={margin.left} y1={thresholdY} x2={width - margin.right} y2={thresholdY} stroke="rgba(31,84,70,0.28)" strokeWidth="1.4" strokeDasharray="6 6" />
+        <text x={width - margin.right} y={thresholdY - 8} textAnchor="end" fontSize="10" fill="rgba(31,84,70,0.72)">
+          Safety line
+        </text>
         <line x1={scrubX} y1={margin.top} x2={scrubX} y2={height - margin.bottom} stroke="rgba(31,84,70,0.2)" strokeWidth="1.4" strokeDasharray="7 7" />
         <path d={selectedRouteArea} fill="url(#flight-route-fill)" clipPath="url(#flight-progress-clip)" />
 
-        {view.routes.map((route, index) => {
-          const active = route.id === view.selectedRoute.id;
-          const palette = ["#7da0c8", "#d0a66a", "#72aa8e"];
-          const color = palette[index % palette.length];
-          const path = lineGenerator(route.series) ?? "";
-          const pointX = xScale(view.selectedIndex);
-          const pointY = yScale(route.series[view.selectedIndex] ?? route.series.at(-1) ?? route.postValue);
-          return (
-            <g key={route.id}>
-              <path
-                d={path}
-                fill="none"
-                stroke={color}
-                strokeWidth={active ? 2.4 : 2.2}
-                opacity={active ? 0.22 : 0.14}
-                strokeDasharray={active ? "0" : "7 7"}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d={path}
-                fill="none"
-                stroke={color}
-                clipPath="url(#flight-progress-clip)"
-                strokeWidth={active ? 4.8 : 3.1}
-                opacity={active ? 1 : 0.58}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx={pointX} cy={pointY} r={active ? 5.2 : 3.8} fill={color} />
-            </g>
-          );
-        })}
+        <path
+          d={lineGenerator(view.selectedRoute.series) ?? ""}
+          fill="none"
+          stroke={selectedRouteColor}
+          strokeWidth="2.4"
+          opacity="0.22"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={lineGenerator(view.selectedRoute.series) ?? ""}
+          fill="none"
+          stroke={selectedRouteColor}
+          clipPath="url(#flight-progress-clip)"
+          strokeWidth="4.8"
+          opacity="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx={xScale(view.selectedIndex)}
+          cy={yScale(view.selectedRoute.series[view.selectedIndex] ?? view.selectedRoute.series.at(-1) ?? view.selectedRoute.postValue)}
+          r="5.2"
+          fill={selectedRouteColor}
+        />
 
         <path
-          d={lineGenerator(view.orgSeries) ?? ""}
+          d={lineGenerator(view.orgComparisonSeries) ?? ""}
           fill="none"
           stroke="rgba(17,21,27,0.18)"
           strokeWidth="3.6"
@@ -1363,7 +1327,7 @@ function RecoveryFlightChart({
           strokeLinejoin="round"
         />
         <path
-          d={lineGenerator(view.orgSeries) ?? ""}
+          d={lineGenerator(view.orgComparisonSeries) ?? ""}
           fill="none"
           stroke="rgba(17,21,27,0.92)"
           clipPath="url(#flight-progress-clip)"
@@ -1372,16 +1336,16 @@ function RecoveryFlightChart({
           strokeLinejoin="round"
         />
         <circle cx={scrubX} cy={selectedCurrentY} r="5.4" fill="rgba(17,21,27,0.98)" />
-        <circle cx={scrubX} cy={selectedRouteY} r="5.4" fill="#72aa8e" stroke="rgba(255,255,255,0.9)" strokeWidth="2" />
+        <circle cx={scrubX} cy={selectedRouteY} r="5.4" fill={selectedRouteColor} stroke="rgba(255,255,255,0.9)" strokeWidth="2" />
 
         <text x={xScale(0)} y={height - 10} fontSize="11" fill="rgba(71,85,105,0.72)">
-          FY{view.years[0]}
+          Match start
         </text>
-        <text x={xScale(Math.floor((view.years.length - 1) / 2))} y={height - 10} fontSize="11" textAnchor="middle" fill="rgba(71,85,105,0.72)">
-          FY{view.years[Math.floor((view.years.length - 1) / 2)]}
+        <text x={xScale(Math.floor((view.chartYears.length - 1) / 2))} y={height - 10} fontSize="11" textAnchor="middle" fill="rgba(71,85,105,0.72)">
+          {view.selectedRoute.timeToSafetyYears === null ? "Mid route" : "Safety"}
         </text>
-        <text x={xScale(Math.max(0, view.years.length - 1))} y={height - 10} fontSize="11" textAnchor="end" fill="rgba(71,85,105,0.72)">
-          FY{view.years.at(-1)}
+        <text x={xScale(Math.max(0, view.chartYears.length - 1))} y={height - 10} fontSize="11" textAnchor="end" fill="rgba(71,85,105,0.72)">
+          Finish
         </text>
       </svg>
     </section>
@@ -1395,29 +1359,36 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
   const baseline = metricValue(view.baseline, metric);
   const actual = metricValue(view.actual, metric);
   const projected = metricValue(view.projected, metric);
-  const seriesActual = [baseline, actual, actual];
-  const seriesProjected = [baseline, projected, projected];
-  const min = d3Min([baseline, actual, projected]) ?? 0;
-  const max = d3Max([baseline, actual, projected]) ?? 1;
-  const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
-  const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
+  const replayScale = buildReplayChartScale(metric, baseline, actual, projected);
+  const seriesActual = [replayScale.baselineValue, actual, actual];
+  const seriesProjected = [replayScale.baselineValue, projected, projected];
   const xScale = scaleLinear().domain([0, 2]).range([margin.left, width - margin.right]);
-  const yScale = scaleLinear().domain([paddedMin, paddedMax]).range([height - margin.bottom, margin.top]);
+  const yScale = scaleLinear().domain([replayScale.min, replayScale.max]).range([height - margin.bottom, margin.top]);
   const lineGenerator = d3Line<number>()
     .x((_: number, index: number) => xScale(index))
     .y((value: number) => yScale(value))
     .curve(curveMonotoneX);
-  const yTicks = Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse();
+  const yTicks = replayScale.ticks;
   const actualPath = lineGenerator(seriesActual) ?? "";
   const projectedPath = lineGenerator(seriesProjected) ?? "";
 
   return (
     <section className="rounded-[1.45rem] border border-black/7 bg-white/84 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <strong className="block text-[1.2rem] tracking-[-0.04em] text-slate-950">{pathMetricLabel(metric)} path split</strong>
+        <strong className="block text-[1.2rem] tracking-[-0.04em] text-slate-950">{pathMetricLabel(metric)} one filing later</strong>
         <div className="rounded-full border border-black/7 bg-[rgba(249,245,238,0.9)] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
           FY{view.interventionYear} split
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+          <span className="h-1.5 w-4 rounded-full bg-[rgba(63,69,67,0.96)]" />
+          Actual path
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
+          <span className="h-1.5 w-4 rounded-full bg-[rgba(90,139,115,0.98)]" />
+          With Northstar
+        </span>
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} className="mt-4 h-[380px] w-full rounded-[1rem] bg-[rgba(249,245,238,0.9)]">
@@ -1442,32 +1413,32 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
           fill="rgba(90,139,115,0.06)"
         />
 
-        <motion.path
+        <path
           d={actualPath}
           fill="none"
           stroke="rgba(63,69,67,0.96)"
           strokeWidth="4.2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          initial={{ pathLength: 0, opacity: 0.35 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
         />
-        <motion.path
+        <path
           d={projectedPath}
           fill="none"
           stroke="rgba(90,139,115,0.98)"
           strokeWidth="4.2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          initial={{ pathLength: 0, opacity: 0.35 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.05 }}
         />
 
-        <circle cx={xScale(0)} cy={yScale(baseline)} r="5.4" fill="rgba(17,21,27,0.98)" />
+        <circle cx={xScale(0)} cy={yScale(replayScale.baselineValue)} r="5.4" fill="rgba(17,21,27,0.98)" />
         <circle cx={xScale(1)} cy={yScale(actual)} r="5.4" fill="rgba(67,73,71,0.98)" />
         <circle cx={xScale(2)} cy={yScale(projected)} r="5.4" fill="rgba(90,139,115,0.98)" />
+        <text x={xScale(1)} y={Math.max(margin.top + 14, yScale(actual) - 12)} textAnchor="middle" fontSize="10" fill="rgba(63,69,67,0.88)">
+          {formatPathMetric(actual, metric)}
+        </text>
+        <text x={xScale(2)} y={Math.max(margin.top + 14, yScale(projected) - 12)} textAnchor="middle" fontSize="10" fill="rgba(90,139,115,0.9)">
+          {formatPathMetric(projected, metric)}
+        </text>
 
         <text x={xScale(0)} y={height - 10} fontSize="11" fill="rgba(71,85,105,0.72)">
           FY{view.interventionYear}
@@ -1529,7 +1500,7 @@ function MiniMultiSeriesChart({
         {series.map((item) => {
           const path = lineGenerator(item.values) ?? "";
           return (
-            <motion.path
+            <path
               key={item.label}
               d={path}
               fill="none"
@@ -1537,9 +1508,6 @@ function MiniMultiSeriesChart({
               strokeWidth="3.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              initial={{ pathLength: 0, opacity: 0.4 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
             />
           );
         })}
@@ -1580,18 +1548,13 @@ function StackedMixPreview({
     contributions: "#c89648",
     program: "#4f7664",
     investment: "#6f87a2",
-    other: "#b5c0cf",
+    other: "#c7c0b2",
   };
-  const stack = d3Stack<OrganizationRecord["revenueCompositionHistory"][number]>()
-    .keys(["programPct", "contributionsPct", "investmentPct", "otherPct"]);
-  const layers = stack(history);
-  const xScale = scaleLinear().domain([0, Math.max(1, history.length - 1)]).range([margin.left, width - margin.right]);
+  const plotWidth = width - margin.left - margin.right;
+  const barGap = 6;
+  const barWidth = Math.max(14, plotWidth / Math.max(1, history.length) - barGap);
+  const xScale = scaleLinear().domain([0, Math.max(1, history.length - 1)]).range([margin.left, width - margin.right - barWidth]);
   const yScale = scaleLinear().domain([0, 100]).range([height - margin.bottom, margin.top]);
-  const areaGenerator = d3Area<any>()
-    .x((_: any, index: number) => xScale(index))
-    .y0((d: any) => yScale(d[0]))
-    .y1((d: any) => yScale(d[1]))
-    .curve(curveCatmullRom.alpha(0.6));
   const labelIndexes = [...new Set([0, Math.round((history.length - 1) / 2), Math.max(0, history.length - 1)])];
   const layerOrder: Array<{ key: keyof typeof palette; label: string; color: string }> = [
     { key: "program", label: "Program", color: palette.program },
@@ -1619,21 +1582,42 @@ function StackedMixPreview({
           </g>
         ))}
         <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="rgba(71,85,105,0.22)" strokeWidth="1.2" />
-        {layers.map((layer: any, index: number) => (
-          <motion.path
-            key={`mix-layer-${layer.key}`}
-            d={areaGenerator(layer) ?? ""}
-            fill={layerOrder[index]?.color ?? "#ccc"}
-            fillOpacity={0.88}
-            initial={{ opacity: 0.3 }}
-            animate={{ opacity: 0.92 }}
-            transition={{ duration: 0.55, delay: index * 0.06, ease: "easeOut" }}
-          />
-        ))}
+        {history.map((point, index) => {
+          const segments = [
+            { value: point.programPct, color: palette.program },
+            { value: point.contributionsPct, color: palette.contributions },
+            { value: point.investmentPct, color: palette.investment },
+            { value: point.otherPct, color: palette.other },
+          ];
+          let running = 0;
+          return (
+            <g key={`mix-bar-${point.fiscalYear}`}>
+              {segments.map((segment, segmentIndex) => {
+                const segmentTop = yScale(running + segment.value);
+                const segmentBottom = yScale(running);
+                const segmentHeight = Math.max(0, segmentBottom - segmentTop);
+                const y = segmentTop;
+                running += segment.value;
+                return (
+                  <rect
+                    key={`mix-segment-${point.fiscalYear}-${segmentIndex}`}
+                    x={xScale(index)}
+                    y={y}
+                    width={barWidth}
+                    height={segmentHeight}
+                    rx={segmentHeight > 18 ? 8 : 3}
+                    fill={segment.color}
+                    fillOpacity={0.9}
+                  />
+                );
+              })}
+            </g>
+          );
+        })}
         {labelIndexes.map((index) => (
           <text
             key={`mix-label-${index}`}
-            x={xScale(index)}
+            x={xScale(index) + barWidth / 2}
             y={height - 10}
             textAnchor="middle"
             fontSize="11"
@@ -1887,9 +1871,12 @@ function buildFlightView(
   progress: number,
   activeRouteId: string | null,
 ): FlightView {
-  const years = organization.historicalFinancials.map((point) => point.fiscalYear);
   const orgSeries = buildSignalSeries(organization, signal);
+  const orgYears = signal === "concentration"
+    ? organization.revenueCompositionHistory.map((point) => point.fiscalYear)
+    : organization.historicalFinancials.map((point) => point.fiscalYear);
   const currentValue = orgSeries.at(-1) ?? getCurrentSignalValue(organization, signal);
+  const safetyThreshold = flightSafetyThreshold(signal);
   const analogRoutes = organization.analogs
     .filter((analog) => signalMatches(analog.metricName, signal))
     .map((analog) => ({
@@ -1913,55 +1900,167 @@ function buildFlightView(
   const baseRoutes = analogRoutes.length ? analogRoutes : [fallbackRoute];
   const routeViews = baseRoutes.map((route) => ({
     ...route,
-    series: buildRouteSeries({
-      currentValue,
-      targetValue: route.postValue,
-      years,
-      durationYears: route.durationYears,
-    }),
-  }));
+    deckType: "closest" as FlightDeckType,
+    windowYears: buildWindowYears(route.recoveryWindow),
+    series: [] as number[],
+    startGap: Math.abs(route.preValue - currentValue),
+    safetyIndex: null as number | null,
+    safetyYear: null as number | null,
+    timeToSafetyYears: null as number | null,
+    totalChange: 0,
+  })).map((route) => {
+    const windowYears = route.windowYears.length ? route.windowYears : buildFallbackWindowYears(organization, route.durationYears);
+    const series = buildRouteSeries({
+      startValue: route.preValue,
+      endValue: route.postValue,
+      points: windowYears.length,
+      threshold: safetyThreshold,
+      signal,
+    });
+    const safetyIndex = findSafetyIndex(series, signal, safetyThreshold);
+    return {
+      ...route,
+      windowYears,
+      series,
+      safetyIndex,
+      safetyYear: safetyIndex === null ? null : windowYears[safetyIndex] ?? null,
+      timeToSafetyYears: safetyIndex === null ? null : Math.max(0, (windowYears[safetyIndex] ?? windowYears[0]) - windowYears[0]),
+      totalChange: route.postValue - route.preValue,
+    };
+  });
 
   const closest = routeViews.reduce((best, route) =>
     Math.abs(route.preValue - currentValue) < Math.abs(best.preValue - currentValue) ? route : best,
   );
-  const fastest = routeViews.reduce((best, route) => (route.durationYears < best.durationYears ? route : best));
-  const strongest = routeViews.reduce((best, route) => (route.postValue > best.postValue ? route : best));
-  const routeFromLens = lens === "closest" ? closest : lens === "fastest" ? fastest : strongest;
-  const selectedRoute = routeViews.find((route) => route.id === activeRouteId) ?? routeFromLens;
-  const selectedIndex = Math.max(0, Math.min(years.length - 1, Math.round((Math.max(1, years.length - 1) * progress) / 100)));
-  const selectedYear = years[selectedIndex] ?? organization.latestFilingYear;
+  const fastest = routeViews.reduce((best, route) =>
+    routeSortValue(route, "fastest") < routeSortValue(best, "fastest") ? route : best,
+  );
+  const strongest = routeViews.reduce((best, route) =>
+    routeSortValue(route, "strongest") > routeSortValue(best, "strongest") ? route : best,
+  );
+  const featuredRoutes = pickFeaturedRoutes(routeViews, { closest, fastest, strongest });
+  const routeFromLens =
+    featuredRoutes.find((route) => route.deckType === lens) ??
+    featuredRoutes[0] ??
+    closest;
+  const selectedRoute = featuredRoutes.find((route) => route.id === activeRouteId) ?? routeFromLens;
+  const chartYears = selectedRoute.windowYears;
+  const orgMatchedStartIndex = findComparableStartIndex(orgSeries, selectedRoute.preValue);
+  const orgComparisonSeries = buildComparableSeries(orgSeries, orgMatchedStartIndex, chartYears.length);
+  const orgMatchedYears = buildComparableYears(orgYears, orgMatchedStartIndex, chartYears.length);
+  const comparisonLength = Math.max(1, chartYears.length);
+  const selectedIndex = Math.max(0, Math.min(comparisonLength - 1, Math.round((Math.max(1, comparisonLength - 1) * progress) / 100)));
+  const selectedRouteYear = chartYears[selectedIndex] ?? selectedRoute.windowYears.at(-1) ?? organization.latestFilingYear;
+  const orgMatchedYear = orgMatchedYears[selectedIndex] ?? orgMatchedYears.at(-1) ?? organization.latestFilingYear;
+
+  const normalizedRoutes = featuredRoutes.map((route) => ({
+    ...route,
+    series: route.id === selectedRoute.id ? route.series : resampleSeries(route.series, comparisonLength),
+  }));
+  const selectedNormalizedRoute = normalizedRoutes.find((route) => route.id === selectedRoute.id) ?? normalizedRoutes[0];
 
   return {
-    routes: routeViews,
-    selectedRoute,
-    years,
-    orgSeries,
+    routes: normalizedRoutes,
+    selectedRoute: selectedNormalizedRoute,
+    chartYears,
+    orgComparisonSeries,
+    orgMatchedYears,
+    orgMatchedStartYear: orgMatchedYears[0] ?? organization.firstFilingYear,
     selectedIndex,
-    selectedYear,
-    routeValueAtSelection: selectedRoute.series[selectedIndex] ?? selectedRoute.postValue,
+    selectedRouteYear,
+    orgMatchedYear,
+    routeValueAtSelection: selectedNormalizedRoute.series[selectedIndex] ?? selectedNormalizedRoute.postValue,
+    orgValueAtSelection: orgComparisonSeries[selectedIndex] ?? currentValue,
+    safetyThreshold,
   };
 }
 
 function buildRouteSeries({
-  currentValue,
-  targetValue,
-  years,
-  durationYears,
+  startValue,
+  endValue,
+  points,
+  threshold,
+  signal,
 }: {
-  currentValue: number;
-  targetValue: number;
-  years: number[];
-  durationYears: number;
+  startValue: number;
+  endValue: number;
+  points: number;
+  threshold: number;
+  signal: FlightSignal;
 }) {
-  const totalSpan = Math.max(1, years.length - 1);
-  const durationIndex = Math.max(1, Math.min(totalSpan, durationYears));
-  return years.map((_, index) => {
-    if (index <= durationIndex) {
-      const ratio = index / durationIndex;
-      return currentValue + (targetValue - currentValue) * ratio;
+  const safePoints = Math.max(2, points);
+  const crossesThreshold =
+    signal === "margin"
+      ? startValue < threshold && endValue >= threshold
+      : startValue < threshold && endValue >= threshold;
+
+  if (!crossesThreshold) {
+    return Array.from({ length: safePoints }, (_, index) => {
+      const ratio = safePoints === 1 ? 1 : index / (safePoints - 1);
+      const eased = 1 - (1 - ratio) * (1 - ratio);
+      return startValue + (endValue - startValue) * eased;
+    });
+  }
+
+  const rawThresholdRatio = (threshold - startValue) / Math.max(0.0001, endValue - startValue);
+  const thresholdRatio = Math.max(0.04, Math.min(0.88, rawThresholdRatio));
+  const safetyIndex = Math.max(1, Math.min(safePoints - 2, Math.ceil(thresholdRatio * (safePoints - 1))));
+
+  return Array.from({ length: safePoints }, (_, index) => {
+    if (index <= safetyIndex) {
+      const localRatio = safetyIndex === 0 ? 1 : index / safetyIndex;
+      const eased = 1 - (1 - localRatio) * (1 - localRatio);
+      return startValue + (threshold - startValue) * eased;
     }
-    return targetValue;
+
+    const remaining = safePoints - 1 - safetyIndex;
+    const localRatio = remaining <= 0 ? 1 : (index - safetyIndex) / remaining;
+    const eased = localRatio * localRatio;
+    return threshold + (endValue - threshold) * eased;
   });
+}
+
+function pickFeaturedRoutes(
+  routes: FlightRouteView[],
+  ranked: Record<FlightDeckType, FlightRouteView>,
+) {
+  const usedIds = new Set<string>();
+  const sorters: Record<FlightDeckType, (route: FlightRouteView) => number> = {
+    closest: (route) => route.startGap,
+    fastest: (route) => routeSortValue(route, "fastest"),
+    strongest: (route) => -routeSortValue(route, "strongest"),
+  };
+
+  return (["closest", "fastest", "strongest"] as FlightDeckType[])
+    .map((deckType) => {
+      const rankedRoute = ranked[deckType];
+      if (rankedRoute && !usedIds.has(rankedRoute.id)) {
+        usedIds.add(rankedRoute.id);
+        return { ...rankedRoute, deckType };
+      }
+
+      const fallback = [...routes]
+        .filter((route) => !usedIds.has(route.id))
+        .sort((left, right) => sorters[deckType](left) - sorters[deckType](right))[0];
+
+      if (!fallback) {
+        return null;
+      }
+
+      usedIds.add(fallback.id);
+      return { ...fallback, deckType };
+    })
+    .filter((route): route is FlightRouteView => route !== null);
+}
+
+function routeSortValue(route: FlightRouteView, deckType: FlightDeckType) {
+  if (deckType === "fastest") {
+    return route.timeToSafetyYears ?? route.durationYears;
+  }
+  if (deckType === "strongest") {
+    return route.postValue;
+  }
+  return route.startGap;
 }
 
 function getAvailableFlightSignals(organization: OrganizationRecord): FlightSignal[] {
@@ -2014,11 +2113,83 @@ function parseRecoveryWindowYears(window: string) {
   return 4;
 }
 
+function buildWindowYears(window: string) {
+  const [start, end] = window.split("-").map((part) => Number.parseInt(part, 10));
+  if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }
+  return [];
+}
+
+function buildFallbackWindowYears(organization: OrganizationRecord, durationYears: number) {
+  const end = organization.latestFilingYear;
+  const start = end - Math.max(1, durationYears);
+  return Array.from({ length: Math.max(2, end - start + 1) }, (_, index) => start + index);
+}
+
+function findComparableStartIndex(series: number[], target: number) {
+  if (series.length === 0) {
+    return 0;
+  }
+
+  let bestIndex = 0;
+  let bestGap = Math.abs((series[0] ?? 0) - target);
+  for (let index = 1; index < series.length; index += 1) {
+    const gap = Math.abs((series[index] ?? 0) - target);
+    if (gap < bestGap) {
+      bestGap = gap;
+      bestIndex = index;
+    }
+  }
+  return bestIndex;
+}
+
+function buildComparableSeries(series: number[], startIndex: number, length: number) {
+  if (series.length === 0) {
+    return Array.from({ length: Math.max(2, length) }, () => 0);
+  }
+
+  const safeLength = Math.max(2, length);
+  const values = Array.from({ length: safeLength }, (_, index) => series[Math.min(series.length - 1, startIndex + index)] ?? series.at(-1) ?? 0);
+  return values;
+}
+
+function buildComparableYears(years: number[], startIndex: number, length: number) {
+  if (years.length === 0) {
+    return Array.from({ length: Math.max(2, length) }, (_, index) => 2000 + index);
+  }
+
+  const safeLength = Math.max(2, length);
+  return Array.from({ length: safeLength }, (_, index) => years[Math.min(years.length - 1, startIndex + index)] ?? years.at(-1) ?? years[0]);
+}
+
+function resampleSeries(series: number[], targetLength: number) {
+  if (series.length === 0) {
+    return Array.from({ length: Math.max(2, targetLength) }, () => 0);
+  }
+  if (series.length === targetLength) {
+    return [...series];
+  }
+
+  const safeLength = Math.max(2, targetLength);
+  const lastIndex = series.length - 1;
+  return Array.from({ length: safeLength }, (_, index) => {
+    const ratio = safeLength === 1 ? 0 : index / (safeLength - 1);
+    const sourceIndex = ratio * lastIndex;
+    const lowerIndex = Math.floor(sourceIndex);
+    const upperIndex = Math.min(lastIndex, Math.ceil(sourceIndex));
+    const blend = sourceIndex - lowerIndex;
+    const lower = series[lowerIndex] ?? series[0] ?? 0;
+    const upper = series[upperIndex] ?? series[lastIndex] ?? lower;
+    return lower + (upper - lower) * blend;
+  });
+}
+
 function signalMatches(metricName: string, signal: FlightSignal) {
   return analogSignal(metricName) === signal;
 }
 
-function buildPathView(organization: OrganizationRecord, interventionYear: number, scenarioId: string): PathView {
+export function buildPathView(organization: OrganizationRecord, interventionYear: number, scenarioId: string): PathView {
   const years = Array.from(new Set(organization.historicalFinancials.map((point) => point.fiscalYear))).sort((a, b) => a - b);
   if (years.length === 0) {
     const fallback: PathState = {
@@ -2048,10 +2219,10 @@ function buildPathView(organization: OrganizationRecord, interventionYear: numbe
   const actual = derivePathStateAtYear(organization, observedYear);
   const moveDelta = getPathDeltas(scenarioId, organization.actionLabel);
   const projected: PathState = {
-    risk: clamp(baseline.risk - moveDelta.riskReduction, 2, 95),
-    diversity: clamp(baseline.diversity + moveDelta.diversityGain, 0, 1),
-    margin: baseline.margin + moveDelta.marginGain,
-    cushion: Math.max(0, baseline.cushion + moveDelta.cushionGain),
+    risk: clamp(actual.risk - moveDelta.riskReduction, 2, 95),
+    diversity: clamp(actual.diversity + moveDelta.diversityGain, 0, 1),
+    margin: actual.margin + moveDelta.marginGain,
+    cushion: Math.max(0, actual.cushion + moveDelta.cushionGain),
   };
 
   return {
@@ -2069,18 +2240,63 @@ function buildPathView(organization: OrganizationRecord, interventionYear: numbe
 
 function getPathDeltas(scenarioId: string, actionLabel: OrganizationRecord["actionLabel"]) {
   if (scenarioId.includes("downside")) {
-    return { riskReduction: 7, diversityGain: 0.05, marginGain: 0.8, cushionGain: 1.1 };
+    return { riskReduction: 6, diversityGain: 0.04, marginGain: 1.2, cushionGain: 1.8 };
   }
   if (scenarioId.includes("reserve")) {
-    return { riskReduction: 10, diversityGain: 0.04, marginGain: 0.9, cushionGain: 2.8 };
+    return {
+      riskReduction: actionLabel === "Stabilize" ? 13 : 10,
+      diversityGain: 0.03,
+      marginGain: 1.0,
+      cushionGain: actionLabel === "Stabilize" ? 6.4 : 4.6,
+    };
   }
   if (scenarioId.includes("diversification")) {
-    return { riskReduction: 14, diversityGain: 0.16, marginGain: 2.4, cushionGain: 1.7 };
+    return {
+      riskReduction: actionLabel === "Diversify" ? 15 : 12,
+      diversityGain: actionLabel === "Diversify" ? 0.22 : 0.16,
+      marginGain: actionLabel === "Diversify" ? 2.8 : 2.1,
+      cushionGain: 2.5,
+    };
   }
   if (actionLabel === "Stabilize") {
     return { riskReduction: 12, diversityGain: 0.06, marginGain: 1.7, cushionGain: 2.3 };
   }
   return { riskReduction: 11, diversityGain: 0.08, marginGain: 1.8, cushionGain: 1.9 };
+}
+
+export function findBestReplaySetup(organization: OrganizationRecord): ReplaySetup {
+  const years = getInterventionYears(organization);
+  const scenarios = organization.scenarioCards.length
+    ? organization.scenarioCards
+    : [{ id: "default", title: "Default" }];
+  const fallbackYear = years.at(-1) ?? organization.latestFilingYear;
+  let best: ReplaySetup = { interventionYear: fallbackYear, scenarioId: scenarios[0]?.id ?? "default" };
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (const year of years) {
+    for (const scenario of scenarios) {
+      const view = buildPathView(organization, year, scenario.id);
+      const allImproving = view.deltaRisk > 0 && view.deltaMargin > 0 && view.deltaCushion > 0 && view.deltaDiversity > 0;
+      const urgencyBonus =
+        view.actual.risk / 100 +
+        Math.max(0, -view.actual.margin / 25) +
+        (1 - view.actual.diversity) +
+        1 / Math.max(1, view.actual.cushion + 1);
+      const improvementScore =
+        view.deltaRisk / 18 +
+        view.deltaMargin / 4 +
+        view.deltaCushion / 12 +
+        view.deltaDiversity / 0.18;
+      const score = improvementScore + urgencyBonus + (allImproving ? 3 : -6);
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = { interventionYear: year, scenarioId: scenario.id };
+      }
+    }
+  }
+
+  return best;
 }
 
 function derivePathStateAtYear(organization: OrganizationRecord, year: number): PathState {
@@ -2158,9 +2374,52 @@ function formatPathMetric(value: number, metric: PathMetric) {
     return `${formatSigned(value)}%`;
   }
   if (metric === "cushion") {
-    return `${value.toFixed(1)}m`;
+    return formatDurationValue(value);
   }
   return value.toFixed(2);
+}
+
+function buildReplayChartScale(metric: PathMetric, baseline: number, actual: number, projected: number) {
+  if (metric !== "margin") {
+    const min = d3Min([baseline, actual, projected]) ?? 0;
+    const max = d3Max([baseline, actual, projected]) ?? 1;
+    const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
+    const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
+    return {
+      min: paddedMin,
+      max: paddedMax,
+      baselineValue: baseline,
+      ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
+    };
+  }
+
+  const comparisonMin = Math.min(actual, projected);
+  const comparisonMax = Math.max(actual, projected);
+  const comparisonSpan = Math.max(4, comparisonMax - comparisonMin);
+  const baselineGap = Math.max(Math.abs(baseline - comparisonMin), Math.abs(baseline - comparisonMax));
+  const shouldZoom = baselineGap > comparisonSpan * 6;
+
+  if (!shouldZoom) {
+    const min = d3Min([baseline, actual, projected]) ?? 0;
+    const max = d3Max([baseline, actual, projected]) ?? 1;
+    const paddedMin = min === max ? min - 1 : min - (max - min) * 0.12;
+    const paddedMax = min === max ? max + 1 : max + (max - min) * 0.12;
+    return {
+      min: paddedMin,
+      max: paddedMax,
+      baselineValue: baseline,
+      ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
+    };
+  }
+
+  const paddedMin = comparisonMin - comparisonSpan * 1.2;
+  const paddedMax = comparisonMax + comparisonSpan * 1.2;
+  return {
+    min: paddedMin,
+    max: paddedMax,
+    baselineValue: Math.max(paddedMin, Math.min(paddedMax, baseline)),
+    ticks: Array.from({ length: 4 }, (_, index) => paddedMin + ((paddedMax - paddedMin) * index) / 3).reverse(),
+  };
 }
 
 function pathMetricLabel(metric: PathMetric) {
@@ -2173,7 +2432,7 @@ function pathMetricLabel(metric: PathMetric) {
   if (metric === "cushion") {
     return "Cushion";
   }
-  return "Diversity";
+  return "Revenue mix";
 }
 
 function formatCompareValue(value: number, format: "percent" | "ratio") {
@@ -2191,9 +2450,38 @@ function formatSignal(value: number, signal: FlightSignal) {
     return `${formatSigned(value)}%`;
   }
   if (signal === "runway") {
-    return `${value.toFixed(1)} mo`;
+    return formatDurationValue(value);
   }
   return value.toFixed(2);
+}
+
+function formatSignalGap(value: number, signal: FlightSignal) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  if (signal === "margin") {
+    return `${value.toFixed(1)} pts`;
+  }
+  if (signal === "runway") {
+    return formatDurationValue(value);
+  }
+  return value.toFixed(2);
+}
+
+function formatDurationValue(value: number) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  return Math.abs(value) >= 12 ? `${(value / 12).toFixed(1)} yrs` : `${value.toFixed(1)} mo`;
+}
+
+function formatDeltaDuration(value: number) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  const sign = value >= 0 ? "+" : "-";
+  const abs = Math.abs(value);
+  return abs >= 12 ? `${sign}${(abs / 12).toFixed(1)} yrs` : `${sign}${abs.toFixed(1)} mo`;
 }
 
 function formatSigned(value: number) {
@@ -2222,9 +2510,38 @@ function dominantRevenueLabel(point: OrganizationRecord["revenueCompositionHisto
   return `${top.label} ${Math.round(top.value)}%`;
 }
 
+function flightSafetyThreshold(signal: FlightSignal) {
+  if (signal === "concentration") {
+    return 0.45;
+  }
+  if (signal === "runway") {
+    return 6;
+  }
+  return 0;
+}
+
+function findSafetyIndex(series: number[], signal: FlightSignal, threshold: number) {
+  const comparator =
+    signal === "margin"
+      ? (value: number) => value >= threshold
+      : (value: number) => value >= threshold;
+  const index = series.findIndex(comparator);
+  return index >= 0 ? index : null;
+}
+
+function formatYearsToSafety(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "Not reached";
+  }
+  if (value === 0) {
+    return "0 yrs";
+  }
+  return `${value.toFixed(0)} yrs`;
+}
+
 function flightSignalTitle(signal: FlightSignal) {
   if (signal === "concentration") {
-    return "Revenue concentration";
+    return "Revenue mix";
   }
   if (signal === "runway") {
     return "Reserve cushion";
@@ -2232,25 +2549,35 @@ function flightSignalTitle(signal: FlightSignal) {
   return "Operating margin";
 }
 
-function shortScenarioLabel(title: string) {
-  if (/diversification/i.test(title)) {
-    return "Diversify";
+function financialScenarioLabel(scenario: { id: string; title: string }) {
+  if (/downside/i.test(scenario.id) || /downside/i.test(scenario.title)) {
+    return "Contingency plan";
   }
-  if (/reserve|bridge/i.test(title)) {
-    return "Reserve";
+  if (/reserve|bridge/i.test(scenario.id) || /reserve|bridge/i.test(scenario.title)) {
+    return "Reserves policy";
   }
-  if (/downside/i.test(title)) {
-    return "Shock";
+  if (/diversification/i.test(scenario.id) || /diversification/i.test(scenario.title)) {
+    return "Funding strategy";
   }
-  return title;
+  return scenario.title;
 }
 
-function routeDeckTitle(index: number) {
-  if (index === 0) {
+function routeDeckEyebrow(deckType: FlightDeckType) {
+  if (deckType === "closest") {
+    return "Closest route";
+  }
+  if (deckType === "fastest") {
+    return "Fastest route";
+  }
+  return "Strongest route";
+}
+
+function routeDeckTitle(deckType: FlightDeckType) {
+  if (deckType === "closest") {
     return "Closest twin";
   }
-  if (index === 1) {
-    return "Fastest escape";
+  if (deckType === "fastest") {
+    return "Fastest safety";
   }
   return "Best finish";
 }
@@ -2265,11 +2592,8 @@ function activeModeEyebrow(mode: DecisionLabMode) {
   return "Case Snapshot";
 }
 
-function buildSliderLabels(years: number[]) {
-  if (years.length <= 3) {
-    return years.map((year) => `FY${year}`);
-  }
-  return [`FY${years[0]}`, `FY${years[Math.floor((years.length - 1) / 2)]}`, `FY${years.at(-1)}`];
+function buildFlightSliderLabels(timeToSafetyYears: number | null) {
+  return ["Match start", timeToSafetyYears === null ? "Mid route" : "Safety", "Finish"];
 }
 
 function analogSignal(metricName: string): FlightSignal | null {
@@ -2289,7 +2613,7 @@ function analogSignal(metricName: string): FlightSignal | null {
 function viewWindowLabel(window: string) {
   const [start, end] = window.split("-").map((part) => Number.parseInt(part, 10));
   if (Number.isFinite(start) && Number.isFinite(end)) {
-    return `FY${start} to FY${end}`;
+    return `FY${start}-${end}`;
   }
   return window;
 }
