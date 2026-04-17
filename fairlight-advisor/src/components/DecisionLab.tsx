@@ -94,6 +94,8 @@ interface SnapshotMetric {
 }
 
 interface SnapshotDefinition {
+  eyebrow: string;
+  title: string;
   pitch: string;
   metrics: SnapshotMetric[];
 }
@@ -161,28 +163,28 @@ export function DecisionLab({
   ]);
 
   return (
-    <section className="relative rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-1.5 shadow-[0_28px_84px_-54px_rgba(15,23,42,0.28)]">
+    <section className="relative rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-1.5 shadow-[0_32px_96px_-56px_rgba(15,23,42,0.3)]">
       <h2 className="sr-only">Decision Lab</h2>
-      <div className="rounded-[calc(2.2rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(249,245,239,0.93))] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)] sm:px-2.5">
-        <div className="grid gap-2 min-[960px]:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="grid gap-2.5">
-            <section className="flex h-full flex-col rounded-[1.45rem] border border-black/6 bg-white/84 p-2.5 shadow-[0_18px_44px_-36px_rgba(15,23,42,0.18)]">
+      <div className="rounded-[calc(2.2rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,245,239,0.94))] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)] sm:px-3">
+        <div className="grid gap-3 min-[1080px]:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="grid gap-3">
+            <section className="flex h-full flex-col rounded-[1.55rem] border border-black/6 bg-white/88 p-4 shadow-[0_20px_52px_-38px_rgba(15,23,42,0.2)]">
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={onReturnToPortfolio}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#5d7468]/16 bg-[rgba(232,241,235,0.96)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[#486156] hover:bg-[rgba(237,245,240,0.98)]"
+                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#5d7468]/16 bg-[rgba(232,241,235,0.96)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#365046] hover:bg-[rgba(237,245,240,0.98)]"
                 >
-                  <ArrowArcLeft size={13} weight="bold" />
+                  <ArrowArcLeft size={14} weight="bold" />
                   Inbox
                 </button>
               </div>
 
-              <h3 className="mt-2 text-[1.5rem] font-semibold leading-[0.92] tracking-[-0.065em] text-slate-950 [text-wrap:balance]">
+              <h3 className="mt-3 text-[1.75rem] font-semibold leading-[0.92] tracking-[-0.065em] text-slate-950 [text-wrap:balance]">
                 {formatOrganizationName(organization.orgName)}
               </h3>
 
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-600">
                 <span>{organization.state}</span>
                 <span aria-hidden="true">•</span>
                 <span>{organization.sizeBucket}</span>
@@ -190,15 +192,15 @@ export function DecisionLab({
                 <span>{organization.filingYearsObserved} yrs</span>
               </div>
 
-              <div className="mt-3 rounded-[1.15rem] border border-black/6 bg-[rgba(247,242,234,0.82)] px-3 py-3">
-                <div className="grid gap-1.5">
+              <div className="mt-4 rounded-[1.2rem] border border-black/6 bg-[rgba(247,242,234,0.86)] px-3.5 py-3.5">
+                <div className="grid gap-2">
                   <SidebarMetricRow label="Northstar" value={String(model.northstarScore)} />
                   <SidebarMetricRow label="Action" value={organization.actionLabel} />
                   <SidebarMetricRow label="Next-year risk" value={`${organization.distress.probability.toFixed(1)}%`} />
                 </div>
-                <div className="mt-2.5 border-t border-black/6 pt-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{activeModeEyebrow(activeMode)}</p>
-                  <p className="mt-1 text-[11px] font-medium leading-[1.25] text-slate-700">{contextSummary}</p>
+                <div className="mt-3 border-t border-black/6 pt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">{activeModeEyebrow(activeMode)}</p>
+                  <p className="mt-1.5 text-[13px] font-medium leading-[1.35] text-slate-800">{contextSummary}</p>
                 </div>
               </div>
             </section>
@@ -284,7 +286,7 @@ function ConsoleSwitch({
             <div className="flex items-center gap-2.5">
               {item.icon}
               <div>
-                <p className={`text-[10px] uppercase tracking-[0.18em] ${active ? "text-[rgba(239,247,242,0.76)]" : "text-[#7e776c]"}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${active ? "text-[rgba(239,247,242,0.8)]" : "text-[#6c665b]"}`}>
                   {item.label}
                 </p>
                 <p className={`mt-0.5 text-[1rem] font-semibold leading-[1.08] tracking-[-0.05em] [text-wrap:balance] ${active ? "text-[rgba(239,247,242,0.98)]" : "text-slate-900"}`}>
@@ -364,82 +366,119 @@ function SnapshotConsole({
       />
     </CardShell>
   );
+  const supportCluster = stressScenarioCard ? (
+    <div className="grid gap-4 min-[1180px]:grid-cols-[1.05fr_0.95fr]">
+      {focusCard}
+      {stressScenarioCard}
+    </div>
+  ) : (
+    focusCard
+  );
+  const evidenceCluster = (
+    <div className="grid gap-4 min-[1180px]:grid-cols-[1.04fr_0.96fr]">
+      {financialTrajectoryCard}
+      {revenueMixCard}
+    </div>
+  );
+  const reverseEvidenceCluster = (
+    <div className="grid gap-4 min-[1180px]:grid-cols-[0.96fr_1.04fr]">
+      {revenueMixCard}
+      {financialTrajectoryCard}
+    </div>
+  );
 
   return (
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Case Snapshot</h3>
-      <div className="grid gap-3 px-4 pb-4 pt-2.5">
-        <section className="rounded-[1.3rem] border border-black/7 bg-white/82 p-4 shadow-[0_16px_34px_-32px_rgba(15,23,42,0.18)]">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Advisor pitch</p>
-          <p className="mt-2 text-[1.12rem] font-medium leading-[1.38] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
-            {snapshotDefinition.pitch}
-          </p>
-        </section>
+      <div className="grid gap-4 px-4 pb-4 pt-3">
+        <section className="grid gap-3 rounded-[1.4rem] border border-black/7 bg-white/84 p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)] min-[1120px]:grid-cols-[1.05fr_0.95fr] min-[1120px]:items-start">
+          <div className="min-w-0 rounded-[1.2rem] border border-[#1f5446]/12 bg-[linear-gradient(180deg,rgba(235,243,239,0.9),rgba(249,245,238,0.92))] px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#557062]">{snapshotDefinition.eyebrow}</p>
+            <h4 className="mt-2 text-[1.6rem] font-semibold leading-[0.98] tracking-[-0.06em] text-slate-950 [text-wrap:balance]">
+              {snapshotDefinition.title}
+            </h4>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full border border-[#1f5446]/14 bg-white/78 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#26453b]">
+                {organization.actionLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-black/7 bg-white/78 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+                {organization.recommendation.interventionType}
+              </span>
+            </div>
+            <p className="mt-3 text-[1.06rem] font-medium leading-[1.5] tracking-[-0.028em] text-slate-950 [text-wrap:balance]">
+              {snapshotDefinition.pitch}
+            </p>
+            <p className="mt-3 border-t border-black/6 pt-3 text-[14px] leading-[1.5] text-slate-700">
+              {organization.whySurfaced}
+            </p>
+          </div>
 
-        <div className={`grid gap-2.5 ${snapshotDefinition.metrics.length >= 5 ? "sm:grid-cols-2 min-[1120px]:grid-cols-5" : "sm:grid-cols-2 min-[1120px]:grid-cols-4"}`}>
-          {snapshotDefinition.metrics.map((metric) => (
-            <SnapshotMetricCard
-              key={metric.label}
-              label={metric.label}
-              value={metric.value}
-              compact
-              hero={metric.emphasis === "hero"}
-            />
-          ))}
-        </div>
+          <div
+            className={`grid gap-2.5 ${
+              snapshotDefinition.metrics.length >= 5 ? "sm:grid-cols-2" : "sm:grid-cols-2"
+            }`}
+          >
+            {snapshotDefinition.metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className={metric.emphasis === "hero" ? "sm:col-span-2" : undefined}
+              >
+                <SnapshotMetricCard
+                  label={metric.label}
+                  value={metric.value}
+                  compact
+                  hero={metric.emphasis === "hero"}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
 
         {organization.actionLabel === "Underinvested Asset Base" ? (
           <>
-            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+            <div className="grid gap-4 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
               {scoreBreakdownCard}
               {currentPositionCard}
               {peerCompareCard}
             </div>
-            {focusCard}
-            {financialTrajectoryCard}
-            {stressScenarioCard}
-            {revenueMixCard}
+            {supportCluster}
+            {evidenceCluster}
           </>
         ) : null}
 
         {organization.actionLabel === "Revenue Concentration Risk" ? (
           <>
-            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+            <div className="grid gap-4 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
               {scoreBreakdownCard}
               {currentPositionCard}
               {peerCompareCard}
             </div>
-            {focusCard}
-            {stressScenarioCard}
-            {revenueMixCard}
-            {financialTrajectoryCard}
+            {supportCluster}
+            {reverseEvidenceCluster}
           </>
         ) : null}
 
         {organization.actionLabel === "Weak Financial Foundation" ? (
           <>
-            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+            <div className="grid gap-4 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
               {scoreBreakdownCard}
               {currentPositionCard}
               {peerCompareCard}
             </div>
-            {focusCard}
-            {stressScenarioCard}
-            {financialTrajectoryCard}
-            {revenueMixCard}
+            {supportCluster}
+            {evidenceCluster}
           </>
         ) : null}
 
         {organization.actionLabel === "Needs Data Diligence" ? (
           <>
-            <div className="grid gap-3 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
+            <div className="grid gap-4 min-[960px]:grid-cols-[0.95fr_1.15fr_0.9fr]">
               {scoreBreakdownCard}
               {currentPositionCard}
               {peerCompareCard}
             </div>
             {focusCard}
-            {financialTrajectoryCard}
-            {revenueMixCard}
+            {evidenceCluster}
             {stressScenarioCard}
           </>
         ) : null}
@@ -468,11 +507,39 @@ function RecoveryFlightConsole({
   return (
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Recovery Flight Console</h3>
-      <div className="grid gap-3 px-4 pb-4 pt-2.5">
+      <div className="grid gap-4 px-4 pb-4 pt-3">
         <FlightSignalStrip
           label={flightSignalTitle(signal)}
           matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? getCurrentSignalValue(organization, signal), signal)}`}
           safetyLine={formatSignal(view.safetyThreshold, signal)}
+        />
+
+        <RecoveryFlightChart signal={signal} view={view} />
+
+        <RangeRail
+          value={progress}
+          min={0}
+          max={100}
+          step={50}
+          onChange={setProgress}
+          labels={buildFlightSliderLabels(view.selectedRoute.timeToSafetyYears)}
+          ariaLabel="Scrub through recovery route"
+          compact={false}
+          snapValues={[0, 50, 100]}
+        />
+
+        <SelectedRouteSpotlight
+          deckType={view.selectedRoute.deckType}
+          routeName={view.selectedRoute.orgName}
+          recoveryWindow={view.selectedRoute.recoveryWindow}
+          matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? 0, signal)}`}
+          peerStart={`FY${view.selectedRoute.windowYears[0] ?? view.selectedRoute.recoveryWindow.slice(0, 4)} · ${formatSignal(view.selectedRoute.preValue, signal)}`}
+          selectedRouteYear={view.selectedRouteYear}
+          orgMatchedYear={view.orgMatchedYear}
+          orgValue={formatSignal(view.orgValueAtSelection, signal)}
+          peerValue={formatSignal(view.routeValueAtSelection, signal)}
+          endRead={formatSignal(view.selectedRoute.postValue, signal)}
+          safetyYear={view.selectedRoute.safetyYear}
         />
 
         <div className="grid gap-2.5 min-[960px]:grid-cols-3">
@@ -496,32 +563,6 @@ function RecoveryFlightConsole({
             />
           ))}
         </div>
-
-        <SelectedRouteSpotlight
-          deckType={view.selectedRoute.deckType}
-          routeName={view.selectedRoute.orgName}
-          recoveryWindow={view.selectedRoute.recoveryWindow}
-          matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? 0, signal)}`}
-          peerStart={`FY${view.selectedRoute.windowYears[0] ?? view.selectedRoute.recoveryWindow.slice(0, 4)} · ${formatSignal(view.selectedRoute.preValue, signal)}`}
-          selectedRouteYear={view.selectedRouteYear}
-          orgMatchedYear={view.orgMatchedYear}
-          orgValue={formatSignal(view.orgValueAtSelection, signal)}
-          peerValue={formatSignal(view.routeValueAtSelection, signal)}
-          endRead={formatSignal(view.selectedRoute.postValue, signal)}
-          safetyYear={view.selectedRoute.safetyYear}
-        />
-
-        <RecoveryFlightChart signal={signal} view={view} />
-
-        <RangeRail
-          value={progress}
-          min={0}
-          max={100}
-          onChange={setProgress}
-          labels={buildFlightSliderLabels(view.selectedRoute.timeToSafetyYears)}
-          ariaLabel="Scrub through recovery route"
-          compact={false}
-        />
       </div>
     </section>
   );
@@ -547,20 +588,30 @@ function CrisisReplayConsole({
   return (
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Crisis Replay Console</h3>
-      <div className="grid gap-3 px-4 pb-4 pt-2.5">
-        <section className="rounded-[1.3rem] border border-black/7 bg-white/82 p-4 shadow-[0_16px_34px_-32px_rgba(15,23,42,0.18)]">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Replay setup</p>
+      <div className="grid gap-4 px-4 pb-4 pt-3">
+        <section className="rounded-[1.4rem] border border-black/7 bg-white/84 p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Replay setup</p>
           <p className="mt-2 text-[1.05rem] font-medium leading-[1.38] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
             {pathView.narrative}
           </p>
           {pathView.driversExplanation ? (
-            <p className="mt-2 text-[13px] leading-[1.45] text-slate-600 [text-wrap:balance]">
+            <p className="mt-2 text-[14px] leading-[1.5] text-slate-700 [text-wrap:balance]">
               {pathView.driversExplanation}
             </p>
           ) : null}
         </section>
 
-        <div className="grid gap-3 min-[1120px]:grid-cols-[1.05fr_0.95fr]">
+        <PathReplayChart view={pathView} metric={metric} />
+
+        <div className="grid gap-3 min-[1120px]:grid-cols-[0.92fr_1.08fr]">
+          <ReplayControlPanel
+            strategyId={strategyId}
+            setStrategyId={setStrategyId}
+            metric={metric}
+            setMetric={setMetric}
+            scenarios={organization.scenarioCards.slice(0, 3)}
+          />
+
           <ReplayReferenceCard
             interventionYear={selectedInterventionYear}
             observedYear={pathView.observedYear}
@@ -569,17 +620,7 @@ function CrisisReplayConsole({
             baseline={pathView.baseline}
             rankingLabel={pathView.rankingLabel}
           />
-
-          <ReplayControlPanel
-            strategyId={strategyId}
-            setStrategyId={setStrategyId}
-            metric={metric}
-            setMetric={setMetric}
-            scenarios={organization.scenarioCards.slice(0, 3)}
-          />
         </div>
-
-        <PathReplayChart view={pathView} metric={metric} />
 
         <div className="grid gap-3 min-[960px]:grid-cols-2">
           <StatePanel
@@ -642,16 +683,16 @@ function RecommendationDock({
   onToggle: () => void;
 }) {
   return (
-    <section className={`border border-t-0 border-black/8 bg-[rgba(248,244,236,0.8)] ${open ? "px-3 pb-3 pt-2.5" : "px-3 py-2"}`}>
+    <section className={`border border-t-0 border-black/8 bg-[rgba(248,244,236,0.82)] ${open ? "px-3.5 pb-3.5 pt-3" : "px-3.5 py-2.5"}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex items-baseline gap-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Full call</p>
-          <p className="truncate text-[13px] font-medium text-slate-700">{organization.recommendation.status}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Full call</p>
+          <p className="truncate text-[14px] font-semibold text-slate-800">{organization.recommendation.status}</p>
         </div>
         <button
           type="button"
           onClick={onToggle}
-          className="cursor-pointer rounded-full border border-black/6 bg-white/84 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-700 hover:bg-white"
+          className="cursor-pointer rounded-full border border-black/6 bg-white/84 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-800 hover:bg-white"
         >
           {open ? "Hide full call" : "Show full call"}
         </button>
@@ -662,7 +703,7 @@ function RecommendationDock({
           <div className="rounded-[1.25rem] border border-black/7 bg-white/84 p-4">
             <div className="grid gap-3 min-[960px]:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Recommendation</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Recommendation</p>
                 <h4 className="mt-2 text-[1.45rem] font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950">
                   {organization.recommendation.status}
                 </h4>
@@ -691,9 +732,19 @@ function RecommendationDock({
 
 function SidebarMetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
-      <p className="min-w-0 text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</p>
-      <p className="min-w-0 break-words text-right text-[0.98rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{value}</p>
+    <div
+      className={`grid gap-3 rounded-[1rem] border border-black/7 bg-white/82 px-3.5 py-2.5 ${
+        value.length > 18 ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_auto] items-center"
+      }`}
+    >
+      <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">{label}</p>
+      <p
+        className={`min-w-0 break-words text-[1rem] font-semibold leading-[1.12] tracking-[-0.04em] text-slate-950 ${
+          value.length > 18 ? "text-left" : "text-right"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -710,9 +761,9 @@ function SnapshotMetricCard({
   hero?: boolean;
 }) {
   return (
-    <div className={`min-w-0 rounded-[1.2rem] border ${hero ? "border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(231,241,236,0.95),rgba(249,245,238,0.88))]" : "border-black/7 bg-white/80"} ${compact ? "px-3 py-2.5" : "px-3.5 py-3"}`}>
-      <p className="text-[10px] uppercase leading-[1.25] tracking-[0.18em] text-slate-400">{label}</p>
-      <p className={`mt-1.5 break-words font-semibold leading-[1.12] tracking-[-0.05em] text-slate-950 ${hero ? "text-[1.2rem]" : compact ? "text-[1rem]" : "text-[1.3rem]"}`}>{value}</p>
+    <div className={`min-w-0 rounded-[1.2rem] border ${hero ? "border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(231,241,236,0.95),rgba(249,245,238,0.88))]" : "border-black/7 bg-white/80"} ${compact ? "px-3.5 py-3" : "px-4 py-3.5"}`}>
+      <p className="text-[11px] font-semibold uppercase leading-[1.25] tracking-[0.14em] text-slate-600">{label}</p>
+      <p className={`mt-2 break-words font-semibold leading-[1.14] tracking-[-0.05em] text-slate-950 ${hero ? "text-[1.28rem]" : compact ? "text-[1.05rem]" : "text-[1.36rem]"}`}>{value}</p>
     </div>
   );
 }
@@ -725,9 +776,9 @@ function CardShell({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[1.3rem] border border-black/7 bg-white/78 p-3.5 shadow-[0_16px_34px_-32px_rgba(15,23,42,0.18)]">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
-      <div className="mt-2.5">{children}</div>
+    <section className="min-w-0 overflow-hidden rounded-[1.4rem] border border-black/7 bg-white/82 p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">{eyebrow}</p>
+      <div className="mt-3">{children}</div>
     </section>
   );
 }
@@ -755,17 +806,17 @@ function ScoreBreakdownCard({ model }: { model: DecisionLabModel }) {
             onClick={() => setExpandedKey(expanded ? null : driver.key)}
             className="grid gap-1.5 text-left"
           >
-            <div className="flex items-start justify-between gap-4 text-[13px] text-slate-600">
+            <div className="flex items-start justify-between gap-4 text-[14px] text-slate-700">
               <span className="min-w-0 leading-[1.25]">{driver.label}</span>
-              <strong className="shrink-0 text-[15px] tabular-nums text-slate-950">{displayValue}</strong>
+              <strong className="shrink-0 text-[16px] tabular-nums text-slate-950">{displayValue}</strong>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-[rgba(15,20,26,0.08)]">
               <div className="h-full rounded-full" style={{ width: `${widthPct}%`, background: fill }} />
             </div>
             {expanded && driver.details?.length ? (
-              <div className="grid gap-1 rounded-[0.95rem] border border-black/6 bg-[rgba(249,245,238,0.92)] px-3 py-2.5">
+              <div className="grid gap-1.5 rounded-[0.95rem] border border-black/6 bg-[rgba(249,245,238,0.92)] px-3.5 py-3">
                 {driver.details.map((detail) => (
-                  <div key={detail.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[11px] text-slate-600">
+                  <div key={detail.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[12px] text-slate-700">
                     <span className="min-w-0 leading-[1.25]">{detail.label}</span>
                     <strong className="shrink-0 text-slate-950">
                       {detail.value.toFixed(1)} / {detail.max}
@@ -787,16 +838,16 @@ function PeerCompareCard({ model }: { model: DecisionLabModel }) {
       {model.peerPosition.map((item) => (
         <div
           key={item.label}
-          className="grid grid-cols-[minmax(0,1fr)_minmax(0,11rem)] items-start gap-3 border-t border-black/6 pt-2.5 text-[13px] text-slate-600 first:border-t-0 first:pt-0"
+          className="grid grid-cols-[minmax(0,1fr)_minmax(0,11rem)] items-start gap-3 border-t border-black/6 pt-2.5 text-[14px] text-slate-700 first:border-t-0 first:pt-0"
         >
           <span className="min-w-0 leading-[1.25]">{item.label}</span>
           <div className="min-w-0 text-right">
             <strong className="block break-words text-[15px] leading-[1.15] text-slate-950">
               {formatCompareValue(item.current, item.format)}
             </strong>
-            <span className="mt-0.5 block break-words leading-[1.2] text-[#8a8377]">
-              vs {formatCompareValue(item.benchmark, item.format)}
-            </span>
+              <span className="mt-0.5 block break-words leading-[1.2] text-[#746d62]">
+                vs {formatCompareValue(item.benchmark, item.format)}
+              </span>
           </div>
         </div>
       ))}
@@ -1070,15 +1121,15 @@ function StressScenarioCard({ organization }: { organization: OrganizationRecord
     <div className="grid gap-3">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <div className="rounded-[1.05rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-3">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Largest revenue source</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Largest revenue source</p>
           <p className="mt-1 text-[1rem] font-semibold leading-[1.15] tracking-[-0.04em] text-slate-950">
             {formatLargestSourceLabel(organization)}
           </p>
         </div>
         <div className={`rounded-[1.05rem] border px-3 py-3 ${redZone ? "border-[#b35b49]/24 bg-[rgba(254,239,235,0.96)]" : "border-[#1f5446]/16 bg-[rgba(231,241,236,0.95)]"}`}>
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Runway after {shockPct}% shock</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Runway after {shockPct}% shock</p>
           <p className="mt-1 text-[1.15rem] font-semibold tracking-[-0.05em] text-slate-950">{formatRunwayForCard(projectedRunway)}</p>
-          <p className={`mt-1 text-[11px] ${redZone ? "text-[#b35b49]" : "text-slate-500"}`}>
+          <p className={`mt-1 text-[12px] font-medium ${redZone ? "text-[#b35b49]" : "text-slate-700"}`}>
             {redZone ? "Below 3-month red zone" : "Still above the red zone"}
           </p>
         </div>
@@ -1122,6 +1173,8 @@ function buildSnapshotDefinition(organization: OrganizationRecord, model: Decisi
     case "Underinvested Asset Base": {
       const unrealizedReturns = compactCurrency(computeUnrealizedAnnualReturns(organization));
       return {
+        eyebrow: "Highest upside",
+        title: "Unlock underused assets",
         pitch: `${formatOrganizationName(organization.orgName)} has ${netAssets} invested at ${organization.investmentYield.toFixed(2)}% yield. At the 5% benchmark, that's ${unrealizedReturns}/year they're leaving on the table.`,
         metrics: [
           { label: "Net assets", value: netAssets },
@@ -1134,6 +1187,8 @@ function buildSnapshotDefinition(organization: OrganizationRecord, model: Decisi
     }
     case "Revenue Concentration Risk":
       return {
+        eyebrow: "Fragility check",
+        title: "Reduce single-source dependence",
         pitch: `${formatOrganizationName(organization.orgName)} earns ${organization.stress.largestSourcePct.toFixed(1)}% of revenue from ${formatLargestSourceName(organization.stress.largestSource)}. If that source cuts 25%, they have ${formatRunwayForPitch(shock25)} of cash.`,
         metrics: [
           { label: "Net assets", value: netAssets },
@@ -1145,6 +1200,8 @@ function buildSnapshotDefinition(organization: OrganizationRecord, model: Decisi
       };
     case "Weak Financial Foundation":
       return {
+        eyebrow: "Foundation gap",
+        title: "Build reserve discipline first",
         pitch: `${formatOrganizationName(organization.orgName)} has ${netAssets} in assets and ${formatRunwayForPitch(currentRunway)} of runway. They need a reserve policy before the next funding cycle.`,
         metrics: [
           { label: "Net assets", value: netAssets },
@@ -1156,6 +1213,8 @@ function buildSnapshotDefinition(organization: OrganizationRecord, model: Decisi
       };
     case "Needs Data Diligence":
       return {
+        eyebrow: "Confidence gate",
+        title: "Validate the filing before outreach",
         pitch: `${formatOrganizationName(organization.orgName)} has ${completeness.availableCount} of 5 key financial fields populated. Manual review is needed before outreach.`,
         metrics: [
           { label: "Data completeness", value: `${completeness.availableCount} of 5 fields` },
@@ -1176,17 +1235,19 @@ function FlightSignalStrip({
   safetyLine: string;
 }) {
   return (
-    <section className="rounded-[1.2rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3.5 py-3">
-      <div className="grid gap-2.5 min-[960px]:grid-cols-[minmax(0,1fr)_auto_auto] min-[960px]:items-end">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Weak signal</p>
-          <p className="mt-1 text-[1.05rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{label}</p>
+    <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.94)] px-4 py-3.5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Weak signal</p>
+          <p className="mt-1.5 text-[1.12rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">{label}</p>
         </div>
-        <div className="rounded-full border border-black/7 bg-white/84 px-3 py-1.5 text-[12px] font-medium text-slate-700">
-          Safety line {safetyLine}
-        </div>
-        <div className="rounded-full border border-[#1f5446]/18 bg-[rgba(231,241,236,0.9)] px-3 py-1.5 text-[12px] font-medium text-[#173a32]">
-          Matched start {matchedStart}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="rounded-full border border-black/7 bg-white/84 px-3 py-1.5 text-[12px] font-medium text-slate-700">
+            Safety line {safetyLine}
+          </div>
+          <div className="rounded-full border border-[#1f5446]/18 bg-[rgba(231,241,236,0.9)] px-3 py-1.5 text-[12px] font-medium text-[#173a32]">
+            Matched start {matchedStart}
+          </div>
         </div>
       </div>
     </section>
@@ -1197,7 +1258,7 @@ function MetricList({ rows }: { rows: Array<{ label: string; value: string }> })
   return (
     <div className="grid gap-2">
       {rows.map((row) => (
-        <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,14rem)] items-start gap-3 border-t border-black/6 pt-2 text-[12px] text-slate-600 first:border-t-0 first:pt-0">
+        <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,14rem)] items-start gap-3 border-t border-black/6 pt-2.5 text-[13px] text-slate-700 first:border-t-0 first:pt-0">
           <span className="min-w-0 leading-[1.25]">{row.label}</span>
           <strong className="min-w-0 break-words text-right leading-[1.2] text-slate-950">{row.value}</strong>
         </div>
@@ -1223,8 +1284,8 @@ function ReplayControlPanel({
     <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
       <div className="grid gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Intervention plan</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Intervention plan</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {scenarios.map((scenario) => {
               const active = scenario.id === strategyId;
               return (
@@ -1232,7 +1293,7 @@ function ReplayControlPanel({
                   key={scenario.id}
                   type="button"
                   onClick={() => setStrategyId(scenario.id)}
-                  className={`min-w-0 cursor-pointer whitespace-nowrap rounded-[0.95rem] border px-3 py-2.5 text-[12px] font-medium leading-[1.15] ${
+                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-3 text-left text-[12px] font-medium leading-[1.25] [text-wrap:balance] ${
                     active
                       ? "border-[#1f5446]/30 bg-[rgba(231,241,236,0.96)] text-[#173a32]"
                       : "border-black/8 bg-white/78 text-slate-700 hover:bg-[rgba(250,246,239,0.9)]"
@@ -1245,8 +1306,8 @@ function ReplayControlPanel({
           </div>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Compare view</p>
-          <div className="mt-2 grid gap-2 grid-cols-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Compare view</p>
+          <div className="mt-2 grid gap-2 min-[520px]:grid-cols-2 xl:grid-cols-4">
             {[
               { key: "risk", label: "Risk" },
               { key: "margin", label: "Margin" },
@@ -1259,7 +1320,7 @@ function ReplayControlPanel({
                   key={option.key}
                   type="button"
                   onClick={() => setMetric(option.key as PathMetric)}
-                  className={`min-w-0 cursor-pointer whitespace-nowrap rounded-[0.95rem] border px-3 py-2.5 text-[12px] font-medium leading-[1.15] ${
+                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-2.5 text-[12px] font-medium leading-[1.2] [text-wrap:balance] ${
                     active
                       ? "border-[#1f5446]/30 bg-[rgba(231,241,236,0.96)] text-[#173a32]"
                       : "border-black/8 bg-white/78 text-slate-700 hover:bg-[rgba(250,246,239,0.9)]"
@@ -1285,6 +1346,7 @@ function RangeRail({
   labels,
   ariaLabel,
   compact = true,
+  snapValues,
 }: {
   value: number;
   min: number;
@@ -1294,6 +1356,7 @@ function RangeRail({
   labels: string[];
   ariaLabel: string;
   compact?: boolean;
+  snapValues?: number[];
 }) {
   return (
     <div className="grid gap-2">
@@ -1304,12 +1367,24 @@ function RangeRail({
           max={max}
           step={step}
           value={value}
-          onChange={(event) => onChange(Number(event.target.value))}
+          onChange={(event) => {
+            const nextValue = Number(event.target.value);
+            if (!snapValues?.length) {
+              onChange(nextValue);
+              return;
+            }
+
+            const snappedValue = snapValues.reduce((closest, candidate) =>
+              Math.abs(candidate - nextValue) < Math.abs(closest - nextValue) ? candidate : closest,
+            );
+
+            onChange(snappedValue);
+          }}
           className="h-2 w-full cursor-pointer accent-[#1f5446]"
           aria-label={ariaLabel}
         />
       </div>
-      <div className="grid gap-2 text-[11px] text-slate-500" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
+      <div className="grid gap-2 text-[12px] font-semibold text-slate-800" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
         {labels.map((label) => (
           <span key={label} className="min-w-0 break-words text-center leading-[1.2]">{label}</span>
         ))}
@@ -1347,17 +1422,17 @@ function RouteDeckCard({
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-[1.35rem] border px-4 py-4 text-left ${
+      className={`min-w-0 cursor-pointer rounded-[1.4rem] border px-4 py-4.5 text-left ${
         active
           ? "border-transparent bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-[rgba(239,247,242,0.98)]"
           : "border-black/7 bg-[rgba(249,245,238,0.92)] text-slate-950 hover:bg-white/82"
       }`}
     >
-      <p className={`text-[10px] uppercase tracking-[0.18em] ${active ? "text-[rgba(239,247,242,0.76)]" : "text-slate-400"}`}>{label}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${active ? "text-[rgba(239,247,242,0.8)]" : "text-slate-600"}`}>{label}</p>
       <strong className="mt-2 block break-words text-[1.15rem] leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">{title}</strong>
-      <p className={`mt-2 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{orgName}</p>
-      <p className={`mt-2 break-words text-[12px] leading-[1.3] ${active ? "text-[rgba(239,247,242,0.78)]" : "text-slate-500"}`}>{story}</p>
-      <div className={`mt-3 grid gap-2 border-t pt-3 text-[12px] ${active ? "border-white/12 text-[rgba(239,247,242,0.84)]" : "border-black/7 text-slate-600"}`}>
+      <p className={`mt-2 break-words text-[14px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.88)]" : "text-slate-700"}`}>{orgName}</p>
+      <p className={`mt-2 break-words text-[13px] leading-[1.35] ${active ? "text-[rgba(239,247,242,0.8)]" : "text-slate-600"}`}>{story}</p>
+      <div className={`mt-3 grid gap-2 border-t pt-3 text-[13px] ${active ? "border-white/12 text-[rgba(239,247,242,0.88)]" : "border-black/7 text-slate-700"}`}>
         <div className="flex items-center justify-between gap-3">
           <span>Start gap</span>
           <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{startGap}</strong>
@@ -1377,7 +1452,7 @@ function RouteDeckCard({
           </strong>
         </div>
       </div>
-      <p className={`mt-3 break-words text-[13px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{window}</p>
+      <p className={`mt-3 break-words text-[13px] leading-[1.3] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{window}</p>
     </button>
   );
 }
@@ -1409,41 +1484,43 @@ function SelectedRouteSpotlight({
 }) {
   return (
     <section className="rounded-[1.45rem] border border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(232,241,235,0.95),rgba(246,249,246,0.9))] px-4 py-3.5">
-      <div className="grid gap-3 min-[1120px]:grid-cols-[minmax(0,1.05fr)_repeat(5,minmax(0,0.5fr))] min-[1120px]:items-end">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] xl:items-start">
         <div className="min-w-0 rounded-[1.1rem] border border-[#1f5446]/14 bg-white/88 px-3.5 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#557062]">{routeDeckEyebrow(deckType)}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#557062]">{routeDeckEyebrow(deckType)}</p>
           <strong className="mt-1 block break-words text-[1.28rem] leading-[1.02] tracking-[-0.06em] text-slate-950">
             {routeName}
           </strong>
         </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Matched start</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{matchedStart}</p>
-        </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Peer start</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerStart}</p>
-        </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">You @ FY{orgMatchedYear}</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{orgValue}</p>
-        </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Peer @ FY{selectedRouteYear}</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerValue}</p>
-        </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Safety reached</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">
-            {safetyYear ? `FY${safetyYear}` : "Not reached"}
-          </p>
-        </div>
-        <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">End read</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{endRead}</p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Matched start</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{matchedStart}</p>
+          </div>
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Peer start</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerStart}</p>
+          </div>
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">You @ FY{orgMatchedYear}</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{orgValue}</p>
+          </div>
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Peer @ FY{selectedRouteYear}</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{peerValue}</p>
+          </div>
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Safety reached</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">
+              {safetyYear ? `FY${safetyYear}` : "Not reached"}
+            </p>
+          </div>
+          <div className="min-w-0 rounded-[1rem] border border-black/7 bg-white/78 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">End read</p>
+            <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{endRead}</p>
+          </div>
         </div>
       </div>
-      <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[#557062]">{viewWindowLabel(recoveryWindow)}</p>
+      <p className="mt-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#557062]">{viewWindowLabel(recoveryWindow)}</p>
     </section>
   );
 }
@@ -1465,7 +1542,7 @@ function ReplayReferenceCard({
 }) {
   return (
     <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         <SnapshotMetricCard label="Intervention point" value={`FY${interventionYear}`} compact />
         <SnapshotMetricCard label="Observed next filing" value={`FY${observedYear}`} compact />
         <SnapshotMetricCard label="Replay window" value={windowLabel} compact />
@@ -1494,7 +1571,7 @@ function StatePanel({
         emphasized ? "border-[#1f5446]/22 bg-[rgba(231,241,236,0.92)]" : "border-black/7 bg-white/84"
       }`}
     >
-      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">{eyebrow}</p>
       <strong className="mt-2 block break-words text-[1.2rem] leading-[1.12] tracking-[-0.04em] text-slate-950 [text-wrap:balance]">{title}</strong>
       <div className="mt-4 grid gap-2">
         {stats.map((stat) => (
@@ -1525,9 +1602,9 @@ function QuickActionButton({
       aria-label={ariaLabel}
       className="min-w-0 cursor-pointer rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-2.5 text-left hover:bg-white/84"
     >
-      <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">{label}</p>
       <p className="mt-1.5 break-words text-[1rem] font-semibold leading-[1.15] tracking-[-0.04em] text-slate-950">{value}</p>
-      <p className="mt-1 break-words text-[12px] leading-[1.25] text-slate-500">{detail}</p>
+      <p className="mt-1 break-words text-[12px] leading-[1.25] text-slate-700">{detail}</p>
     </button>
   );
 }
@@ -1539,9 +1616,9 @@ function RecoveryFlightChart({
   signal: FlightSignal;
   view: FlightView;
 }) {
-  const width = 760;
-  const height = 360;
-  const margin = { top: 26, right: 18, bottom: 42, left: 58 };
+  const width = 820;
+  const height = 348;
+  const margin = { top: 24, right: 24, bottom: 44, left: 78 };
   const chartHeight = height - margin.top - margin.bottom;
   const values = [view.orgComparisonSeries, view.selectedRoute.series].flat();
   const min = d3Min(values) ?? 0;
@@ -1593,7 +1670,8 @@ function RecoveryFlightChart({
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="mt-4 h-[380px] w-full rounded-[1rem] bg-[rgba(249,245,238,0.9)]">
+      <div className="mt-4 overflow-hidden rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)]">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block h-[340px] w-full">
         <defs>
           <clipPath id="flight-progress-clip">
             <rect
@@ -1683,15 +1761,16 @@ function RecoveryFlightChart({
         <text x={xScale(Math.max(0, view.chartYears.length - 1))} y={height - 10} fontSize="11" textAnchor="end" fill="rgba(71,85,105,0.72)">
           Finish
         </text>
-      </svg>
+        </svg>
+      </div>
     </section>
   );
 }
 
 function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric }) {
-  const width = 760;
-  const height = 360;
-  const margin = { top: 26, right: 18, bottom: 42, left: 58 };
+  const width = 820;
+  const height = 348;
+  const margin = { top: 24, right: 24, bottom: 44, left: 78 };
   const actualSeries = view.timeline.map((point) => metricValue(point.actual, metric));
   const projectedSeries = view.timeline.map((point) => metricValue(point.projected, metric));
   const replayScale = buildReplayChartScale(metric, [...actualSeries, ...projectedSeries]);
@@ -1728,7 +1807,8 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="mt-4 h-[380px] w-full rounded-[1rem] bg-[rgba(249,245,238,0.9)]">
+      <div className="mt-4 overflow-hidden rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)]">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block h-[340px] w-full">
         {yTicks.map((tick) => {
           const y = yScale(tick);
           return (
@@ -1780,7 +1860,8 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
             </g>
           );
         })}
-      </svg>
+        </svg>
+      </div>
     </section>
   );
 }
@@ -1792,9 +1873,9 @@ function MiniMultiSeriesChart({
   labels: string[];
   series: Array<{ label: string; color: string; values: number[] }>;
 }) {
-  const width = 760;
-  const height = 244;
-  const margin = { top: 20, right: 22, bottom: 42, left: 62 };
+  const width = 820;
+  const height = 236;
+  const margin = { top: 18, right: 26, bottom: 40, left: 74 };
   const values = series.flatMap((item) => item.values);
   const minValue = d3Min(values) ?? 0;
   const maxValue = d3Max(values) ?? 1;
@@ -1811,7 +1892,8 @@ function MiniMultiSeriesChart({
 
   return (
     <div className="grid gap-2">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[240px] w-full rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)] p-2">
+      <div className="overflow-hidden rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)]">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block h-[236px] w-full">
         {tickValues.map((tick) => (
           <g key={`financial-tick-${tick}`}>
             <line
@@ -1854,7 +1936,8 @@ function MiniMultiSeriesChart({
             {labels[index] ?? ""}
           </text>
         ))}
-      </svg>
+        </svg>
+      </div>
       <div className="flex flex-wrap gap-2">
         {series.map((item) => (
           <span key={item.label} className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
@@ -1874,9 +1957,9 @@ function StackedMixPreview({
   history: OrganizationRecord["revenueCompositionHistory"];
   concentrationSeries?: number[];
 }) {
-  const width = 760;
-  const height = 244;
-  const margin = { top: 20, right: 18, bottom: 42, left: 56 };
+  const width = 820;
+  const height = 236;
+  const margin = { top: 18, right: 22, bottom: 40, left: 64 };
   const palette = {
     contributions: "#c89648",
     program: "#4f7664",
@@ -1898,7 +1981,8 @@ function StackedMixPreview({
 
   return (
     <div className="grid gap-2">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[240px] w-full rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)] p-2">
+      <div className="overflow-hidden rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.9)]">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block h-[236px] w-full">
         {[0, 25, 50, 75, 100].map((tick) => (
           <g key={`mix-tick-${tick}`}>
             <line
@@ -1982,7 +2066,8 @@ function StackedMixPreview({
             {history[index] ? `FY${history[index].fiscalYear}` : ""}
           </text>
         ))}
-      </svg>
+        </svg>
+      </div>
       <div className="flex flex-wrap gap-2">
         {layerOrder.map((item) => (
           <span key={item.label} className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
@@ -2226,7 +2311,7 @@ function MixDetailChart({
   );
 }
 
-function buildFlightView(
+export function buildFlightView(
   organization: OrganizationRecord,
   signal: FlightSignal,
   lens: FlightLens,
@@ -2292,15 +2377,15 @@ function buildFlightView(
   });
 
   const closest = routeViews.reduce((best, route) =>
-    Math.abs(route.preValue - currentValue) < Math.abs(best.preValue - currentValue) ? route : best,
+    routeSortScore(route, "closest", signal) < routeSortScore(best, "closest", signal) ? route : best,
   );
   const fastest = routeViews.reduce((best, route) =>
-    routeSortValue(route, "fastest") < routeSortValue(best, "fastest") ? route : best,
+    routeSortScore(route, "fastest", signal) < routeSortScore(best, "fastest", signal) ? route : best,
   );
   const strongest = routeViews.reduce((best, route) =>
-    routeSortValue(route, "strongest") > routeSortValue(best, "strongest") ? route : best,
+    routeSortScore(route, "strongest", signal) > routeSortScore(best, "strongest", signal) ? route : best,
   );
-  const featuredRoutes = pickFeaturedRoutes(routeViews, { closest, fastest, strongest });
+  const featuredRoutes = pickFeaturedRoutes(routeViews, { closest, fastest, strongest }, signal);
   const routeFromLens =
     featuredRoutes.find((route) => route.deckType === lens) ??
     featuredRoutes[0] ??
@@ -2385,12 +2470,13 @@ function buildRouteSeries({
 function pickFeaturedRoutes(
   routes: FlightRouteView[],
   ranked: Record<FlightDeckType, FlightRouteView>,
+  signal: FlightSignal,
 ) {
   const usedIds = new Set<string>();
   const sorters: Record<FlightDeckType, (route: FlightRouteView) => number> = {
-    closest: (route) => route.startGap,
-    fastest: (route) => routeSortValue(route, "fastest"),
-    strongest: (route) => -routeSortValue(route, "strongest"),
+    closest: (route) => routeSortScore(route, "closest", signal),
+    fastest: (route) => routeSortScore(route, "fastest", signal),
+    strongest: (route) => -routeSortScore(route, "strongest", signal),
   };
 
   return (["closest", "fastest", "strongest"] as FlightDeckType[])
@@ -2415,14 +2501,18 @@ function pickFeaturedRoutes(
     .filter((route): route is FlightRouteView => route !== null);
 }
 
-function routeSortValue(route: FlightRouteView, deckType: FlightDeckType) {
+function routeSortScore(route: FlightRouteView, deckType: FlightDeckType, signal: FlightSignal) {
+  const movementThreshold = signal === "concentration" ? 0.035 : signal === "runway" ? 1.5 : 1.25;
+  const flatPenalty = Math.abs(route.totalChange) < movementThreshold ? 100 : 0;
+  const instantSafetyPenalty = route.safetyIndex === 0 ? 20 : 0;
+
   if (deckType === "fastest") {
-    return route.timeToSafetyYears ?? route.durationYears;
+    return (route.timeToSafetyYears ?? route.durationYears) + flatPenalty * 0.1;
   }
   if (deckType === "strongest") {
-    return route.postValue;
+    return route.postValue - flatPenalty * 0.001;
   }
-  return route.startGap;
+  return route.startGap + flatPenalty + instantSafetyPenalty;
 }
 
 function getAvailableFlightSignals(organization: OrganizationRecord): FlightSignal[] {

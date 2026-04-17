@@ -62,18 +62,18 @@ export function OrganizationCard({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-700">
                 {organization.state}
               </span>
               <span className="text-slate-400">·</span>
-              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700">
                 FY{organization.fiscalYear}
               </span>
               {showBucketBadge ? <BucketBadge mode={mode} /> : null}
             </div>
             <h3
               className={`mt-2 text-slate-950 ${
-                layoutMode === "gallery" ? "text-[1.52rem]" : "text-[1.38rem]"
+                layoutMode === "gallery" ? "text-[1.58rem]" : "text-[1.42rem]"
               } font-semibold leading-[1.06] tracking-[-0.04em]`}
             >
               {inboxCopy.displayName}
@@ -103,13 +103,13 @@ export function OrganizationCard({
         </div>
 
         <div className="mt-3 rounded-[1.7rem] border border-black/6 bg-white/82 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">
             {isNdd ? "Diligence note" : "Advisory note"}
           </p>
-          <p className="mt-1.5 text-[15px] leading-relaxed text-slate-800">{inboxCopy.whyNow}</p>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-slate-900">{inboxCopy.whyNow}</p>
           {mode === "uab" ? (
-            <p className="mt-2 border-t border-black/5 pt-2 text-[12px] leading-relaxed text-slate-600">
-              <span className="font-semibold text-slate-700">Unrealized Returns</span> — estimated annual gain if assets earned 5% benchmark yield vs current yield. Formula: (5% − current yield) × net assets.
+            <p className="mt-2 border-t border-black/5 pt-2 text-[12px] leading-relaxed text-slate-700">
+              <span className="font-semibold text-slate-800">Unrealized Returns</span> — estimated annual gain if assets earned 5% benchmark yield vs current yield. Formula: (5% − current yield) × net assets.
             </p>
           ) : null}
         </div>

@@ -129,9 +129,25 @@ export function PortfolioInbox({
     [sizeBucketOptions],
   );
   const stateFilterOptions = useMemo(() => ["All", ...stateOptions], [stateOptions]);
+  const availableAllCasesOptions = useMemo(() => {
+    const options: Array<{ value: AllCasesChip; label: string }> = [{ value: "all", label: "All" }];
+    if (organizations.some((organization) => organization.actionLabel === "Weak Financial Foundation")) {
+      options.push({ value: "wff", label: "Financial Infra" });
+    }
+    if (organizations.some((organization) => organization.actionLabel === "Needs Data Diligence")) {
+      options.push({ value: "ndd", label: "Needs Diligence" });
+    }
+    return options;
+  }, [organizations]);
 
   const uabCount = organizations.filter((organization) => organization.actionLabel === "Underinvested Asset Base").length;
   const rcrCount = organizations.filter((organization) => organization.actionLabel === "Revenue Concentration Risk").length;
+
+  useEffect(() => {
+    if (!availableAllCasesOptions.some((option) => option.value === allCasesChip)) {
+      setAllCasesChip("all");
+    }
+  }, [allCasesChip, availableAllCasesOptions]);
 
   return (
     <section className="w-full rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-2 shadow-[0_34px_94px_-56px_rgba(15,23,42,0.28)]">
@@ -151,7 +167,7 @@ export function PortfolioInbox({
               >
                 Cases for Review
               </h2>
-              <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.82)] px-4 py-2 text-[15px] font-semibold tracking-[-0.02em] text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+              <div className="inline-flex items-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.9)] px-4 py-2 text-[15px] font-semibold tracking-[-0.02em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                 {tabFilteredOrganizations.length} cases
               </div>
             </div>
@@ -177,13 +193,13 @@ export function PortfolioInbox({
                     <div>
                       <p
                         className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${
-                          active ? "text-[rgba(239,247,242,0.78)]" : "text-[#6d665b]"
+                          active ? "text-[rgba(239,247,242,0.84)]" : "text-[#5b554d]"
                         }`}
                       >
                         {tab.eyebrow}
                       </p>
                       <p
-                        className={`mt-0.5 text-[1rem] font-semibold leading-[1.08] tracking-[-0.05em] [text-wrap:balance] ${
+                        className={`mt-0.5 text-[1.04rem] font-semibold leading-[1.08] tracking-[-0.05em] [text-wrap:balance] ${
                           active ? "text-[rgba(239,247,242,0.98)]" : "text-slate-950"
                         }`}
                       >
@@ -217,31 +233,27 @@ export function PortfolioInbox({
                   : "md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.42fr)_repeat(2,minmax(160px,0.3fr))]"
             }`}
           >
-            <label className="flex items-center gap-3 rounded-[1.7rem] border border-black/6 bg-white/88 px-4 py-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <label className="flex items-center gap-3 rounded-[1.7rem] border border-black/6 bg-white/92 px-4 py-3 text-sm text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
               <MagnifyingGlass size={18} weight="bold" />
               <input
                 value={searchQuery}
                 onChange={(event) => onSearchQueryChange(event.target.value)}
                 placeholder="Search by name, state, or note"
-                className="w-full border-none bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-500"
+                className="w-full border-none bg-transparent text-[15px] font-medium text-slate-950 outline-none placeholder:text-slate-500"
               />
             </label>
 
-            {bucketTab === "all" ? (
+            {bucketTab === "all" && availableAllCasesOptions.length > 1 ? (
               <DropdownPill
                 buttonLabel="Bucket"
-                value={allCasesChip === "all" ? "All" : allCasesChip === "wff" ? "Financial Infra" : "Needs Diligence"}
+                value={availableAllCasesOptions.find((option) => option.value === allCasesChip)?.label ?? "All"}
                 open={openToolbarKey === "bucket-filter"}
                 onToggle={() => setOpenToolbarKey((current) => (current === "bucket-filter" ? null : "bucket-filter"))}
                 onSelect={(value) => {
                   setAllCasesChip(value as AllCasesChip);
                   setOpenToolbarKey(null);
                 }}
-                options={[
-                  { value: "all", label: "All" },
-                  { value: "wff", label: "Financial Infra" },
-                  { value: "ndd", label: "Needs Diligence" },
-                ]}
+                options={availableAllCasesOptions}
               />
             ) : null}
 
@@ -283,7 +295,7 @@ export function PortfolioInbox({
           </div>
 
           {!isGallery && hiddenCount > 0 ? (
-            <p className="text-sm leading-relaxed text-slate-700">
+            <p className="text-[15px] leading-relaxed text-slate-800">
               {displayedOrganizations.length} shown · {hiddenCount} more match this view.
             </p>
           ) : null}
@@ -342,7 +354,7 @@ function DropdownPill({
           <p className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">
             {buttonLabel}
           </p>
-          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{value}</p>
+          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-slate-950">{value}</p>
         </div>
         <CaretDown
           size={16}

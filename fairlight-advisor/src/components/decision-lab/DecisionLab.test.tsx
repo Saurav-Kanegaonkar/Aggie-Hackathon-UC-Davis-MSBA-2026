@@ -5,7 +5,7 @@ import { vi } from "vitest";
 import dataset from "../../data/fairlight-advisor.json";
 import { buildDecisionLabModel } from "../../lib/decisionLabModel";
 import type { OrganizationRecord } from "../../types";
-import { buildPathView, DecisionLab, findBestReplaySetup } from "../DecisionLab";
+import { buildFlightView, buildPathView, DecisionLab, findBestReplaySetup } from "../DecisionLab";
 import { FinancialTrajectoryPanel } from "./FinancialTrajectoryPanel";
 import { OperatingQualityPanel } from "./OperatingQualityPanel";
 import { RecoveryAnalogsPanel } from "./RecoveryAnalogsPanel";
@@ -116,6 +116,35 @@ describe("Decision Lab visual panels", () => {
     expect(screen.getByText(/each bar shows the share of total revenue/i)).toBeInTheDocument();
   });
 
+  it("packs the snapshot pitch and key metrics into one top summary shell", () => {
+    const organization = dataset.organizations[0] as OrganizationRecord;
+    const { container } = render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    const summaryShell = Array.from(container.querySelectorAll("section")).find((element) =>
+      typeof element.className === "string" &&
+      element.className.includes("min-[1120px]:grid-cols-[1.05fr_0.95fr]"),
+    );
+
+    expect(summaryShell).toBeDefined();
+    expect(within(summaryShell as HTMLElement).getAllByText(organization.actionLabel).length).toBeGreaterThan(0);
+    expect(within(summaryShell as HTMLElement).getAllByText(organization.whySurfaced).length).toBeGreaterThan(0);
+  });
+
+  it("stacks long sidebar action labels so they do not overlap the metric row", () => {
+    const organization = dataset.organizations.find(
+      (candidate) => candidate.actionLabel === "Underinvested Asset Base",
+    ) as OrganizationRecord;
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    const actionLabel = screen.getAllByText(/^Action$/i).find((element) =>
+      element.closest("div")?.textContent?.includes("Underinvested Asset Base"),
+    );
+
+    expect(actionLabel).toBeTruthy();
+    expect(actionLabel?.closest("div")?.className.includes("grid-cols-1")).toBe(true);
+  });
+
   it("allows score breakdown and recovery analogs panels to grow with their content", () => {
     const organization = dataset.organizations[0] as OrganizationRecord;
     const model = buildDecisionLabModel(organization);
@@ -213,7 +242,7 @@ describe("Decision Lab visual panels", () => {
     const shell = Array.from(container.querySelectorAll("div")).find(
       (element) =>
         typeof element.className === "string" &&
-        element.className.includes("min-[960px]:grid-cols-[220px_minmax(0,1fr)]"),
+        element.className.includes("min-[1080px]:grid-cols-[280px_minmax(0,1fr)]"),
     );
 
     expect(shell).toBeDefined();
@@ -265,6 +294,22 @@ describe("Decision Lab visual panels", () => {
     expect(screen.queryByRole("button", { name: /^diversify$/i })).not.toBeInTheDocument();
   });
 
+  it("lets long replay plan labels wrap instead of forcing them onto one line", async () => {
+    const user = userEvent.setup();
+    const organization = dataset.organizations.find(
+      (candidate) => candidate.id === "800143565-2024",
+    ) as OrganizationRecord;
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    await user.click(screen.getByRole("button", { name: /crisis replay/i }));
+
+    const replayPlanButton = screen.getByRole("button", { name: /financial resilience x-ray/i });
+
+    expect(replayPlanButton.className.includes("whitespace-nowrap")).toBe(false);
+    expect(replayPlanButton.className.includes("text-left")).toBe(true);
+  });
+
   it("renders Crisis Replay as a multi-year trajectory around the intervention year instead of a 3-point split", async () => {
     const user = userEvent.setup();
     const organization = dataset.organizations.find(
@@ -296,6 +341,32 @@ describe("Decision Lab visual panels", () => {
     await user.click(screen.getByRole("button", { name: /recovery flight/i }));
 
     expect(screen.getAllByText(/5\.8 yrs/i).length).toBeGreaterThan(0);
+  });
+
+  it("snaps the recovery flight slider to the three route states", async () => {
+    const user = userEvent.setup();
+    const organization = dataset.organizations.find(
+      (candidate) => candidate.id === "800143565-2024",
+    ) as OrganizationRecord;
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    await user.click(screen.getByRole("button", { name: /recovery flight/i }));
+
+    const slider = screen.getByRole("slider", { name: /scrub through recovery route/i });
+
+    expect(slider).toHaveAttribute("step", "50");
+  });
+
+  it("avoids selecting a flat closest-twin recovery route when a more informative concentration path exists", () => {
+    const organization = dataset.organizations.find(
+      (candidate) => candidate.actionLabel === "Underinvested Asset Base",
+    ) as OrganizationRecord;
+
+    const flightView = buildFlightView(organization, "concentration", "closest", 50, null);
+
+    expect(Math.abs(flightView.selectedRoute.totalChange)).toBeGreaterThan(0.035);
+    expect(flightView.selectedRoute.safetyIndex).not.toBe(0);
   });
 
   it("turns Recovery Flight into a compare surface with route evidence instead of vague peer-move copy", async () => {

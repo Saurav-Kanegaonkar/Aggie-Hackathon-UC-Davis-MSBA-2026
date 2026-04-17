@@ -44,7 +44,6 @@ describe("Fairlight advisor workspace", () => {
     expect(trappedScroller).toBeUndefined();
     expect(viewportPinnedInbox).toBeUndefined();
   });
-
   it("shows the operating margin formula in the inbox metric hover copy", async () => {
     const user = userEvent.setup();
     render(<App />);

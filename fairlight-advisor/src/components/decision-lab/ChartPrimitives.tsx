@@ -226,7 +226,7 @@ export function PanelShell({
                     </li>
                   ))}
                 </ul>
-                <div className="mt-auto pt-5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Tap again to return</div>
+                <div className="mt-auto pt-5 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">Tap again to return</div>
               </div>
             </div>
           ) : null}
@@ -245,7 +245,7 @@ export function PanelShell({
                     </li>
                   ))}
                 </ul>
-                <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return</div>
+                <div className="mt-6 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">Use the top-right button to return</div>
               </div>
             </div>
           ) : (
@@ -288,13 +288,13 @@ function FlipGuideCard({
         <div className="absolute inset-0 flex min-h-[17.5rem] flex-col rounded-[1.45rem] border border-black/6 bg-white/78 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] [backface-visibility:hidden]">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{title}</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">{title}</p>
               <p className="mt-2 text-[1.45rem] font-semibold tracking-[-0.05em] text-slate-950">{value}</p>
             </div>
             <button
               type="button"
               onClick={() => setShowGuide(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-[rgba(248,244,236,0.9)] text-slate-500 transition-colors hover:bg-white"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-[rgba(248,244,236,0.9)] text-slate-700 transition-colors hover:bg-white"
               aria-label={`How to read ${title}`}
             >
               <Info size={13} />
@@ -302,11 +302,11 @@ function FlipGuideCard({
           </div>
           <div className="mt-4 flex-1">{frontVisual}</div>
           <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">Open detail</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Open detail</p>
             <button
               type="button"
               onClick={onOpenDetail}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/6 px-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-[1px] hover:border-black/10 hover:shadow-[0_20px_40px_-30px_rgba(15,23,42,0.18)]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/6 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-[1px] hover:border-black/10 hover:shadow-[0_20px_40px_-30px_rgba(15,23,42,0.18)]"
               style={{ backgroundColor: toneTint }}
               aria-label={openLabel}
             >
@@ -325,13 +325,13 @@ function FlipGuideCard({
           <div className="flex min-h-[17.5rem] h-full flex-col">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{title}</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">{title}</p>
                 <p className="mt-2 text-base font-semibold tracking-[-0.04em] text-slate-950">How to read this chart</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowGuide(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-white/74 text-slate-500 transition-colors hover:bg-white"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/6 bg-white/74 text-slate-700 transition-colors hover:bg-white"
                 aria-label={`Back to ${title} chart`}
               >
                 <ArrowClockwise size={12} />
@@ -345,7 +345,7 @@ function FlipGuideCard({
                 </li>
               ))}
             </ul>
-            <div className="mt-auto pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+            <div className="mt-auto pt-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">
               Open full detail from the chart side when you want the large view
             </div>
           </div>
@@ -396,7 +396,7 @@ export function TrendSparkCard({
         <>
           <div className="flex items-start justify-end">
             <span
-              className="rounded-full border border-black/6 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em]"
+              className="rounded-full border border-black/6 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.12em]"
               style={{ backgroundColor: tint, color }}
             >
               {delta}
@@ -440,7 +440,7 @@ export function Legend({
           className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-[rgba(255,255,255,0.78)] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
         >
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-          <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
+          <span className="text-[12px] font-semibold text-slate-700">{item.label}</span>
         </div>
       ))}
     </div>
@@ -482,7 +482,7 @@ export function BandChart({
           return (
             <g key={value}>
               <line x1="46" y1={y} x2={width} y2={y} className="decision-gridline" />
-              <text x="0" y={y + 4} className="fill-slate-400 text-[10px] tracking-[0.14em] uppercase">
+              <text x="0" y={y + 4} className="fill-slate-600 text-[11px] tracking-[0.12em] uppercase">
                 {`${value >= 0 ? "+" : ""}${value.toFixed(0)}%`}
               </text>
             </g>
@@ -518,7 +518,7 @@ export function BandChart({
       <div className="grid" style={{ gridTemplateColumns: `46px repeat(${labels.length}, minmax(0, 1fr))` }}>
         <span />
         {displayLabels.map((label, index) => (
-          <span key={`${label}-${index}`} className="text-center text-[10px] uppercase tracking-[0.14em] text-slate-400">
+          <span key={`${label}-${index}`} className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
             {label}
           </span>
         ))}
@@ -679,14 +679,14 @@ export function DecisionLabDetailOverlay({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-[1.8rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.35rem]">{detail.title}</h4>
-              {detail.subtitle ? <p className="mt-2.5 max-w-4xl text-[14px] leading-relaxed text-slate-600 md:text-[15px]">{detail.subtitle}</p> : null}
+              {detail.subtitle ? <p className="mt-2.5 max-w-4xl text-[15px] leading-relaxed text-slate-700 md:text-[16px]">{detail.subtitle}</p> : null}
             </div>
             <div className="flex items-center gap-3">
               {detail.guideTitle && detail.guideBullets?.length ? (
                 <button
                   type="button"
                   onClick={() => setShowGuide((value) => !value)}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/78 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 hover:bg-white"
+                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/78 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700 hover:bg-white"
                 >
                   {showGuide ? <ArrowClockwise size={14} /> : <Info size={14} />}
                   <span>{showGuide ? "Back to chart" : "How to read"}</span>
@@ -695,7 +695,7 @@ export function DecisionLabDetailOverlay({
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-500 transition-colors hover:bg-white"
+                className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-700 transition-colors hover:bg-white"
                 aria-label="Close detail"
               >
                 <X size={18} />
@@ -727,7 +727,7 @@ export function DecisionLabDetailOverlay({
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return to the chart</div>
+                  <div className="mt-auto pt-8 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">Use the top-right button to return to the chart</div>
                 </div>
               </div>
             ) : null}
@@ -764,14 +764,14 @@ export function ChartDetailModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-[2.35rem] font-semibold tracking-[-0.065em] text-slate-950 md:text-[2.9rem]">{title}</h4>
-              {subtitle ? <p className="mt-3 max-w-5xl text-[15px] leading-relaxed text-slate-600 md:text-[16px]">{subtitle}</p> : null}
+              {subtitle ? <p className="mt-3 max-w-5xl text-[16px] leading-relaxed text-slate-700 md:text-[17px]">{subtitle}</p> : null}
             </div>
             <div className="flex items-center gap-3">
               {guideTitle && guideBullets?.length ? (
                 <button
                   type="button"
                   onClick={() => setShowGuide((value) => !value)}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/78 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 hover:bg-white"
+                  className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/78 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700 hover:bg-white"
                 >
                   {showGuide ? <ArrowClockwise size={14} /> : <Info size={14} />}
                   <span>{showGuide ? "Back to chart" : "How to read"}</span>
@@ -780,7 +780,7 @@ export function ChartDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-500 transition-colors hover:bg-white"
+                className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-700 transition-colors hover:bg-white"
                 aria-label="Close detail"
               >
                 <X size={18} />
@@ -812,7 +812,7 @@ export function ChartDetailModal({
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Use the top-right button to return to the chart</div>
+                  <div className="mt-auto pt-8 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-600">Use the top-right button to return to the chart</div>
                 </div>
               </div>
             ) : null}
@@ -838,7 +838,7 @@ export function ContributionBars({
     <div className="grid gap-3">
       {rows.map((row) => (
         <div key={row.label} className="grid grid-cols-[11rem_1fr_auto] items-center gap-3">
-          <span className="text-sm text-slate-600">{row.label}</span>
+          <span className="text-[15px] text-slate-700">{row.label}</span>
           <div className="h-2.5 rounded-full bg-slate-100">
             <div className={`h-full rounded-full ${fills[row.tone]}`} style={{ width: `${clamp(row.value, 6, 100)}%` }} />
           </div>
