@@ -906,17 +906,15 @@ function CrisisReplayConsole({
     <section className="overflow-hidden rounded-[0_0_1.65rem_1.65rem] border border-t-0 border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(125,183,162,0.16),transparent_34%),linear-gradient(180deg,rgba(251,248,242,0.98),rgba(243,235,225,0.98))]">
       <h3 className="sr-only">Crisis Replay Console</h3>
       <div className="grid gap-4 px-4 pb-4 pt-3">
-        <section className="rounded-[1.4rem] border border-black/7 bg-white/84 p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Replay setup</p>
-          <p className="mt-2 text-[1.05rem] font-medium leading-[1.38] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
-            {pathView.narrative}
-          </p>
-          {pathView.driversExplanation ? (
-            <p className="mt-2 text-[14px] leading-[1.5] text-slate-700 [text-wrap:balance]">
-              {pathView.driversExplanation}
-            </p>
-          ) : null}
-        </section>
+        <ReplaySetupCard
+          organization={organization}
+          interventionYear={selectedInterventionYear}
+          observedYear={pathView.observedYear}
+          baseline={pathView.baseline}
+          actual={pathView.actual}
+          rankingLabel={pathView.rankingLabel}
+          driversExplanation={pathView.driversExplanation}
+        />
 
         <PathReplayChart view={pathView} metric={metric} />
 
@@ -3396,6 +3394,226 @@ function buildCompletenessChecklist(organization: OrganizationRecord) {
     availableCount: fields.length - missing.length,
     missingSummary: missing.length ? missing.join(" · ") : "None",
   };
+}
+
+function ReplaySetupCard({
+  organization,
+  interventionYear,
+  observedYear,
+  baseline,
+  actual,
+  rankingLabel,
+}: {
+  organization: OrganizationRecord;
+  interventionYear: number;
+  observedYear: number;
+  baseline: PathState;
+  actual: PathState;
+  rankingLabel: string;
+  driversExplanation: string | null;
+}) {
+  const name = formatOrganizationName(organization.orgName);
+  const baselineHealthy = baseline.margin >= 0 && baseline.cushion >= 3;
+  const baselineStatus = baselineHealthy ? "looked healthy" : "already looked fragile";
+  const crisisActual =
+    actual.margin < 0
+      ? "crisis materialized"
+      : actual.cushion < 3
+        ? "runway collapsed"
+        : "risk stayed elevated";
+  const warningSignals = buildWarningSignals(organization, baseline);
+
+  return (
+    <section className="rounded-[1.4rem] border border-black/7 bg-white/84 p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Replay setup</p>
+
+      <p className="mt-2 text-[1.05rem] font-medium leading-[1.35] tracking-[-0.03em] text-slate-950 [text-wrap:balance]">
+        Northstar ranked {name} {rankingLabel} in FY{interventionYear}.
+      </p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-[1rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+            FY{interventionYear} · at the call
+          </p>
+          <p className="mt-1 text-[13.5px] leading-[1.45] text-slate-800">
+            {formatSigned(baseline.margin)}% margin · {formatRunwayForPitch(baseline.cushion)} of runway
+          </p>
+          <p className="text-[11.5px] uppercase tracking-[0.08em] text-slate-500">{baselineStatus}</p>
+        </div>
+        <div className="rounded-[1rem] border border-[#b35b49]/18 bg-[rgba(254,239,235,0.96)] px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+            FY{observedYear} · observed
+          </p>
+          <p className="mt-1 text-[13.5px] leading-[1.45] text-slate-800">
+            {formatSigned(actual.margin)}% margin · {formatRunwayForPitch(actual.cushion)} of runway
+          </p>
+          <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#b35b49]">{crisisActual}</p>
+        </div>
+      </div>
+
+      {warningSignals.length > 0 ? (
+        <div className="mt-3 rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+            Early warning signals at FY{interventionYear}
+          </p>
+          <ul className="mt-1.5 space-y-1 text-[13px] leading-snug text-slate-700">
+            {warningSignals.map((signal, i) => (
+              <li key={i} className="flex gap-1.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-[4px] w-[4px] flex-none rounded-full bg-slate-500" />
+                <span>{signal}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// Derive warning-signal bullets from the org's actual panel attributes at the
+// call year. Replaces SHAP-driver output — SHAP for low-absolute-probability
+// predictions yields incidental micro-features. Heuristics draw from both
+// current-year levels AND peer-relative gaps AND 3-year trajectory.
+function buildWarningSignals(organization: OrganizationRecord, baseline: PathState): string[] {
+  const signals: string[] = [];
+
+  // 1. Concentration — strongest signal for nearly every Crisis Replay case
+  const concentration = organization.stress.largestSourcePct;
+  if (concentration >= 90) {
+    signals.push(`Revenue concentration at ${concentration.toFixed(0)}% on a single source.`);
+  } else if (concentration >= 70) {
+    signals.push(`Heavy revenue reliance on one source (${concentration.toFixed(0)}%).`);
+  }
+
+  // 2. Low revenue diversification relative to peer benchmark
+  const divGap = parseNumber(organization.benchmark.diversificationGap);
+  if (divGap !== null && divGap < -0.15) {
+    signals.push(`Revenue diversification ${Math.abs(divGap).toFixed(2)} below peer benchmark.`);
+  }
+
+  // 3. Margin absolute level
+  if (baseline.margin < 0) {
+    signals.push(`Operating margin already negative at ${baseline.margin.toFixed(1)}%.`);
+  } else if (baseline.margin < 5) {
+    signals.push(`Thin operating margin of +${baseline.margin.toFixed(1)}% — little absorption capacity.`);
+  }
+
+  // 4. 3-year margin slope — catches "margin has been drifting down" even when
+  //    the latest year's margin is still positive.
+  const history = organization.historicalFinancials;
+  if (history.length >= 3) {
+    const recent = history.slice(-3);
+    const slope = (recent[2].operatingMargin - recent[0].operatingMargin) / 2;
+    if (slope < -2) {
+      signals.push(`Margin trending down ${Math.abs(slope).toFixed(1)} pts/year over last 3 filings.`);
+    }
+  }
+
+  // 5. Expense growth outpacing revenue growth
+  if (history.length >= 2) {
+    const prev = history[history.length - 2];
+    const curr = history[history.length - 1];
+    const revGrowth = prev.revenue > 0 ? (curr.revenue - prev.revenue) / prev.revenue : 0;
+    const expGrowth = prev.expenses > 0 ? (curr.expenses - prev.expenses) / prev.expenses : 0;
+    if (expGrowth - revGrowth > 0.08) {
+      signals.push(
+        `Expenses grew ${(expGrowth * 100).toFixed(0)}% YoY against revenue growth of ${(revGrowth * 100).toFixed(0)}%.`,
+      );
+    }
+  }
+
+  // 6. Runway vs peer benchmark
+  const runwayGap = parseNumber(organization.benchmark.operatingRunwayGap);
+  if (runwayGap !== null && runwayGap < -3) {
+    signals.push(`Cash runway roughly ${Math.abs(runwayGap).toFixed(0)} months below peer median.`);
+  }
+
+  // 7. Short absolute runway
+  if (baseline.cushion < 6) {
+    signals.push(`Reserves cover less than six months of expenses.`);
+  } else if (baseline.cushion < 12 && concentration >= 70) {
+    signals.push(
+      `Reserve cushion (${formatRunwayForPitch(baseline.cushion)}) would not absorb a concentration shock.`,
+    );
+  }
+
+  // 8. Filing trend direction
+  const trend = organization.trendDirection?.toLowerCase() ?? "";
+  if (trend.includes("declin")) {
+    signals.push(`Multi-year financial trajectory trending downward.`);
+  }
+
+  // 9. Low data-confidence tier
+  if (organization.confidenceTier === "Low") {
+    signals.push(`Low data-confidence tier — integrity gaps warranted extra scrutiny.`);
+  }
+
+  // Keep the top 3 bullets. Earlier signals in the list are higher priority.
+  return signals.slice(0, 3);
+}
+
+function parseNumber(value: string): number | null {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const SHAP_FEATURE_LABELS: Record<string, string> = {
+  // raw panel columns
+  investment_income: "investment income",
+  other_revenue: "other revenue",
+  contributions_grants: "contributions and grants",
+  program_service_revenue: "program service revenue",
+  pct_contributions: "share of contributions",
+  pct_program_revenue: "share of program revenue",
+  pct_investment_income: "share of investment income",
+  pct_other_revenue: "share of other revenue",
+  total_revenue: "total revenue",
+  total_expenses: "total expenses",
+  net_assets_eoy: "net assets",
+  net_assets_yoy_delta: "year-over-year change in net assets",
+  savings_temporary_investments: "short-term savings",
+  cash_non_interest_bearing: "non-interest cash",
+  // derived features
+  cash_to_expenses: "cash-to-expenses ratio",
+  shock_absorption_months: "shock-absorption runway",
+  shock_absorption_months_lagged_1y: "prior-year shock-absorption runway",
+  operating_margin: "operating margin",
+  operating_margin_lagged_1y: "prior-year operating margin",
+  margin_change_yoy: "year-over-year margin change",
+  margin_yoy_delta: "year-over-year margin drop",
+  margin_3yr_trend: "three-year margin trend",
+  revenue_to_expenses: "revenue-to-expense coverage",
+  revenue_growth_yoy: "year-over-year revenue growth",
+  expense_growth_yoy: "year-over-year expense growth",
+  revenue_yoy_growth: "year-over-year revenue growth",
+  net_assets_to_expenses: "reserves relative to expenses",
+  revenue_diversification_index: "revenue diversification",
+  concentration_yoy_delta: "change in revenue concentration",
+  concentration_x_thin_runway: "concentration combined with thin runway",
+  concentration_x_govt_funded: "concentrated government funding",
+  margin_x_runway: "combined margin and runway",
+  negative_margin_years_x_concentration: "deficit years with concentration",
+  small_and_thin: "small and under-reserved profile",
+  large_and_negative_margin: "large-org negative-margin profile",
+  years_of_consecutive_deficits: "consecutive deficit years",
+  is_government_funded: "government funding dependence",
+  sector_budget_shock: "sector-wide budget shock exposure",
+  covid_era: "COVID-era disruption",
+  state_fiscal_stress: "state fiscal stress",
+  fiscal_year_bucket: "era-specific baseline risk",
+  state: "geographic pattern",
+  ntee_major_category: "sector-specific base rate",
+  size_bucket: "size-bucket base rate",
+};
+
+function humanizeShapExplanation(raw: string | null): string | null {
+  if (!raw) return null;
+  // Match tokens followed by a signed SHAP value in parens: "foo_bar (+0.12)"
+  return raw.replace(/([A-Za-z_][A-Za-z0-9_]*)\s*\(([+-]?\d[\d.]*)\)/g, (_match, name, value) => {
+    const label = SHAP_FEATURE_LABELS[name] ?? name.replace(/_/g, " ");
+    return `${label} (${value})`;
+  });
 }
 
 function buildReplayNarrative(
