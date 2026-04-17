@@ -7,7 +7,7 @@ import { DecisionLab } from "./components/DecisionLab";
 import { PortfolioInbox } from "./components/PortfolioInbox";
 import { PriorityPipeline } from "./components/PriorityPipeline";
 import { getInboxCopy, primeNorthstarScores } from "./lib/advisorLanguage";
-import type { AdvisorDataset, OrganizationRecord, PriorityPipelineDataset } from "./types";
+import type { AdvisorDataset, OrganizationRecord, PriorityPipelineDataset, StrategyLane } from "./types";
 
 type SortOption = "northstar-desc" | "northstar-asc" | "name-asc";
 type WorkspaceMode = "portfolio" | "pipeline";
@@ -24,6 +24,7 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceMode>("portfolio");
+  const [laneFilter, setLaneFilter] = useState<StrategyLane | "All">("All");
   const [actionFilter, setActionFilter] = useState<string>("All");
   const [sortOption, setSortOption] = useState<SortOption>("northstar-desc");
   const [sizeBucketFilter, setSizeBucketFilter] = useState<string>("All");
@@ -88,6 +89,9 @@ export default function App() {
   const organizations = advisorDataset?.organizations ?? [];
   const selectedOrganization = organizations.find((organization) => organization.id === selectedId) ?? null;
   const workspaceOpen = selectedOrganization !== null;
+  /** True once Saurav's D3 data export includes the `lane` field */
+  const lanesAvailable = useMemo(() => organizations.some((o) => o.lane !== undefined), [organizations]);
+
   const sizeBucketOptions = useMemo(
     () =>
       [...new Set(organizations.map((organization) => organization.sizeBucket))].sort(
@@ -105,6 +109,7 @@ export default function App() {
 
     return organizations
       .filter((organization) => {
+        const matchesLane = laneFilter === "All" || organization.lane === laneFilter;
         const matchesAction = actionFilter === "All" || organization.actionLabel === actionFilter;
         const matchesSizeBucket = sizeBucketFilter === "All" || organization.sizeBucket === sizeBucketFilter;
         const matchesState = stateFilter === "All" || organization.state === stateFilter;
@@ -115,7 +120,7 @@ export default function App() {
           organization.decisionReason.toLowerCase().includes(normalizedQuery) ||
           organization.whySurfaced.toLowerCase().includes(normalizedQuery);
 
-        return matchesAction && matchesQuery && matchesSizeBucket && matchesState;
+        return matchesLane && matchesAction && matchesQuery && matchesSizeBucket && matchesState;
       })
       .sort((left, right) => {
         if (sortOption === "name-asc") {
@@ -128,7 +133,7 @@ export default function App() {
 
         return getInboxCopy(right).northstarScore - getInboxCopy(left).northstarScore;
       });
-  }, [actionFilter, deferredSearchQuery, organizations, sizeBucketFilter, sortOption, stateFilter]);
+  }, [actionFilter, deferredSearchQuery, laneFilter, organizations, sizeBucketFilter, sortOption, stateFilter]);
 
   const handleSelectOrganization = (organization: OrganizationRecord) => {
     startTransition(() => {
@@ -213,7 +218,7 @@ export default function App() {
   }
 
   return (
-    <main className="relative overflow-x-hidden text-slate-900">
+    <main className="relative text-slate-900">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute left-[-6rem] top-[-4rem] h-[28rem] w-[28rem] rounded-full bg-white/70 blur-3xl" />
           <div className="absolute right-[-8rem] top-[6rem] h-[30rem] w-[30rem] rounded-full bg-emerald-100/30 blur-3xl" />
@@ -221,7 +226,7 @@ export default function App() {
           <div className="northstar-halftone northstar-halftone--bottom" />
         </div>
 
-        <div className="relative z-10 mx-auto w-full max-w-[1500px] px-4 pt-4 pb-[max(6rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto w-full max-w-[1500px] px-4 pt-4 pb-8 sm:px-6 lg:px-8">
           {!workspaceOpen ? (
             <header className="rounded-[2.7rem] border border-black/6 bg-[rgba(255,253,248,0.78)] p-6 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.28)]">
               <div className="grid gap-6 xl:grid-cols-[1fr_auto]">
@@ -235,10 +240,6 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col items-stretch gap-3 xl:items-end">
-                  <WorkspaceSwitch
-                    activeWorkspace={activeWorkspace}
-                    onChange={handleWorkspaceChange}
-                  />
                   {activeWorkspace === "portfolio" ? (
                     <SummaryStrip
                       items={[
@@ -320,17 +321,20 @@ export default function App() {
             ) : (
               <section
                 key={activeWorkspace === "portfolio" ? "portfolio-gallery" : "priority-pipeline"}
-                className="mt-5 flex flex-1"
+                className="mt-5 flex"
               >
                 {activeWorkspace === "portfolio" ? (
                   <PortfolioInbox
                     organizations={visibleOrganizations}
                     selectedId={selectedId}
                     actionFilter={actionFilter}
+                    laneFilter={laneFilter}
+                    lanesAvailable={lanesAvailable}
                     sortOption={sortOption}
                     sizeBucketFilter={sizeBucketFilter}
                     stateFilter={stateFilter}
                     onActionFilterChange={setActionFilter}
+                    onLaneFilterChange={setLaneFilter}
                     onSortOptionChange={setSortOption}
                     onSizeBucketFilterChange={setSizeBucketFilter}
                     onStateFilterChange={setStateFilter}
