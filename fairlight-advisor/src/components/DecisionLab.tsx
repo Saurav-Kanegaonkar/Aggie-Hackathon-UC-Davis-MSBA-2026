@@ -112,6 +112,22 @@ export function DecisionLab({
   const [activeDetail, setActiveDetail] = useState<DecisionLabDetail | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
 
+  // Sub-tabs are bucket-aware. Recovery Flight is only meaningful for orgs that
+  // need a turnaround (RCR, WFF). Crisis Replay requires a materialized T+1
+  // crisis trajectory, which only the D5.1 WFF cohort has.
+  const availableModes = useMemo<DecisionLabMode[]>(() => {
+    switch (organization.actionLabel) {
+      case "Underinvested Asset Base":
+        return ["snapshot"];
+      case "Revenue Concentration Risk":
+        return ["snapshot", "flight"];
+      case "Weak Financial Foundation":
+        return ["snapshot", "flight", "replay"];
+      case "Needs Data Diligence":
+        return ["snapshot"];
+    }
+  }, [organization.actionLabel]);
+
   const flightSignal = useMemo(() => getPrimaryFlightSignal(organization), [organization]);
   const [flightLens, setFlightLens] = useState<FlightLens>("closest");
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
@@ -130,6 +146,15 @@ export function DecisionLab({
     setPathStrategyId(replaySetup.scenarioId);
     setPathMetric("risk");
   }, [organization, replaySetup.scenarioId]);
+
+  // If the active mode is no longer available for this bucket (e.g., user was
+  // on Crisis Replay for a WFF org and clicked into a UAB org), snap back to
+  // Snapshot so we never render an empty or broken console.
+  useEffect(() => {
+    if (!availableModes.includes(activeMode)) {
+      setActiveMode("snapshot");
+    }
+  }, [availableModes, activeMode]);
 
   const pathScenario =
     organization.scenarioCards.find((card) => card.id === pathStrategyId) ?? organization.scenarioCards[0];
@@ -207,7 +232,7 @@ export function DecisionLab({
           </aside>
 
           <div className="space-y-0">
-            <ConsoleSwitch activeMode={activeMode} onChange={setActiveMode} />
+            <ConsoleSwitch activeMode={activeMode} onChange={setActiveMode} availableModes={availableModes} />
 
             <RecommendationDock
               organization={organization}
@@ -258,18 +283,27 @@ export function DecisionLab({
 function ConsoleSwitch({
   activeMode,
   onChange,
+  availableModes,
 }: {
   activeMode: DecisionLabMode;
   onChange: (mode: DecisionLabMode) => void;
+  availableModes: DecisionLabMode[];
 }) {
-  const items: Array<{ mode: DecisionLabMode; label: string; title: string; icon: ReactNode }> = [
+  const allItems: Array<{ mode: DecisionLabMode; label: string; title: string; icon: ReactNode }> = [
     { mode: "snapshot", label: "Full context mode", title: "Case Snapshot", icon: <Compass size={18} /> },
     { mode: "flight", label: "Live strategy mode", title: "Recovery Flight", icon: <ChartLineUp size={18} /> },
     { mode: "replay", label: "Validation mode", title: "Crisis Replay", icon: <Path size={18} /> },
   ];
+  const items = allItems.filter((item) => availableModes.includes(item.mode));
+
+  // If only one tab is available there's nothing to switch between — hide the
+  // bar entirely so it doesn't read as a broken dropdown.
+  if (items.length <= 1) return null;
+
+  const gridCols = items.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
 
   return (
-    <nav className="grid overflow-hidden rounded-[1.45rem_1.45rem_0_0] border border-black/8 bg-[rgba(245,239,231,0.92)] md:grid-cols-3">
+    <nav className={`grid overflow-hidden rounded-[1.45rem_1.45rem_0_0] border border-black/8 bg-[rgba(245,239,231,0.92)] ${gridCols}`}>
       {items.map((item) => {
         const active = item.mode === activeMode;
         return (
@@ -514,6 +548,8 @@ function RecoveryFlightConsole({
           safetyLine={formatSignal(view.safetyThreshold, signal)}
         />
 
+        <FlightGlossaryCard signal={signal} safetyThreshold={view.safetyThreshold} />
+
         <RecoveryFlightChart signal={signal} view={view} />
 
         <RangeRail
@@ -542,30 +578,273 @@ function RecoveryFlightConsole({
           safetyYear={view.selectedRoute.safetyYear}
         />
 
-        <div className="grid gap-2.5 min-[960px]:grid-cols-3">
-          {view.routes.map((route) => (
-            <RouteDeckCard
-              key={route.id}
-              label={routeDeckEyebrow(route.deckType)}
-              title={routeDeckTitle(route.deckType)}
-              orgName={route.orgName}
-              story={buildRouteStory(route, signal)}
-              window={viewWindowLabel(route.recoveryWindow)}
-              startGap={formatSignalGap(route.startGap, signal)}
-              timeToSafety={formatYearsToSafety(route.timeToSafetyYears)}
-              endRead={formatSignal(route.postValue, signal)}
-              safetyYear={route.safetyYear}
-              active={route.id === view.selectedRoute.id}
-              onClick={() => {
-                setActiveRouteId(route.id);
-                setLens(route.deckType);
-              }}
-            />
-          ))}
+        <ClosestMatchDetailCard
+          organization={organization}
+          signal={signal}
+          route={view.selectedRoute}
+          totalRoutesConsidered={view.routes.length}
+        />
+      </div>
+    </section>
+  );
+}
+
+function FlightGlossaryCard({
+  signal,
+  safetyThreshold,
+}: {
+  signal: FlightSignal;
+  safetyThreshold: number;
+}) {
+  const [metricTitle, metricBlurb] =
+    signal === "concentration"
+      ? [
+          "Revenue Diversification Index (RDI)",
+          "A 0-to-1 score for how spread out an org's revenue is. 0 means everything comes from a single source (very risky). 0.45+ means revenue is split across enough sources that no single funder cut is catastrophic. 1 is a theoretical perfect balance. The math is a Herfindahl-style concentration index, the same tool regulators use to measure market concentration, applied to a nonprofit's revenue lines.",
+        ]
+      : signal === "runway"
+      ? [
+          "Cash runway (months)",
+          "How many months of operating expenses the org's cash and short-term savings would cover if revenue stopped tomorrow. A measure of short-term liquidity and resilience, not long-term health.",
+        ]
+      : [
+          "Operating margin",
+          "Revenue minus expenses, as a percentage of revenue. Positive means the org is generating a surplus. Negative means it is spending more than it brings in.",
+        ];
+
+  const [safetyTitle, safetyBlurb] =
+    signal === "concentration"
+      ? [
+          `Safety line at RDI ${safetyThreshold.toFixed(2)}`,
+          "The threshold above which revenue is considered reasonably diversified for a nonprofit of this size. Below this line, the org is materially exposed to a single-funder shock. Above it, no single source dominates. The cutoff reflects practitioner judgment rather than a universal industry standard.",
+        ]
+      : signal === "runway"
+      ? [
+          `Safety line at ${Math.round(safetyThreshold)} months`,
+          "The minimum prudent cash cushion. Nonprofit rating agencies and governance literature generally treat three-to-six months of expense coverage as the floor for a financially stable org.",
+        ]
+      : [
+          "Safety line at 0% (break-even)",
+          "Where revenue covers expenses. Above the line the org is generating a surplus; below the line it is running a deficit and burning through reserves.",
+        ];
+
+  return (
+    <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3.5 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">How to read this chart</p>
+      <div className="mt-1.5 grid gap-2.5 sm:grid-cols-2">
+        <div>
+          <p className="text-[12.5px] font-semibold text-slate-900">{metricTitle}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-slate-700">{metricBlurb}</p>
+        </div>
+        <div>
+          <p className="text-[12.5px] font-semibold text-slate-900">{safetyTitle}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-slate-700">{safetyBlurb}</p>
         </div>
       </div>
     </section>
   );
+}
+
+function ClosestMatchDetailCard({
+  organization,
+  signal,
+  route,
+  totalRoutesConsidered,
+}: {
+  organization: OrganizationRecord;
+  signal: FlightSignal;
+  route: FlightRouteView;
+  totalRoutesConsidered: number;
+}) {
+  const sectorName = nteeCategoryName(organization.nteeCategory);
+  const sizeBand = sizeBucketLabel(organization.sizeBucket);
+  const bucketLabel = flightBucketLabel(organization.actionLabel);
+  const engagementLabel = bucketLabel.engagement;
+  const engagementPlaybook = bucketLabel.playbook;
+
+  const signalLabel = flightSignalTitle(signal);
+  const unit = signalUnitLabel(signal);
+  const peerName = route.orgName;
+  const startValue = formatSignal(route.preValue, signal);
+  const endValue = formatSignal(route.postValue, signal);
+  const totalChange = formatSignalGap(Math.abs(route.totalChange), signal);
+  const windowLabel = viewWindowLabel(route.recoveryWindow);
+  const reachedSafety = route.safetyYear !== null;
+  const timeToSafety = formatYearsToSafety(route.timeToSafetyYears);
+
+  // Narrative: "Peer's [signal] moved from X to Y between window, [crossing/not reaching]
+  //             the safety line[ by FYyyyy]."
+  const safetyClause = reachedSafety
+    ? ` and crossed the safety line by FY${route.safetyYear}`
+    : ", though they had not yet crossed the safety line at window end";
+  const peerStory =
+    signal === "concentration"
+      ? `${peerName}'s Revenue Diversification Index moved from ${startValue} to ${endValue} over ${windowLabel.replace("FY", "FY")}${safetyClause}.`
+      : signal === "runway"
+      ? `${peerName}'s reserve cushion grew from ${startValue} to ${endValue} across ${windowLabel.replace("FY", "FY")}${safetyClause}.`
+      : `${peerName}'s operating margin moved from ${startValue} to ${endValue} across ${windowLabel.replace("FY", "FY")}${safetyClause}.`;
+
+  return (
+    <section className="rounded-[1.45rem] border border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(232,241,235,0.95),rgba(246,249,246,0.9))] px-4 py-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#557062]">Closest match</p>
+          <strong className="mt-1 block text-[1.35rem] leading-[1.05] tracking-[-0.06em] text-slate-950">
+            {peerName}
+          </strong>
+          <p className="mt-1 text-[12px] text-slate-600">
+            {sectorName} · {organization.state} · {sizeBand}
+          </p>
+        </div>
+        <div className="rounded-full border border-[#1f5446]/16 bg-white/78 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#557062]">
+          {windowLabel}
+        </div>
+      </div>
+
+      {/* Why this match */}
+      <div className="mt-3 rounded-[1.1rem] border border-black/7 bg-white/82 px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Why this match</p>
+        <ul className="mt-1.5 grid gap-1 text-[13px] text-slate-800 sm:grid-cols-2">
+          <li>
+            <span className="text-slate-500">Sector:</span> <span className="font-medium text-slate-900">{sectorName}</span>{" "}
+            <span className="text-[#2a6644]">same as yours</span>
+          </li>
+          <li>
+            <span className="text-slate-500">State:</span> <span className="font-medium text-slate-900">{organization.state}</span>{" "}
+            <span className="text-[#2a6644]">same as yours</span>
+          </li>
+          <li>
+            <span className="text-slate-500">Asset band:</span>{" "}
+            <span className="font-medium text-slate-900">{sizeBand}</span>{" "}
+            <span className="text-[#2a6644]">same band</span>
+          </li>
+          <li>
+            <span className="text-slate-500">Starting {signalLabel.toLowerCase()}:</span>{" "}
+            <span className="font-medium text-slate-900">{startValue}</span>{" "}
+            <span className="text-slate-500">
+              vs your {formatSignal(getCurrentSignalValue(organization, signal), signal)}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      {/* What they did */}
+      <div className="mt-3 rounded-[1.1rem] border border-black/7 bg-white/82 px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">What they did</p>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-800">{peerStory}</p>
+      </div>
+
+      {/* Metric summary */}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Start</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{startValue}</p>
+        </div>
+        <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">End</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{endValue}</p>
+        </div>
+        <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Change</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{`+${totalChange} ${unit}`}</p>
+        </div>
+        <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Time to safety</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">
+            {reachedSafety ? timeToSafety : "Not reached"}
+          </p>
+        </div>
+      </div>
+
+      {/* Fairlight CTA */}
+      <div className="mt-3 rounded-[1.1rem] border border-[#1f5446]/20 bg-[rgba(219,233,224,0.85)] px-3.5 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2a6644]">Fairlight next step</p>
+        <p className="mt-1 text-[13.5px] leading-relaxed text-slate-800">
+          <span className="font-semibold text-slate-950">{engagementLabel}</span> runs this playbook with you: {engagementPlaybook}.
+        </p>
+      </div>
+
+      {/* Rigor footnote */}
+      <p className="mt-2.5 text-[11px] text-slate-500">
+        Matched from {totalRoutesConsidered} peer{totalRoutesConsidered === 1 ? "" : "s"} in the same sector, state, and asset band.
+        Selected for closest starting-position alignment.
+      </p>
+    </section>
+  );
+}
+
+function flightBucketLabel(actionLabel: OrganizationRecord["actionLabel"]): { engagement: string; playbook: string } {
+  switch (actionLabel) {
+    case "Revenue Concentration Risk":
+      return {
+        engagement: "Fairlight's Strategic Advisory engagement",
+        playbook: "diversification strategy, funder-pipeline development, and earned-revenue design",
+      };
+    case "Weak Financial Foundation":
+      return {
+        engagement: "Fairlight's Financial Infrastructure engagement",
+        playbook: "reserve policy, expense-structure review, and multi-year cash forecasting",
+      };
+    case "Underinvested Asset Base":
+      return {
+        engagement: "Fairlight's Portfolio Growth engagement",
+        playbook: "investment policy, diversified portfolio construction, and yield benchmarking",
+      };
+    case "Needs Data Diligence":
+      return {
+        engagement: "Fairlight's Diligence pass",
+        playbook: "financial reconciliation, restricted-asset review, and re-scoring",
+      };
+  }
+}
+
+function signalUnitLabel(signal: FlightSignal): string {
+  if (signal === "margin") return "pts";
+  if (signal === "runway") return "months";
+  return "RDI";
+}
+
+function sizeBucketLabel(sizeBucket: string): string {
+  const labels: Record<string, string> = {
+    "<500K": "under $500K",
+    "500K-2M": "$500K–$2M",
+    "2M-10M": "$2M–$10M",
+    ">10M": "$10M+",
+  };
+  return labels[sizeBucket] ?? sizeBucket;
+}
+
+function nteeCategoryName(code: string): string {
+  const names: Record<string, string> = {
+    A: "Arts, Culture & Humanities",
+    B: "Education",
+    C: "Environment",
+    D: "Animal-Related",
+    E: "Health Care",
+    F: "Mental Health",
+    G: "Diseases & Medical Disciplines",
+    H: "Medical Research",
+    I: "Crime & Legal",
+    J: "Employment",
+    K: "Food & Agriculture",
+    L: "Housing & Shelter",
+    M: "Public Safety",
+    N: "Recreation & Sports",
+    O: "Youth Development",
+    P: "Human Services",
+    Q: "International Affairs",
+    R: "Civil Rights",
+    S: "Community Improvement",
+    T: "Philanthropy",
+    U: "Science & Technology",
+    V: "Social Science",
+    W: "Public & Societal Benefit",
+    X: "Religion",
+    Y: "Mutual Benefit",
+    Z: "Unknown",
+  };
+  return names[code] ?? `Sector ${code}`;
 }
 
 function CrisisReplayConsole({
@@ -3148,7 +3427,17 @@ function interpolateShockRunway(shockPct: number, current: number, at25: number,
 }
 
 function formatLargestSourceName(value: string) {
-  return value === "largest revenue source" ? "largest revenue source" : value;
+  // Human-readable labels for any raw panel-column names that leak through.
+  const translations: Record<string, string> = {
+    contributions_grants: "Contributions & grants",
+    contributions: "Contributions & grants",
+    program_service_revenue: "Program service revenue",
+    program_revenue: "Program service revenue",
+    investment_income: "Investment income",
+    other_revenue: "Other revenue",
+    "largest revenue source": "largest revenue source",
+  };
+  return translations[value] ?? value;
 }
 
 function formatLargestSourceLabel(organization: OrganizationRecord) {

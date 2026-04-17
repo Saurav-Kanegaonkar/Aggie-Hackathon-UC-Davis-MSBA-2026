@@ -91,13 +91,19 @@ export function PortfolioInbox({
     if (bucketTab === "rcr") {
       return organizations.filter((organization) => organization.actionLabel === "Revenue Concentration Risk");
     }
+    // bucketTab === "all" — Active Review lane shows only Financial Foundation
+    // (WFF) and Needs Diligence (NDD) cases, not the full portfolio.
     if (allCasesChip === "wff") {
       return organizations.filter((organization) => organization.actionLabel === "Weak Financial Foundation");
     }
     if (allCasesChip === "ndd") {
       return organizations.filter((organization) => organization.actionLabel === "Needs Data Diligence");
     }
-    return organizations;
+    return organizations.filter(
+      (organization) =>
+        organization.actionLabel === "Weak Financial Foundation" ||
+        organization.actionLabel === "Needs Data Diligence",
+    );
   }, [organizations, bucketTab, allCasesChip]);
 
   const displayedOrganizations = isGallery
@@ -142,6 +148,11 @@ export function PortfolioInbox({
 
   const uabCount = organizations.filter((organization) => organization.actionLabel === "Underinvested Asset Base").length;
   const rcrCount = organizations.filter((organization) => organization.actionLabel === "Revenue Concentration Risk").length;
+  const activeReviewCount = organizations.filter(
+    (organization) =>
+      organization.actionLabel === "Weak Financial Foundation" ||
+      organization.actionLabel === "Needs Data Diligence",
+  ).length;
 
   useEffect(() => {
     if (!availableAllCasesOptions.some((option) => option.value === allCasesChip)) {
@@ -175,7 +186,7 @@ export function PortfolioInbox({
 
           <nav className="grid overflow-hidden rounded-[1.45rem] border border-black/8 bg-[rgba(245,239,231,0.92)] md:grid-cols-3">
             {TAB_CONFIGS.map((tab) => {
-              const count = tab.id === "uab" ? uabCount : tab.id === "rcr" ? rcrCount : organizations.length;
+              const count = tab.id === "uab" ? uabCount : tab.id === "rcr" ? rcrCount : activeReviewCount;
               const active = bucketTab === tab.id;
 
               return (
