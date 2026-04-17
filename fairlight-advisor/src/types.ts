@@ -86,6 +86,35 @@ export interface RevenueCompositionPoint {
   otherPct: number;
 }
 
+export interface CrisisReplayTrajectoryPoint {
+  fiscalYear: number;
+  netAssets: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  operatingMargin: number;
+  cashRunwayMonths: number;
+  largestSourcePct: number;
+  distressProbability?: number | null;
+  northstarScore?: number | null;
+}
+
+export interface CrisisReplaySummary {
+  callFiscalYear: number;
+  predictedDistressProbability: number;
+  predictedDistressProbabilityLogisticV2?: number | null;
+  predictedDistressProbabilityXgboost?: number | null;
+  riskPercentileTop?: number | null;
+  xgboostShapExplanation?: string | null;
+  netAssetsAtCall?: number | null;
+  revenueAtCall?: number | null;
+  marginAtCall?: number | null;
+  runwayAtCall?: number | null;
+  t1OutcomeSummary?: string;
+  t2OutcomeSummary?: string;
+  demoStrengthScore?: number | null;
+  trajectory: CrisisReplayTrajectoryPoint[];
+}
+
 export interface ScoreDrivers {
   distressProtection: number;
   operatingMargin: number;
@@ -134,6 +163,7 @@ export interface OrganizationRecord {
   analogs: AnalogRecord[];
   scenarioCards: ScenarioCard[];
   recommendation: RecommendationSummary;
+  crisisReplay?: CrisisReplaySummary;
 }
 
 export interface AdvisorDataset {

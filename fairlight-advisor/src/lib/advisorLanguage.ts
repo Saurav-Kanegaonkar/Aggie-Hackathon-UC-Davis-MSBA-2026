@@ -436,6 +436,21 @@ export function getNorthstarScoreDrivers(organization: OrganizationRecord) {
   };
 }
 
+export interface NorthstarComponentDetail {
+  label: string;
+  value: number;
+  max: number;
+}
+
+export interface NorthstarComponentBreakdownItem {
+  key: string;
+  label: string;
+  value: number;
+  max: number;
+  signed?: boolean;
+  details?: NorthstarComponentDetail[];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // NORTHSTAR SCORE v2 — additive five-component model
 //
@@ -684,6 +699,199 @@ function distressAdjustment(organization: OrganizationRecord): number {
   if (dp > 50) return -8;
   if (dp > 35) return -3;
   return 0;
+}
+
+function opportunityDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  let assetScore = 0;
+  if (netAssets > 0) {
+    const cappedAssets = Math.min(Math.max(netAssets, 1), 50_000_000);
+    assetScore = Math.min(Math.log(cappedAssets) / Math.log(50_000_000), 1.0) * 25;
+  }
+  const yieldGap =
+    (Math.max(5.0 - clamp(organization.investmentYield, 0, 100), 0) / 5.0) * 15;
+
+  return [
+    { label: "Asset scale", value: assetScore, max: 25 },
+    { label: "Yield gap", value: yieldGap, max: 15 },
+  ];
+}
+
+function structuralDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
+  const operatingSupport = operatingSupportSignal(organization);
+  const stressVulnerability = stressVulnerabilitySignal(organization);
+  const diversificationNeed = diversificationNeedSignal(organization);
+
+  switch (organization.actionLabel) {
+    case "Revenue Concentration Risk":
+      return [
+        { label: "Concentration need", value: (diversificationNeed * 0.45 / 100) * 40, max: 18 },
+        { label: "Operating support", value: (operatingSupport * 0.25 / 100) * 40, max: 10 },
+        { label: "Stress vulnerability", value: (stressVulnerability * 0.1 / 100) * 40, max: 4 },
+        { label: "Evidence strength", value: (evidenceStrength * 0.2 / 100) * 40, max: 8 },
+      ];
+    case "Needs Data Diligence":
+      return [
+        { label: "Evidence gap", value: ((100 - evidenceStrength) * 0.6 / 100) * 40, max: 24 },
+        { label: "Stress vulnerability", value: (stressVulnerability * 0.25 / 100) * 40, max: 10 },
+        { label: "Concentration need", value: (diversificationNeed * 0.15 / 100) * 40, max: 6 },
+      ];
+    default:
+      return [
+        { label: "Concentration need", value: (diversificationNeed * 0.45 / 100) * 40, max: 18 },
+        { label: "Stress vulnerability", value: (stressVulnerability * 0.2 / 100) * 40, max: 8 },
+        { label: "Operating stress", value: (operatingStressSignal(organization) * 0.2 / 100) * 40, max: 8 },
+        { label: "Evidence gap", value: (((100 - evidenceStrength) * 0.15) / 100) * 40, max: 6 },
+      ];
+  }
+}
+
+function financialFoundationDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  const netAssets = organization.netAssetsEoy ?? 0;
+
+  let assetBandFit = 0;
+  if (netAssets >= 1_000_000 && netAssets <= 20_000_000) {
+    assetBandFit = 15;
+  } else if (netAssets >= 500_000 && netAssets < 1_000_000) {
+    assetBandFit = 8;
+  } else if (netAssets > 20_000_000 && netAssets <= 50_000_000) {
+    assetBandFit = 10;
+  } else if (netAssets > 50_000_000 && netAssets <= 100_000_000) {
+    assetBandFit = 5;
+  }
+
+  const marginPct = organization.operatingMargin;
+  let marginRepair = 0;
+  if (marginPct >= -10 && marginPct <= 5) {
+    marginRepair = 10;
+  } else if (marginPct >= -20 && marginPct < -10) {
+    marginRepair = 6;
+  } else if (marginPct > 5 && marginPct <= 15) {
+    marginRepair = 5;
+  }
+
+  const runway = organization.operatingRunwayMonths ?? Infinity;
+  let lowReserves = 0;
+  if (runway < 3) {
+    lowReserves = 10;
+  } else if (runway < 6) {
+    lowReserves = 7;
+  } else if (runway < 12) {
+    lowReserves = 3;
+  }
+
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
+  const evidenceScore = (evidenceStrength / 100) * 5;
+
+  return [
+    { label: "Asset band fit", value: assetBandFit, max: 15 },
+    { label: "Margin repair", value: marginRepair, max: 10 },
+    { label: "Low reserves", value: lowReserves, max: 10 },
+    { label: "Evidence strength", value: evidenceScore, max: 5 },
+  ];
+}
+
+function assetSophisticationDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  const netAssets = organization.netAssetsEoy ?? 0;
+  let assetScale = 0;
+  if (netAssets > 0) {
+    const cappedAssets = Math.min(Math.max(netAssets, 1), 50_000_000);
+    assetScale = Math.min(Math.log(cappedAssets) / Math.log(50_000_000), 1.0) * 15;
+  }
+
+  const streak = organization.consecutiveYearsWithInvestmentIncome ?? 0;
+  let trackRecord = 0;
+  if (streak >= 5) trackRecord = 10;
+  else if (streak >= 3) trackRecord = 7;
+  else if (streak >= 1) trackRecord = 3;
+
+  const yieldGapDepth =
+    (Math.max(5.0 - clamp(organization.investmentYield, 0, 100), 0) / 5.0) * 15;
+
+  return [
+    { label: "Asset scale", value: assetScale, max: 15 },
+    { label: "Track record", value: trackRecord, max: 10 },
+    { label: "Yield gap depth", value: yieldGapDepth, max: 15 },
+  ];
+}
+
+function confidenceDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  const { evidenceQuality: evidenceStrength } = getNorthstarScoreDrivers(organization);
+  return [
+    { label: "Evidence strength", value: (evidenceStrength / 100) * 12, max: 12 },
+    { label: "Data completeness", value: clamp(organization.dataCompletenessScore, 0, 8), max: 8 },
+  ];
+}
+
+function fitDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  return [{ label: "Bucket fit", value: fairlightFitBonus(organization), max: 10 }];
+}
+
+function distressDetails(organization: OrganizationRecord): NorthstarComponentDetail[] {
+  return [{ label: "Projected distress", value: Math.abs(distressAdjustment(organization)), max: 15 }];
+}
+
+export function getNorthstarComponentBreakdown(
+  organization: OrganizationRecord,
+): NorthstarComponentBreakdownItem[] {
+  const middleComponent =
+    organization.actionLabel === "Underinvested Asset Base"
+      ? assetSophisticationComponent(organization)
+      : organization.actionLabel === "Weak Financial Foundation"
+        ? financialFoundationComponent(organization)
+        : structuralComponent(organization);
+
+  const middleLabel =
+    organization.actionLabel === "Underinvested Asset Base"
+      ? "Asset Sophistication"
+      : organization.actionLabel === "Weak Financial Foundation"
+        ? "Financial Foundation"
+        : "Structural";
+
+  return [
+    {
+      key: "opportunity",
+      label: "Opportunity",
+      value: opportunityComponent(organization),
+      max: 40,
+      details: opportunityDetails(organization),
+    },
+    {
+      key: "middle",
+      label: middleLabel,
+      value: middleComponent,
+      max: 40,
+      details:
+        organization.actionLabel === "Underinvested Asset Base"
+          ? assetSophisticationDetails(organization)
+          : organization.actionLabel === "Weak Financial Foundation"
+            ? financialFoundationDetails(organization)
+            : structuralDetails(organization),
+    },
+    {
+      key: "confidence",
+      label: "Confidence",
+      value: confidenceComponent(organization),
+      max: 20,
+      details: confidenceDetails(organization),
+    },
+    {
+      key: "fit",
+      label: "Fairlight Fit Bonus",
+      value: fairlightFitBonus(organization),
+      max: 10,
+      details: fitDetails(organization),
+    },
+    {
+      key: "distress",
+      label: "Distress Adjustment",
+      value: distressAdjustment(organization),
+      max: 15,
+      signed: true,
+      details: distressDetails(organization),
+    },
+  ];
 }
 
 // Exclusion caps (Step 6)
