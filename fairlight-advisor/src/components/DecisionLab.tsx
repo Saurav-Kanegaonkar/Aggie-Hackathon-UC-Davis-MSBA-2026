@@ -596,36 +596,60 @@ function FlightGlossaryCard({
   signal: FlightSignal;
   safetyThreshold: number;
 }) {
-  const [metricTitle, metricBlurb] =
+  const [metricTitle, metricBullets]: [string, string[]] =
     signal === "concentration"
       ? [
           "Revenue Diversification Index (RDI)",
-          "A 0-to-1 score for how spread out an org's revenue is. 0 means everything comes from a single source (very risky). 0.45+ means revenue is split across enough sources that no single funder cut is catastrophic. 1 is a theoretical perfect balance. The math is a Herfindahl-style concentration index, the same tool regulators use to measure market concentration, applied to a nonprofit's revenue lines.",
+          [
+            "A 0 to 1 score for how spread out revenue is across sources.",
+            "0 = all revenue from a single source (very risky).",
+            "0.45+ = diversified enough to absorb a single-funder cut.",
+            "Math: Herfindahl-style concentration index, applied to a nonprofit's revenue lines.",
+          ],
         ]
       : signal === "runway"
       ? [
           "Cash runway (months)",
-          "How many months of operating expenses the org's cash and short-term savings would cover if revenue stopped tomorrow. A measure of short-term liquidity and resilience, not long-term health.",
+          [
+            "Months of operating expenses that cash and short-term savings would cover if revenue stopped.",
+            "A short-term liquidity and resilience signal, not a long-term health measure.",
+          ],
         ]
       : [
           "Operating margin",
-          "Revenue minus expenses, as a percentage of revenue. Positive means the org is generating a surplus. Negative means it is spending more than it brings in.",
+          [
+            "Revenue minus expenses, as a percentage of revenue.",
+            "Positive = the org is running a surplus.",
+            "Negative = the org is spending more than it earns.",
+          ],
         ];
 
-  const [safetyTitle, safetyBlurb] =
+  const [safetyTitle, safetyBullets]: [string, string[]] =
     signal === "concentration"
       ? [
           `Safety line at RDI ${safetyThreshold.toFixed(2)}`,
-          "The threshold above which revenue is considered reasonably diversified for a nonprofit of this size. Below this line, the org is materially exposed to a single-funder shock. Above it, no single source dominates. The cutoff reflects practitioner judgment rather than a universal industry standard.",
+          [
+            "Threshold for reasonably diversified revenue at this size.",
+            "Below the line: materially exposed to a single-funder shock.",
+            "Above the line: no single source dominates.",
+            "Cutoff reflects practitioner judgment, not a universal industry standard.",
+          ],
         ]
       : signal === "runway"
       ? [
           `Safety line at ${Math.round(safetyThreshold)} months`,
-          "The minimum prudent cash cushion. Nonprofit rating agencies and governance literature generally treat three-to-six months of expense coverage as the floor for a financially stable org.",
+          [
+            "Minimum prudent cash cushion.",
+            "Rating agencies and governance literature treat 3 to 6 months of expense coverage as the stability floor.",
+          ],
         ]
       : [
           "Safety line at 0% (break-even)",
-          "Where revenue covers expenses. Above the line the org is generating a surplus; below the line it is running a deficit and burning through reserves.",
+          [
+            "Where revenue covers expenses.",
+            "Above: running a surplus.",
+            "Below: running a deficit and burning through reserves.",
+          ],
         ];
 
   return (
@@ -634,11 +658,25 @@ function FlightGlossaryCard({
       <div className="mt-1.5 grid gap-2.5 sm:grid-cols-2">
         <div>
           <p className="text-[12.5px] font-semibold text-slate-900">{metricTitle}</p>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-slate-700">{metricBlurb}</p>
+          <ul className="mt-1.5 space-y-1 text-[12.5px] leading-snug text-slate-700">
+            {metricBullets.map((bullet, i) => (
+              <li key={i} className="flex gap-1.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-[4px] w-[4px] flex-none rounded-full bg-slate-500" />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <div>
           <p className="text-[12.5px] font-semibold text-slate-900">{safetyTitle}</p>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-slate-700">{safetyBlurb}</p>
+          <ul className="mt-1.5 space-y-1 text-[12.5px] leading-snug text-slate-700">
+            {safetyBullets.map((bullet, i) => (
+              <li key={i} className="flex gap-1.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-[4px] w-[4px] flex-none rounded-full bg-slate-500" />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
