@@ -1,0 +1,684 @@
+{
+  "943169584": {
+    "org_name": "Vietnam Health Education & Literature Projects",
+    "ntee_major_category": "P",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5206811868913077,
+    "t_plus_min_runway_months": 0.0,
+    "t_plus_min_margin_pct": -54.22469024424874,
+    "demo_strength": 77.75942291518206,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 1774051.0,
+        "total_expenses": 1581437.0,
+        "net_assets_eoy": 1519602.0,
+        "operating_margin_pct": 10.857297789071453,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 99.21084568594702
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 1250890.0,
+        "total_expenses": 1367853.0,
+        "net_assets_eoy": 1338257.0,
+        "operating_margin_pct": -9.35038252764032,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 98.8247567731775
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 3753330.0,
+        "total_expenses": 2105432.0,
+        "net_assets_eoy": 2979655.0,
+        "operating_margin_pct": 43.90495906301871,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 99.82522186964641
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 1591738.0,
+        "total_expenses": 2454853.0,
+        "net_assets_eoy": 0.0,
+        "operating_margin_pct": -54.22469024424874,
+        "cash_runway_months": 0.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 100.08311669382775
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 1952984.0,
+        "total_expenses": 2101705.0,
+        "net_assets_eoy": 1973256.0,
+        "operating_margin_pct": -7.615064946768638,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 95.7673488364472
+      }
+    ]
+  },
+  "330789247": {
+    "org_name": "THE MEADOWS IN IRVINE",
+    "ntee_major_category": "L",
+    "state": "CA",
+    "call_year": 2022,
+    "predicted_distress_proba": 0.6832624382592734,
+    "t_plus_min_runway_months": 4.921266431883957,
+    "t_plus_min_margin_pct": -43.049032526319294,
+    "demo_strength": 50.770503540737586,
+    "trajectory": [
+      {
+        "fy": 2020,
+        "total_revenue": 3647860.0,
+        "total_expenses": 3042766.0,
+        "net_assets_eoy": 11414532.0,
+        "operating_margin_pct": 16.587643166130277,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 98.9103200232465
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 3711277.0,
+        "total_expenses": 3013085.0,
+        "net_assets_eoy": 12129831.0,
+        "operating_margin_pct": 18.812715946559635,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 98.44632992902443
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 3762749.0,
+        "total_expenses": 3109161.0,
+        "net_assets_eoy": 12540579.0,
+        "operating_margin_pct": 17.369960100979366,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 99.34914606315755
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 3997163.0,
+        "total_expenses": 5717903.0,
+        "net_assets_eoy": 10860994.0,
+        "operating_margin_pct": -43.049032526319294,
+        "cash_runway_months": 4.921266431883957,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 97.73206646814253
+      },
+      {
+        "fy": 2024,
+        "total_revenue": 4088321.0,
+        "total_expenses": 4327272.0,
+        "net_assets_eoy": 10622043.0,
+        "operating_margin_pct": -5.844722075394765,
+        "cash_runway_months": 47.99994978049893,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 97.33841838740159
+      }
+    ]
+  },
+  "953495141": {
+    "org_name": "DOMESTIC VIOLENCE SOLUTIONS FOR SANTA BARBARA COUNTY",
+    "ntee_major_category": "P",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5717655558185999,
+    "t_plus_min_runway_months": 5.683310652211638,
+    "t_plus_min_margin_pct": -24.711021274828607,
+    "demo_strength": 46.134718662246456,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 2746381.0,
+        "total_expenses": 2212213.0,
+        "net_assets_eoy": 4176411.0,
+        "operating_margin_pct": 19.449886960330705,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 51.34054597668714
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 2501494.0,
+        "total_expenses": 2130524.0,
+        "net_assets_eoy": 4939998.0,
+        "operating_margin_pct": 14.829937629272747,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 62.5275135578978
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 2738134.0,
+        "total_expenses": 2328080.0,
+        "net_assets_eoy": 4979995.0,
+        "operating_margin_pct": 14.975673213947893,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 53.57393027514359
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 2437055.0,
+        "total_expenses": 2491894.0,
+        "net_assets_eoy": 5153282.0,
+        "operating_margin_pct": -2.250215936858216,
+        "cash_runway_months": 64.0834442641186,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 66.59611703469966
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 2215388.0,
+        "total_expenses": 2762833.0,
+        "net_assets_eoy": 4899930.0,
+        "operating_margin_pct": -24.711021274828607,
+        "cash_runway_months": 5.683310652211638,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 77.01766011190816
+      }
+    ]
+  },
+  "320483333": {
+    "org_name": "KINGDOM DEVELOPMENT INC",
+    "ntee_major_category": "L",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.6574576256236042,
+    "t_plus_min_runway_months": 35.73310242925915,
+    "t_plus_min_margin_pct": -3.571095037845403,
+    "demo_strength": 26.29830502494417,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 1050696.0,
+        "total_expenses": 838645.0,
+        "net_assets_eoy": 978031.0,
+        "operating_margin_pct": 20.18195557992036,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 97.0685145846182
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 1758248.0,
+        "total_expenses": 1219834.0,
+        "net_assets_eoy": 1543615.0,
+        "operating_margin_pct": 30.62218754123423,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 99.44245635427994
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 4208850.0,
+        "total_expenses": 1670538.0,
+        "net_assets_eoy": 4081927.0,
+        "operating_margin_pct": 60.308920488969676,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 53.65475129786046
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 17625126.0,
+        "total_expenses": 18254536.0,
+        "net_assets_eoy": 3273548.0,
+        "operating_margin_pct": -3.571095037845403,
+        "cash_runway_months": 35.73310242925915,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 64.34212725628174
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 26036112.0,
+        "total_expenses": 22148522.0,
+        "net_assets_eoy": 17436892.0,
+        "operating_margin_pct": 14.931530483506908,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 76.15748080973073
+      }
+    ]
+  },
+  "952468116": {
+    "org_name": "BOYS & GIRLS CLUBS OF THE CENTRAL COAST",
+    "ntee_major_category": "O",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5028027787711647,
+    "t_plus_min_runway_months": 10.68810259651178,
+    "t_plus_min_margin_pct": -2.761506240530341,
+    "demo_strength": 24.047803361311253,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 3994997.0,
+        "total_expenses": 2835839.0,
+        "net_assets_eoy": 1821562.0,
+        "operating_margin_pct": 29.01524081244617,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 62.91241270018476
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 3213682.0,
+        "total_expenses": 2846358.0,
+        "net_assets_eoy": 2165636.0,
+        "operating_margin_pct": 11.43000458663925,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 86.68654832681018
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 5533635.0,
+        "total_expenses": 3629383.0,
+        "net_assets_eoy": 4069888.0,
+        "operating_margin_pct": 34.41231667791605,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 64.67372712511758
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 4698559.0,
+        "total_expenses": 4828310.0,
+        "net_assets_eoy": 4548479.0,
+        "operating_margin_pct": -2.761506240530341,
+        "cash_runway_months": 10.68810259651178,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 47.57799146504279
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 6331581.0,
+        "total_expenses": 5297024.0,
+        "net_assets_eoy": 5583036.0,
+        "operating_margin_pct": 16.33963144434226,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 55.07303783999604
+      }
+    ]
+  },
+  "237279960": {
+    "org_name": "ST JOHN KRONSTADT HOME FOR RUSSIAN-AMERICANS",
+    "ntee_major_category": "E",
+    "state": "CA",
+    "call_year": 2022,
+    "predicted_distress_proba": 0.5614775535475633,
+    "t_plus_min_runway_months": 47.75203767072039,
+    "t_plus_min_margin_pct": -6.564644428464585,
+    "demo_strength": 22.459102141902534,
+    "trajectory": [
+      {
+        "fy": 2020,
+        "total_revenue": 5609689.0,
+        "total_expenses": 5085885.0,
+        "net_assets_eoy": 6052098.0,
+        "operating_margin_pct": 9.337487336642013,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 95.85055428206448
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 6639141.0,
+        "total_expenses": 5567144.0,
+        "net_assets_eoy": 7197616.0,
+        "operating_margin_pct": 16.146621980162795,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 84.06489634728348
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 5878581.0,
+        "total_expenses": 5828857.0,
+        "net_assets_eoy": 7154046.0,
+        "operating_margin_pct": 0.8458503846421441,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 99.74126409077293
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 6107688.0,
+        "total_expenses": 6508636.0,
+        "net_assets_eoy": 6862948.0,
+        "operating_margin_pct": -6.564644428464585,
+        "cash_runway_months": 47.75203767072039,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 98.08480721346604
+      },
+      {
+        "fy": 2024,
+        "total_revenue": 6527765.0,
+        "total_expenses": 6718443.0,
+        "net_assets_eoy": 6780691.0,
+        "operating_margin_pct": -2.921030398612695,
+        "cash_runway_months": 84.79157532594216,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 98.39197642684748
+      }
+    ]
+  },
+  "952872549": {
+    "org_name": "HELP OF OJAI INC",
+    "ntee_major_category": "P",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5561923476061374,
+    "t_plus_min_runway_months": 120.0,
+    "t_plus_min_margin_pct": -0.5008590026051014,
+    "demo_strength": 22.247693904245498,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 2194568.0,
+        "total_expenses": 2259717.0,
+        "net_assets_eoy": 1514617.0,
+        "operating_margin_pct": -2.9686480437152096,
+        "cash_runway_months": 85.63766136088044,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 81.52620470179097
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 5332160.0,
+        "total_expenses": 4286329.0,
+        "net_assets_eoy": 2645996.0,
+        "operating_margin_pct": 19.613646252175478,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 94.90801101242273
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 2014212.0,
+        "total_expenses": 1453971.0,
+        "net_assets_eoy": 3116585.0,
+        "operating_margin_pct": 27.814400867436,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 77.02942887839016
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 1472995.0,
+        "total_expenses": 1473832.0,
+        "net_assets_eoy": 3131361.0,
+        "operating_margin_pct": -0.05682300347251688,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 66.76702908020732
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 1512801.0,
+        "total_expenses": 1520378.0,
+        "net_assets_eoy": 3176921.0,
+        "operating_margin_pct": -0.5008590026051014,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 64.27560531755333
+      }
+    ]
+  },
+  "943129859": {
+    "org_name": "KIRKLAND CENTER OF THE PERFORMING ARTS DBA KIRKLAND PERFORMANCE CENTER",
+    "ntee_major_category": "A",
+    "state": "WA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5292479994785985,
+    "t_plus_min_runway_months": 12.54023370701121,
+    "t_plus_min_margin_pct": -28.445449908383853,
+    "demo_strength": 21.169919979143938,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 1973622.0,
+        "total_expenses": 1524985.0,
+        "net_assets_eoy": 2755636.0,
+        "operating_margin_pct": 22.731657835188297,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 47.28022893948284
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 809257.0,
+        "total_expenses": 853328.0,
+        "net_assets_eoy": 2931439.0,
+        "operating_margin_pct": -5.445859597136633,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 59.3453006893978
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 2361159.0,
+        "total_expenses": 1444211.0,
+        "net_assets_eoy": 3319776.0,
+        "operating_margin_pct": 38.834657047661764,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 54.04892258420547
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 2009003.0,
+        "total_expenses": 2049636.0,
+        "net_assets_eoy": 3459149.0,
+        "operating_margin_pct": -2.0225455113805206,
+        "cash_runway_months": 98.0407058302365,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 53.5795616034421
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 2072233.0,
+        "total_expenses": 2661689.0,
+        "net_assets_eoy": 2920781.0,
+        "operating_margin_pct": -28.445449908383853,
+        "cash_runway_months": 12.54023370701121,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 66.1867174202901
+      }
+    ]
+  },
+  "911705420": {
+    "org_name": "EXPLORER WEST AN INDEPENDENT MIDDLE SCHOOL",
+    "ntee_major_category": "B",
+    "state": "WA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5288842966576546,
+    "t_plus_min_runway_months": 120.0,
+    "t_plus_min_margin_pct": -0.329200208201128,
+    "demo_strength": 21.155371866306183,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 2678660.0,
+        "total_expenses": 2351551.0,
+        "net_assets_eoy": 4428983.0,
+        "operating_margin_pct": 12.211665534259668,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 80.45813951751995
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 2919107.0,
+        "total_expenses": 2659223.0,
+        "net_assets_eoy": 5316262.0,
+        "operating_margin_pct": 8.902859675921437,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 74.04182169410028
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 2931222.0,
+        "total_expenses": 2596428.0,
+        "net_assets_eoy": 4888546.0,
+        "operating_margin_pct": 11.421652812376545,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 76.21821206309177
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 2804980.0,
+        "total_expenses": 2814214.0,
+        "net_assets_eoy": 5137219.0,
+        "operating_margin_pct": -0.329200208201128,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 82.50939400637438
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 3366144.0,
+        "total_expenses": 3193028.0,
+        "net_assets_eoy": 5460187.0,
+        "operating_margin_pct": 5.142857821887596,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 78.41776822381931
+      }
+    ]
+  },
+  "942887073": {
+    "org_name": "BERKELEY SOCIETY FOR THE PRESERVATION OF TRADITIONAL MUSIC",
+    "ntee_major_category": "A",
+    "state": "CA",
+    "call_year": 2022,
+    "predicted_distress_proba": 0.5080879614511884,
+    "t_plus_min_runway_months": 27.12248022710063,
+    "t_plus_min_margin_pct": -12.069109550945738,
+    "demo_strength": 20.323518458047538,
+    "trajectory": [
+      {
+        "fy": 2020,
+        "total_revenue": 2623995.0,
+        "total_expenses": 2449562.0,
+        "net_assets_eoy": 15104499.0,
+        "operating_margin_pct": 6.647611752308979,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 64.88899559640929
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 4788903.0,
+        "total_expenses": 2788519.0,
+        "net_assets_eoy": 17105879.0,
+        "operating_margin_pct": 41.77123654415218,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 78.27145381729386
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 5176422.0,
+        "total_expenses": 4591141.0,
+        "net_assets_eoy": 17677355.0,
+        "operating_margin_pct": 11.306670901251868,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Contributions & grants",
+        "largest_source_pct": 54.042522035490926
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 4967707.0,
+        "total_expenses": 5567265.0,
+        "net_assets_eoy": 17068312.0,
+        "operating_margin_pct": -12.069109550945738,
+        "cash_runway_months": 27.12248022710063,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 61.183459491471616
+      },
+      {
+        "fy": 2024,
+        "total_revenue": 5279422.0,
+        "total_expenses": 5503487.0,
+        "net_assets_eoy": 16844240.0,
+        "operating_margin_pct": -4.244119905550266,
+        "cash_runway_months": 86.45917925601947,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 55.475902475687676
+      }
+    ]
+  },
+  "680345901": {
+    "org_name": "COPPERTOWER FAMILY MED CTR INC DBA ALEXANDER VALLEY HEALTHCARE",
+    "ntee_major_category": "E",
+    "state": "CA",
+    "call_year": 2021,
+    "predicted_distress_proba": 0.5036093690512207,
+    "t_plus_min_runway_months": 12.62574600203295,
+    "t_plus_min_margin_pct": -8.741711599969678,
+    "demo_strength": 20.144374762048827,
+    "trajectory": [
+      {
+        "fy": 2019,
+        "total_revenue": 5424874.0,
+        "total_expenses": 5704675.0,
+        "net_assets_eoy": 4185557.0,
+        "operating_margin_pct": -5.157741912531056,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 71.3053427600346
+      },
+      {
+        "fy": 2020,
+        "total_revenue": 6509991.0,
+        "total_expenses": 6312118.0,
+        "net_assets_eoy": 4383430.0,
+        "operating_margin_pct": 3.039528011636268,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 63.42464989582935
+      },
+      {
+        "fy": 2021,
+        "total_revenue": 7004716.0,
+        "total_expenses": 6478445.0,
+        "net_assets_eoy": 4909701.0,
+        "operating_margin_pct": 7.513095463113707,
+        "cash_runway_months": 120.0,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 51.82758301692745
+      },
+      {
+        "fy": 2022,
+        "total_revenue": 6819923.0,
+        "total_expenses": 7416101.0,
+        "net_assets_eoy": 4313523.0,
+        "operating_margin_pct": -8.741711599969678,
+        "cash_runway_months": 12.62574600203295,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 51.88489664766009
+      },
+      {
+        "fy": 2023,
+        "total_revenue": 7230620.0,
+        "total_expenses": 7328455.0,
+        "net_assets_eoy": 4215688.0,
+        "operating_margin_pct": -1.3530651590043454,
+        "cash_runway_months": 66.14970102723974,
+        "largest_source_name": "Program service revenue",
+        "largest_source_pct": 56.00190578401298
+      }
+    ]
+  }
+}
