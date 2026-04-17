@@ -918,7 +918,7 @@ function CrisisReplayConsole({
 
         <PathReplayChart view={pathView} metric={metric} />
 
-        <div className="grid gap-3 min-[1120px]:grid-cols-[0.92fr_1.08fr]">
+        <div className="grid gap-3 min-[1120px]:grid-cols-[0.92fr_1.08fr] min-[1120px]:items-start">
           <ReplayControlPanel
             strategyId={strategyId}
             setStrategyId={setStrategyId}
@@ -931,6 +931,7 @@ function CrisisReplayConsole({
             interventionYear={selectedInterventionYear}
             observedYear={pathView.observedYear}
             windowLabel={pathView.windowLabel}
+            scenarioId={strategyId}
             targetSignal={pathView.targetSignal}
             baseline={pathView.baseline}
             rankingLabel={pathView.rankingLabel}
@@ -1595,26 +1596,36 @@ function ReplayControlPanel({
   setMetric: (value: PathMetric) => void;
   scenarios: Array<{ id: string; title: string }>;
 }) {
+  const planScenarios = scenarios.map((scenario) => ({
+    ...scenario,
+    plan: replayPlanDefinition(scenario),
+  }));
+  const activePlan = planScenarios.find(({ id }) => id === strategyId)?.plan ?? planScenarios[0]?.plan;
+
   return (
-    <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
+    <section className="self-start rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
       <div className="grid gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Intervention plan</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {scenarios.map((scenario) => {
-              const active = scenario.id === strategyId;
+            {planScenarios.map(({ id, plan }) => {
+              const active = id === strategyId;
               return (
                 <button
-                  key={scenario.id}
+                  key={id}
                   type="button"
-                  onClick={() => setStrategyId(scenario.id)}
-                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-3 text-left text-[12px] font-medium leading-[1.25] [text-wrap:balance] ${
+                  onClick={() => setStrategyId(id)}
+                  className={`min-w-0 cursor-pointer rounded-[0.95rem] border px-3 py-3 text-left ${
                     active
                       ? "border-[#1f5446]/30 bg-[rgba(231,241,236,0.96)] text-[#173a32]"
                       : "border-black/8 bg-white/78 text-slate-700 hover:bg-[rgba(250,246,239,0.9)]"
                   }`}
                 >
-                  {financialScenarioLabel(scenario)}
+                  <p className="text-[12px] font-semibold leading-[1.2] tracking-[-0.02em] text-inherit [text-wrap:balance]">{plan.label}</p>
+                  <p className={`mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${active ? "text-[#557062]" : "text-slate-500"}`}>
+                    Primary target
+                  </p>
+                  <p className="mt-1 text-[12px] leading-[1.25] text-inherit/90">{plan.targetLabel}</p>
                 </button>
               );
             })}
@@ -1647,6 +1658,17 @@ function ReplayControlPanel({
             })}
           </div>
         </div>
+        {activePlan ? (
+          <div className="rounded-[1rem] border border-[#1f5446]/14 bg-[linear-gradient(180deg,rgba(231,241,236,0.82),rgba(249,245,238,0.92))] px-3.5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#557062]">Active plan read</p>
+              <span className="rounded-full border border-white/70 bg-white/78 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#557062]">
+                {activePlan.targetLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-[12.5px] leading-[1.3] text-slate-800">{activePlan.quickRead}</p>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1844,6 +1866,7 @@ function ReplayReferenceCard({
   interventionYear,
   observedYear,
   windowLabel,
+  scenarioId,
   targetSignal,
   baseline,
   rankingLabel,
@@ -1851,19 +1874,40 @@ function ReplayReferenceCard({
   interventionYear: number;
   observedYear: number;
   windowLabel: string;
+  scenarioId: string;
   targetSignal: FlightSignal;
   baseline: PathState;
   rankingLabel: string;
 }) {
+  const plan = replayPlanDefinition({ id: scenarioId, title: "" });
+
   return (
     <section className="rounded-[1.25rem] border border-black/7 bg-[rgba(249,245,238,0.92)] p-3.5">
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         <SnapshotMetricCard label="Intervention point" value={`FY${interventionYear}`} compact />
         <SnapshotMetricCard label="Observed next filing" value={`FY${observedYear}`} compact />
         <SnapshotMetricCard label="Replay window" value={windowLabel} compact />
-        <SnapshotMetricCard label="Peer logic" value={flightSignalTitle(targetSignal)} compact />
         <SnapshotMetricCard label="Risk signal" value={rankingLabel} compact />
         <SnapshotMetricCard label="Starting margin" value={`${formatSigned(baseline.margin)}%`} compact />
+        <div className="min-w-0 rounded-[1.2rem] border border-[#1f5446]/16 bg-[linear-gradient(180deg,rgba(231,241,236,0.95),rgba(249,245,238,0.88))] px-3.5 py-3 sm:col-span-2 xl:col-span-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Peer logic</p>
+            <span className="rounded-full border border-[#1f5446]/16 bg-white/82 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#557062]">
+              Target: {plan.targetLabel}
+            </span>
+          </div>
+          <p className="mt-2 text-[14px] font-semibold leading-[1.2] tracking-[-0.03em] text-slate-950">{plan.immediateEffect}</p>
+          <div className="mt-2 grid gap-2 min-[620px]:grid-cols-2">
+            <div className="rounded-[0.95rem] border border-black/7 bg-white/78 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">Primary read</p>
+              <p className="mt-1 text-[12px] leading-[1.3] text-slate-700">{flightSignalTitle(targetSignal)} is the first line Northstar tries to move.</p>
+            </div>
+            <div className="rounded-[0.95rem] border border-black/7 bg-white/78 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">How to explain it</p>
+              <p className="mt-1 text-[12px] leading-[1.3] text-slate-700">{plan.spillovers}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -3049,7 +3093,7 @@ function resolveReplaySignal(organization: OrganizationRecord, scenarioId: strin
   if (/diversification/i.test(scenarioId)) {
     return "concentration";
   }
-  if (/portfolio|yield/i.test(scenarioId)) {
+  if (/portfolio|yield|downside|default/i.test(scenarioId)) {
     return "margin";
   }
 
@@ -3874,9 +3918,6 @@ function flightSignalTitle(signal: FlightSignal) {
 }
 
 function financialScenarioLabel(scenario: { id: string; title: string }) {
-  if (/downside/i.test(scenario.id) || /downside/i.test(scenario.title)) {
-    return "Financial Resilience X-Ray";
-  }
   if (/reserve|bridge/i.test(scenario.id) || /reserve|bridge/i.test(scenario.title)) {
     return "Reserve Policy Design";
   }
@@ -3886,7 +3927,54 @@ function financialScenarioLabel(scenario: { id: string; title: string }) {
   if (/portfolio|yield/i.test(scenario.id) || /portfolio|yield/i.test(scenario.title)) {
     return "Portfolio Optimization";
   }
-  return "Financial Resilience X-Ray";
+  return "Portfolio Optimization";
+}
+
+function replayPlanDefinition(scenario: { id: string; title: string }) {
+  const label = financialScenarioLabel(scenario);
+
+  if (/reserve|bridge/i.test(scenario.id) || /reserve|bridge/i.test(scenario.title)) {
+    return {
+      label,
+      targetLabel: "Reserve cushion",
+      immediateEffect: "This plan first rebuilds reserve cushion so the organization has more runway to absorb shocks.",
+      spillovers: "As runway improves, Northstar expects distress risk to come down first, with smaller lift to operating margin and revenue mix.",
+      quickRead: "Reserve cushion moves first, then risk comes down and margins stabilize.",
+      bullets: [
+        "Targets reserve cushion first",
+        "Extends runway before chasing growth",
+        "Secondary effect: lower risk and steadier margins",
+      ],
+    };
+  }
+
+  if (/diversification/i.test(scenario.id) || /diversification/i.test(scenario.title)) {
+    return {
+      label,
+      targetLabel: "Revenue mix",
+      immediateEffect: "This plan first broadens revenue mix so the organization is less exposed to a single funding source.",
+      spillovers: "As concentration risk falls, Northstar expects margin stability and reserve cushion to improve behind it.",
+      quickRead: "Revenue mix moves first, then the organization becomes less fragile and more stable.",
+      bullets: [
+        "Targets revenue mix first",
+        "Reduces single-source dependency",
+        "Secondary effect: lower risk, stronger margin, better cushion",
+      ],
+    };
+  }
+
+  return {
+    label,
+    targetLabel: "Operating margin",
+    immediateEffect: "This plan first repairs operating margin, typically through stronger portfolio yield and capital efficiency.",
+    spillovers: "As margin improves, Northstar expects distress risk to fall and reserve cushion to build modestly behind it.",
+    quickRead: "Operating margin moves first, then risk falls and reserve cushion starts rebuilding.",
+    bullets: [
+      "Targets operating margin first",
+      "Uses yield discipline to improve financial performance",
+      "Secondary effect: lower risk and a modest cushion lift",
+    ],
+  };
 }
 
 function routeDeckEyebrow(deckType: FlightDeckType) {
