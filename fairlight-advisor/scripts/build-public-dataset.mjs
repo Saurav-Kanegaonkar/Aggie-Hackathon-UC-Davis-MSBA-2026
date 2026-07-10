@@ -307,7 +307,7 @@ function transformOrganization(organization, sourceOrganization, caseIndex) {
     distressProbability,
     distressLabel: `${organization.distressTier} distress risk`,
     decisionReason: "Synthetic decision-support case built from transformed public filing patterns.",
-    whySurfaced: `Surfaced as a ${organization.actionLabel.toLowerCase()} demonstration case with ${organization.confidenceTier.toLowerCase()} evidence confidence.`,
+    whySurfaced: `Surfaced for ${organization.actionLabel.toLowerCase()} analysis with ${organization.confidenceTier.toLowerCase()} evidence confidence.`,
     confidenceNote: `${organization.confidenceTier} confidence in the transformed demonstration signals; verify current audited statements before action.`,
     memoText: `${publicName} is a synthetic demonstration case based on transformed public Form 990 patterns. Review peer benchmarks, evidence confidence, and scenario assumptions before drawing conclusions.`,
     historicalFinancials,
