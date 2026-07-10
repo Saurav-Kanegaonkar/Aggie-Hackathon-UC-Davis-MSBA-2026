@@ -97,7 +97,7 @@ function recommendationSummary(organization: OrganizationRecord): string {
     case "Weak Financial Foundation":
       return `The case is workable, but it is not yet a clean green light. Projected risk sits ${formatRisk(risk)} versus a ${baseline.toFixed(1)}% portfolio baseline, so support should come with clear guardrails.`;
     case "Revenue Concentration Risk":
-      return `The core model looks supportable, but the funding base still reads ${mixRead(mix)}. This should be backed only if the support is tied to broadening revenue sources.`;
+      return `The core model looks supportable, but the reported revenue mix still reads ${mixRead(mix)}. This should be backed only if the support is tied to broadening that mix.`;
     case "Needs Data Diligence":
       return `The current evidence is not strong enough for a clean capital recommendation. With operating margin at ${formatSignedPercent(margin)} and projected risk at ${formatRisk(risk)}, this still needs diligence before a call is made.`;
   }

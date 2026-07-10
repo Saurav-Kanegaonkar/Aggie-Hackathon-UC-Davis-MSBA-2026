@@ -1,4 +1,3 @@
-import { Info } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 
@@ -15,6 +14,34 @@ const SIZE_BUCKET_ORDER: Record<string, number> = {
   ">10M": 3,
 };
 
+function resolveRequestedOrganizationId(organizations: OrganizationRecord[]): string | null {
+  if (typeof window === "undefined") return null;
+
+  const requestedOrganization = new URLSearchParams(window.location.search).get("org");
+
+  if (requestedOrganization === "first") {
+    return organizations[0]?.id ?? null;
+  }
+
+  return organizations.some((organization) => organization.id === requestedOrganization)
+    ? requestedOrganization
+    : null;
+}
+
+function pushOrganizationToHistory(organizationId: string | null) {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+
+  if (organizationId) {
+    url.searchParams.set("org", organizationId);
+  } else {
+    url.searchParams.delete("org");
+  }
+
+  window.history.pushState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 export default function App() {
   const [advisorDataset, setAdvisorDataset] = useState<AdvisorDataset | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -30,27 +57,11 @@ export default function App() {
 
     async function loadDataset() {
       try {
-        const advisorModule = await import("./data/fairlight-advisor.json");
+        const advisorModule = await import("./data/fairlight-advisor-public.json");
         if (isMounted) {
           const dataset = advisorModule.default as AdvisorDataset;
           primeNorthstarScores(dataset.organizations);
-          if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            const requestedOrganization = params.get("org");
-
-            if (requestedOrganization === "first" && dataset.organizations[0]) {
-              setSelectedId(dataset.organizations[0].id);
-            } else if (requestedOrganization) {
-              const matchedOrganization = dataset.organizations.find(
-                (organization) => organization.id === requestedOrganization,
-              );
-
-              if (matchedOrganization) {
-                setSelectedId(matchedOrganization.id);
-              }
-            }
-          }
-
+          setSelectedId(resolveRequestedOrganizationId(dataset.organizations));
           setAdvisorDataset(dataset);
         }
       } catch (error) {
@@ -111,13 +122,29 @@ export default function App() {
       });
   }, [deferredSearchQuery, organizations, sizeBucketFilter, sortOption, stateFilter]);
 
+  useEffect(() => {
+    if (!advisorDataset || typeof window === "undefined") return;
+
+    const handlePopState = () => {
+      const requestedOrganizationId = resolveRequestedOrganizationId(advisorDataset.organizations);
+      startTransition(() => {
+        setSelectedId(requestedOrganizationId);
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [advisorDataset]);
+
   const handleSelectOrganization = (organization: OrganizationRecord) => {
+    pushOrganizationToHistory(organization.id);
     startTransition(() => {
       setSelectedId(organization.id);
     });
   };
 
   const handleReturnToPortfolio = () => {
+    pushOrganizationToHistory(null);
     startTransition(() => {
       setSelectedId(null);
     });
@@ -195,7 +222,7 @@ export default function App() {
   }
 
   return (
-    <main className="relative text-slate-900">
+    <main className="relative w-full max-w-full overflow-x-hidden text-slate-900">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute left-[-6rem] top-[-4rem] h-[28rem] w-[28rem] rounded-full bg-white/70 blur-3xl" />
           <div className="absolute right-[-8rem] top-[6rem] h-[30rem] w-[30rem] rounded-full bg-emerald-100/30 blur-3xl" />
@@ -213,6 +240,9 @@ export default function App() {
                 <h1 className="northstar-display text-center text-[5rem] font-[600] leading-[1] tracking-[-0.06em] text-[#111720]">
                   Northstar
                 </h1>
+                <p className="max-w-2xl text-center text-[15px] leading-relaxed text-slate-600 sm:text-base">
+                  Nonprofit financial intelligence for deciding where intervention can still change the curve.
+                </p>
               </div>
             </header>
           ) : null}
@@ -258,76 +288,102 @@ export default function App() {
             )}
           </AnimatePresence>
 
+          <ProjectContextFooter totalOrganizations={advisorDataset.summary.totalOrganizations} />
         </div>
       </main>
   );
 }
 
-function SummaryStrip({
-  items,
-}: {
-  items: Array<{
-    id: string;
-    detail: string;
-    explanation: string;
-    label: string;
-    value: string;
-    valueClassName?: string;
-  }>;
-}) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
+function ProjectContextFooter({ totalOrganizations }: { totalOrganizations: number }) {
   return (
-    <div className="w-full max-w-[34rem] rounded-[2rem] border border-black/6 bg-white/84 p-3 shadow-[0_24px_56px_-42px_rgba(15,23,42,0.22)] xl:min-w-[31rem]">
-      <div className="grid gap-2 sm:grid-cols-3">
-        {items.map((item) => {
-          const flipped = activeId === item.id;
-          const valueClass =
-            item.valueClassName ??
-            (item.value.length > 8
-              ? "text-[1.55rem] tracking-[-0.055em]"
-              : "text-[2rem] tracking-[-0.07em]");
+    <footer className="mt-4 pb-2" aria-label="Project information">
+      <details className="group overflow-hidden rounded-[1.75rem] border border-black/6 bg-[rgba(255,253,248,0.76)] shadow-[0_22px_56px_-46px_rgba(15,23,42,0.24)]">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 text-left outline-none transition-colors duration-200 hover:bg-white/40 focus-visible:ring-2 focus-visible:ring-emerald-700/35 focus-visible:ring-inset [&::-webkit-details-marker]:hidden sm:px-6">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+              About the project
+            </span>
+            <span className="hidden truncate text-[13px] text-slate-500 sm:inline">
+              UC Davis MSBA / IRS Form 990
+            </span>
+          </span>
+          <span
+            className="relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white/70 text-slate-600"
+            aria-hidden="true"
+          >
+            <span className="absolute h-px w-2.5 bg-current" />
+            <span className="absolute h-2.5 w-px bg-current transition-transform duration-200 group-open:scale-y-0" />
+          </span>
+        </summary>
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveId(flipped ? null : item.id)}
-              className="group [perspective:1200px] rounded-[1.45rem] text-left"
-              aria-pressed={flipped}
-              aria-label={`${item.label}: ${flipped ? item.explanation : `${item.value}. ${item.detail}`}`}
-            >
-              <div
-                className={`relative min-h-[10rem] rounded-[1.45rem] transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
-                  flipped ? "[transform:rotateY(180deg)]" : ""
-                }`}
+        <div className="border-t border-black/6 px-5 py-5 sm:px-6">
+          <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
+            <section aria-labelledby="project-team-heading">
+              <h2
+                id="project-team-heading"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
               >
-                <div className="absolute inset-0 flex flex-col rounded-[1.45rem] border border-black/6 bg-[rgba(255,255,255,0.82)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] [backface-visibility:hidden] transition-[box-shadow,border-color] duration-200 ease-out group-hover:shadow-[0_18px_36px_-28px_rgba(15,23,42,0.16)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">{item.label}</p>
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-black/6 bg-[rgba(246,241,232,0.92)] text-slate-500">
-                      <Info size={12} weight="bold" />
-                    </span>
-                  </div>
-                  <p className={`mt-4 font-semibold leading-none text-slate-950 ${valueClass}`}>{item.value}</p>
-                  <p className="mt-auto pt-3 text-[13px] leading-[1.4] text-slate-700">{item.detail}</p>
-                </div>
+                Builder and team
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Northstar was built in 48 hours for the 2026 UC Davis MSBA Aggie Hackathon by Team Real Housewives of
+                Tenderloin: Saurav Kanegaonkar, Vedant Tiwari, and Amal Farhad Shaji.
+              </p>
+            </section>
 
-                <div className="absolute inset-0 flex flex-col rounded-[1.45rem] border border-black/6 bg-[rgba(248,244,236,0.95)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-700">{item.label}</p>
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-black/6 bg-white/70 text-slate-500">
-                      <Info size={12} weight="bold" />
-                    </span>
-                  </div>
-                  <p className="mt-4 text-[13px] leading-[1.5] text-slate-800">{item.explanation}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+            <section aria-labelledby="project-scope-heading">
+              <h2
+                id="project-scope-heading"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+              >
+                IRS Form 990 scope
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                This workspace presents {totalOrganizations} synthetic California and Washington demonstration cases
+                patterned on public FY2023-FY2024 full Form 990 filings. Names, EINs, exact amounts, and record ordering
+                are transformed. Source histories span FY2007-FY2025; case views stop at their stated decision year,
+                while Crisis Replay labels any later observed filings separately. Form 990-EZ and Form 990-PF returns
+                are out of scope.
+              </p>
+            </section>
+
+            <section aria-labelledby="project-method-heading">
+              <h2
+                id="project-method-heading"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+              >
+                Methodology
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Deterministic peer cohorts and seven-year persistence benchmarks compare margin, operating runway, and
+                revenue diversification. Reported revenue-category shocks, historical recovery analogs, and evidence
+                quality add decision context to the Northstar ranking.
+              </p>
+            </section>
+
+            <section aria-labelledby="project-limitations-heading">
+              <h2
+                id="project-limitations-heading"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+              >
+                Limitations
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                This is decision support, not audit, investment, legal, or grantmaking advice. Filing lag, amendments,
+                missing fields, reporting-definition changes, cohort size, and modeled shocks can affect results;
+                scenario outputs are directional rather than causal forecasts. Verify conclusions against current
+                filings and audited financials.
+              </p>
+            </section>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-black/6 pt-4 text-[13px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <span>Source layer: GivingTuesday Basic 120 Fields and IRS bulk XML.</span>
+            <span>Synthetic public demo: exact source records are not exposed in the interface.</span>
+          </div>
+        </div>
+      </details>
+    </footer>
   );
 }
 

@@ -1,5 +1,5 @@
 import { Info, ArrowClockwise, ArrowUpRight, X } from "@phosphor-icons/react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -134,6 +134,133 @@ function useDocumentScrollLock() {
       }
     };
   }, []);
+}
+
+const MODAL_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[contenteditable='true']",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getModalFocusableElements(dialog: HTMLElement) {
+  return Array.from(dialog.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)).filter(
+    (element) => !element.closest("[hidden], [inert], [aria-hidden='true']"),
+  );
+}
+
+function makeOutsideModalInert(modalRoot: HTMLElement) {
+  const snapshots: Array<{
+    element: HTMLElement;
+    hadInert: boolean;
+    ariaHidden: string | null;
+  }> = [];
+  let activeBranch = modalRoot;
+
+  while (activeBranch.parentElement) {
+    const parent = activeBranch.parentElement;
+
+    Array.from(parent.children).forEach((sibling) => {
+      if (sibling === activeBranch || !(sibling instanceof HTMLElement)) {
+        return;
+      }
+
+      snapshots.push({
+        element: sibling,
+        hadInert: sibling.hasAttribute("inert"),
+        ariaHidden: sibling.getAttribute("aria-hidden"),
+      });
+      sibling.setAttribute("inert", "");
+      sibling.setAttribute("aria-hidden", "true");
+    });
+
+    if (parent === document.body) {
+      break;
+    }
+    activeBranch = parent;
+  }
+
+  return () => {
+    snapshots.forEach(({ element, hadInert, ariaHidden }) => {
+      if (!hadInert) {
+        element.removeAttribute("inert");
+      }
+      if (ariaHidden === null) {
+        element.removeAttribute("aria-hidden");
+      } else {
+        element.setAttribute("aria-hidden", ariaHidden);
+      }
+    });
+  };
+}
+
+function useModalFocus(onClose: () => void) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const initialFocusRef = useRef<HTMLButtonElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    const dialog = dialogRef.current;
+    if (!overlay || !dialog) {
+      return;
+    }
+    const activeDialog = dialog;
+
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const restoreOutsideState = makeOutsideModalInert(overlay);
+
+    (initialFocusRef.current ?? getModalFocusableElements(activeDialog)[0] ?? activeDialog).focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = getModalFocusableElements(activeDialog);
+      if (!focusableElements.length) {
+        event.preventDefault();
+        activeDialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstElement || !activeDialog.contains(activeElement))) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && (activeElement === lastElement || !activeDialog.contains(activeElement))) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      restoreOutsideState();
+      if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+      }
+    };
+  }, []);
+
+  return { dialogRef, initialFocusRef, overlayRef };
 }
 
 export function PanelShell({
@@ -559,7 +686,7 @@ export function RevenueMixTrendGrid({
             openLabel={`Open ${item.label} detail`}
             guideBullets={[
               `This chart tracks how much ${item.label.toLowerCase()} contributed to total revenue across the filing history.`,
-              "Higher percentages mean the organization is leaning more heavily on this source in that year.",
+              "Higher percentages mean the organization is leaning more heavily on this reported category in that year.",
               "Read this alongside the other revenue cards to see whether the overall mix is broadening or concentrating.",
             ]}
             onOpenDetail={() => onOpenDetail?.(item.label)}
@@ -664,16 +791,19 @@ export function DecisionLabDetailOverlay({
   onClose: () => void;
 }) {
   const [showGuide, setShowGuide] = useState(false);
+  const { dialogRef, initialFocusRef, overlayRef } = useModalFocus(onClose);
   useDocumentScrollLock();
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-3 backdrop-blur-[12px] sm:p-4 md:p-5" data-testid="decision-lab-detail-overlay">
-      <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail backdrop" />
+    <div ref={overlayRef} className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(246,241,232,0.58)] p-3 backdrop-blur-[12px] sm:p-4 md:p-5" data-testid="decision-lab-detail-overlay">
+      <button type="button" tabIndex={-1} aria-hidden="true" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail backdrop" />
       <section
+        ref={dialogRef}
         className="relative z-[1] flex h-[min(84dvh,760px)] w-[min(92vw,1220px)] flex-col rounded-[2.3rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-1.5 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
         role="dialog"
         aria-modal="true"
         aria-label={detail.title}
+        tabIndex={-1}
       >
         <div className="flex h-full flex-col rounded-[calc(2.3rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-6">
           <div className="flex items-start justify-between gap-4">
@@ -693,6 +823,7 @@ export function DecisionLabDetailOverlay({
                 </button>
               ) : null}
               <button
+                ref={initialFocusRef}
                 type="button"
                 onClick={onClose}
                 className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-700 transition-colors hover:bg-white"
@@ -704,6 +835,8 @@ export function DecisionLabDetailOverlay({
           </div>
           <div className="relative mt-4 min-h-0 flex-1">
             <div
+              aria-hidden={showGuide}
+              inert={showGuide}
               className={`absolute inset-0 rounded-[1.9rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
@@ -713,6 +846,8 @@ export function DecisionLabDetailOverlay({
 
             {detail.guideTitle && detail.guideBullets?.length ? (
               <div
+                aria-hidden={!showGuide}
+                inert={!showGuide}
                 className={`absolute inset-0 rounded-[1.9rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-5 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-6 ${
                   showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
                 }`}
@@ -754,12 +889,20 @@ export function ChartDetailModal({
   guideBullets?: string[];
 }) {
   const [showGuide, setShowGuide] = useState(false);
+  const { dialogRef, initialFocusRef, overlayRef } = useModalFocus(onClose);
   useDocumentScrollLock();
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-4">
-      <button type="button" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail" />
-      <section className="relative z-[1] h-[min(86dvh,820px)] w-[min(92vw,1280px)] rounded-[2.4rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-1.5 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]">
+    <div ref={overlayRef} className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(243,239,231,0.58)] p-3 backdrop-blur-[16px] md:p-4">
+      <button type="button" tabIndex={-1} aria-hidden="true" className="absolute inset-0 cursor-pointer" onClick={onClose} aria-label="Close detail" />
+      <section
+        ref={dialogRef}
+        className="relative z-[1] h-[min(86dvh,820px)] w-[min(92vw,1280px)] rounded-[2.4rem] border border-black/6 bg-[rgba(255,253,248,0.985)] p-1.5 shadow-[0_56px_160px_-56px_rgba(15,23,42,0.34)]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+      >
         <div className="flex h-full flex-col rounded-[calc(2.4rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.988),rgba(250,246,240,0.95))] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] md:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -778,6 +921,7 @@ export function ChartDetailModal({
                 </button>
               ) : null}
               <button
+                ref={initialFocusRef}
                 type="button"
                 onClick={onClose}
                 className="cursor-pointer rounded-full border border-black/6 bg-white/86 p-3 text-slate-700 transition-colors hover:bg-white"
@@ -789,6 +933,8 @@ export function ChartDetailModal({
           </div>
           <div className="relative mt-8 min-h-0 flex-1">
             <div
+              aria-hidden={showGuide}
+              inert={showGuide}
               className={`absolute inset-0 rounded-[1.9rem] transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] ${
                 showGuide ? "pointer-events-none opacity-0 [transform:rotateY(-180deg)]" : "opacity-100 [transform:rotateY(0deg)]"
               }`}
@@ -798,6 +944,8 @@ export function ChartDetailModal({
 
             {guideTitle && guideBullets?.length ? (
               <div
+                aria-hidden={!showGuide}
+                inert={!showGuide}
                 className={`absolute inset-0 rounded-[2.2rem] border border-black/6 bg-[rgba(246,241,232,0.94)] p-8 transition-all duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] [transform-style:preserve-3d] md:p-10 ${
                   showGuide ? "opacity-100 [transform:rotateY(0deg)]" : "pointer-events-none opacity-0 [transform:rotateY(180deg)]"
                 }`}

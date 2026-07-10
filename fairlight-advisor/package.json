@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "prepare:public": "node scripts/build-public-dataset.mjs",
+    "dev": "npm run prepare:public && vite",
+    "build": "npm run prepare:public && tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "test": "npm run prepare:public && vitest",
+    "test:run": "npm run prepare:public && vitest run",
     "prepare:data": "python3 ../analysis/export_fairlight_advisor_dataset.py --output ./src/data/fairlight-advisor.json"
   },
   "dependencies": {

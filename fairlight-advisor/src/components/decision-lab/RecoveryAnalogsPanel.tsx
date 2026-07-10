@@ -62,7 +62,7 @@ function recoveryConstraintLabel(metricName: string) {
 function recoveryNarrative(metricName: string) {
   switch (metricName) {
     case "revenue diversification index":
-      return "This analog became less dependent on a single source of money over time.";
+      return "This analog broadened its reported revenue mix over time.";
     case "operating runway proxy months":
       return "This analog built enough financial cushion to withstand a setback for longer.";
     case "operating margin":
@@ -101,10 +101,10 @@ function recoveryValueNote(metricName: string, value: number, phase: "before" | 
 function revenueMixNote(value: number, before: boolean) {
   const safeValue = Math.max(0, value);
   if (safeValue >= 0.45) {
-    return before ? "already fairly balanced" : "more balanced across sources";
+    return before ? "already fairly balanced" : "more balanced across reported categories";
   }
   if (safeValue >= 0.25) {
-    return before ? "somewhat dependent on a few sources" : "less dependent on a single source";
+    return before ? "concentrated in a few reported categories" : "less concentrated than before";
   }
-  return before ? "highly dependent on one source" : "still narrow, but broader than before";
+  return before ? "highly concentrated in one reported category" : "still narrow, but broader than before";
 }

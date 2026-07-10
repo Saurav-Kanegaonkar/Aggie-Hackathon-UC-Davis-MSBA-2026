@@ -72,7 +72,7 @@ function actionSummary(actionLabel: OrganizationRecord["actionLabel"]): string {
     case "Weak Financial Foundation":
       return "This could move forward if support comes with guardrails.";
     case "Revenue Concentration Risk":
-      return "This could work, but too much depends on one source of money.";
+      return "This could work, but one reported revenue category dominates the mix.";
     case "Needs Data Diligence":
       return "This needs a closer check before anyone commits capital.";
   }
@@ -107,7 +107,7 @@ function simplifySurfacedReason(organization: OrganizationRecord): string {
     return "There is too much uncertainty to move straight to a recommendation.";
   }
   if (organization.actionLabel === "Revenue Concentration Risk") {
-    return "The organization may be workable, but relying too much on one source still makes the case hard to defend.";
+    return "The organization may be workable, but one reported revenue category still dominates the mix.";
   }
   if (organization.actionLabel === "Weak Financial Foundation") {
     return "The case is workable if Fairlight is willing to protect the weak spots.";
@@ -130,13 +130,13 @@ function buildPressurePoints(organization: OrganizationRecord): string[] {
   }
 
   if (diversificationGap !== null && diversificationGap < -0.08) {
-    points.push("Too much of the budget appears to depend on one funding source.");
+    points.push("Too much of reported revenue appears concentrated in one category.");
   }
 
   if (organization.stress.largestSourcePct <= 0 || organization.stress.severity25 === "Unavailable") {
-    points.push("The filing does not give enough funding detail for a full stress check.");
+    points.push("The filing does not give enough revenue-category detail for a full stress check.");
   } else if (organization.stress.burnMonths50 !== null && organization.stress.burnMonths50 <= 6) {
-    points.push(`A large funding loss could create pressure within ${organization.stress.burnMonths50.toFixed(1)} months.`);
+    points.push(`A large decline in the largest reported revenue category could create pressure within ${organization.stress.burnMonths50.toFixed(1)} months.`);
   }
 
   if (organization.trendDirection.toLowerCase().includes("declin")) {
@@ -160,7 +160,7 @@ function buildSupportSignals(organization: OrganizationRecord): string[] {
   }
 
   if (organization.scenarioCards.some((card) => card.id === "diversification-improvement")) {
-    items.push("Bringing in more than one strong funding source would help a lot.");
+    items.push("A broader revenue mix would help a lot.");
   }
 
   if (organization.confidenceTier === "High") {
@@ -176,7 +176,7 @@ function mapScenarioCard(card: ScenarioCard): { title: string; summary: string; 
   if (card.id === "downside-shock") {
     return {
       title: "If revenue slips again",
-      summary: "A fresh hit to the main funding source would likely make the case much harder to support.",
+      summary: "A fresh decline in the largest reported revenue category would likely make the case much harder to support.",
       effect: "The case weakens",
     };
   }
@@ -318,12 +318,12 @@ export function formatOrganizationName(value: string): string {
     .join(" ");
 }
 
-function formatLargestSource(organization: OrganizationRecord): string {
+function formatLargestCategory(organization: OrganizationRecord): string {
   if (organization.stress.largestSourcePct <= 0) {
     return "Awaiting detail";
   }
 
-  return `${organization.stress.largestSourcePct.toFixed(0)}% of income`;
+  return `${organization.stress.largestSourcePct.toFixed(0)}% in largest category`;
 }
 
 function formatShockWindow(organization: OrganizationRecord): string {
@@ -952,56 +952,48 @@ function formatRiskChance(probability: number): string {
   return `${probability.toFixed(1)}%`;
 }
 
-function revenueMixRead(value: number): string {
-  if (value >= 0.45) {
-    return "well spread";
-  }
-  if (value >= 0.25) {
-    return "reasonably spread";
-  }
-  if (value >= 0.1) {
-    return "fairly concentrated";
-  }
-  return "highly concentrated";
-}
+const YIELD_BENCHMARK_PCT = 5;
 
-function revenueScaleRead(amount: number | null): string {
-  if (amount === null || Number.isNaN(amount)) {
-    return "moderate-scale";
-  }
-  if (amount >= 10_000_000) {
-    return "large-scale";
-  }
-  if (amount >= 2_000_000) {
-    return "established";
-  }
-  if (amount >= 500_000) {
-    return "mid-sized";
-  }
-  return "smaller-scale";
-}
+export type YieldOpportunityEstimate = {
+  annualAmount: number | null;
+  basis: "liquid-reserves" | "net-assets" | "unavailable";
+  basisAmount: number | null;
+  isUpperBound: boolean;
+};
 
-function operatingMarginRead(value: number): string {
-  if (value >= 12) {
-    return "very strong";
-  }
-  if (value >= 5) {
-    return "healthy";
-  }
-  if (value >= 0) {
-    return "positive";
-  }
-  if (value >= -8) {
-    return "thin";
-  }
-  return "negative";
-}
+export function getYieldOpportunityEstimate(
+  organization: OrganizationRecord,
+): YieldOpportunityEstimate {
+  const latestFinancial = organization.historicalFinancials.reduce<
+    OrganizationRecord["historicalFinancials"][number] | null
+  >(
+    (latest, point) => (!latest || point.fiscalYear > latest.fiscalYear ? point : latest),
+    null,
+  );
+  // Zero is not treated as available because the exporter also uses zero when
+  // the underlying cash and savings fields are absent.
+  const liquidReserves =
+    latestFinancial &&
+    Number.isFinite(latestFinancial.liquidReserves) &&
+    latestFinancial.liquidReserves > 0
+      ? latestFinancial.liquidReserves
+      : null;
+  const netAssets =
+    organization.netAssetsEoy !== null &&
+    Number.isFinite(organization.netAssetsEoy) &&
+    organization.netAssetsEoy > 0
+      ? organization.netAssetsEoy
+      : null;
+  const basis = liquidReserves !== null ? "liquid-reserves" : netAssets !== null ? "net-assets" : "unavailable";
+  const basisAmount = liquidReserves ?? netAssets;
+  const yieldGap = Math.max(YIELD_BENCHMARK_PCT - organization.investmentYield, 0) / 100;
 
-function filingHistoryRead(years: number, latestYear: number): string {
-  if (years <= 1) {
-    return `Based on 1 year of filings through FY${latestYear}`;
-  }
-  return `Based on ${years} years of filings through FY${latestYear}`;
+  return {
+    annualAmount: basisAmount === null ? null : yieldGap * basisAmount,
+    basis,
+    basisAmount,
+    isUpperBound: basis === "net-assets",
+  };
 }
 
 // Bucket-specific advisory notes.
@@ -1010,14 +1002,14 @@ function filingHistoryRead(years: number, latestYear: number): string {
 //   1. Situation — specific numbers from the org's own filing
 //   2. Why it lands in this bucket — the pattern Fairlight sees
 //   3. Fairlight action — the engagement type that fits this bucket
-function _formatLargestSourceLabel(rawName: string): string {
-  const normalized = (rawName || "").toLowerCase();
-  if (normalized.includes("program")) return "a single program-service source";
-  if (normalized.includes("govern")) return "a single government contract";
-  if (normalized.includes("contribut")) return "a single donor or grant source";
+function _formatLargestRevenueCategory(rawName: string): string {
+  const normalized = (rawName || "").toLowerCase().replace(/[_-]+/g, " ");
+  if (normalized.includes("program")) return "program-service revenue";
+  if (normalized.includes("govern")) return "government-related revenue";
+  if (normalized.includes("contribut")) return "contributions";
   if (normalized.includes("invest")) return "investment income";
-  if (normalized.includes("other")) return "a single 'other' revenue line";
-  return "a single revenue source";
+  if (normalized.includes("other")) return "other revenue";
+  return "unspecified in the available data";
 }
 
 function _formatRunwayMonths(months: number | null): string {
@@ -1030,37 +1022,44 @@ function _formatRunwayMonths(months: number | null): string {
 }
 
 function buildUabAdvisoryNote(organization: OrganizationRecord): string {
-  const netAssets = organization.netAssetsEoy ?? 0;
+  const netAssets = organization.netAssetsEoy;
   const yieldPct = organization.investmentYield;
   const streak = organization.consecutiveYearsWithInvestmentIncome;
-  const unrealized = netAssets > 0 && yieldPct < 5 ? (0.05 - yieldPct / 100) * netAssets : 0;
-  const streakClause = streak >= 5
-    ? `, with ${streak} straight years of flat investment income`
-    : streak >= 1
-    ? `, with only ${streak} year${streak === 1 ? "" : "s"} of investment-income history on file`
-    : "";
-  const gapClause = unrealized > 0
-    ? `, closing a roughly ${compactCurrency(unrealized)}/year gap against a 5% benchmark`
-    : "";
-  return (
-    `Holds ${compactCurrency(netAssets)} in reserves earning just ${yieldPct.toFixed(1)}% this year${streakClause}. ` +
-    `Fairlight's Portfolio Growth engagement repositions the idle balance sheet into a diversified, policy-driven structure${gapClause}.`
-  );
+  const estimate = getYieldOpportunityEstimate(organization);
+  const assetClause =
+    netAssets !== null && Number.isFinite(netAssets)
+      ? `Reports ${compactCurrency(netAssets)} in net assets and a ${yieldPct.toFixed(1)}% investment yield`
+      : `Reports a ${yieldPct.toFixed(1)}% investment yield`;
+  const streakClause =
+    streak >= 1
+      ? `, with investment income reported for ${streak} straight year${streak === 1 ? "" : "s"}`
+      : "";
+
+  if (estimate.annualAmount !== null && estimate.annualAmount > 0) {
+    const opportunity = compactCurrency(estimate.annualAmount);
+    const estimateClause =
+      estimate.basis === "liquid-reserves"
+        ? `The latest liquid-reserve proxy indicates an estimated annual yield opportunity of ${opportunity}/year against a 5% benchmark, subject to liquidity and restriction review.`
+        : `The yield opportunity is an upper-bound estimate based on net assets: up to ${opportunity}/year against a 5% benchmark; actual investable funds require diligence.`;
+    return `${assetClause}${streakClause}. ${estimateClause}`;
+  }
+
+  return `${assetClause}${streakClause}. Fairlight should verify liquidity and restrictions before sizing any portfolio strategy.`;
 }
 
 function buildRcrAdvisoryNote(organization: OrganizationRecord): string {
   const revenue = compactCurrency(organization.revenueAmount ?? 0);
   const concentration = organization.stress.largestSourcePct;
-  const sourceLabel = _formatLargestSourceLabel(organization.stress.largestSource);
+  const categoryLabel = _formatLargestRevenueCategory(organization.stress.largestSource);
   const shock25 = organization.stress.burnMonths25;
   const shockClause = shock25 === null
-    ? "a 25% funding cut would dent the cushion materially"
+    ? "a modeled 25% decline in that category would reduce the cushion materially"
     : shock25 < 3
-    ? `a 25% cut would collapse runway to ${_formatRunwayMonths(shock25)}`
-    : `a 25% cut would pull runway to ${_formatRunwayMonths(shock25)}`;
+    ? `a modeled 25% decline in that category would collapse runway to ${_formatRunwayMonths(shock25)}`
+    : `a modeled 25% decline in that category would pull runway to ${_formatRunwayMonths(shock25)}`;
   return (
-    `${concentration.toFixed(0)}% of this ${revenue} operation rides on ${sourceLabel}; ${shockClause}. ` +
-    `Fairlight's Strategic Advisory engagement diversifies the funding base with fee-for-service and philanthropic channels before the budget cycle forces it.`
+    `${concentration.toFixed(0)}% of this ${revenue} operation comes from its largest reported revenue category, ${categoryLabel}; ${shockClause}. ` +
+    `Fairlight's Strategic Advisory engagement can broaden the revenue mix before the next budget cycle.`
   );
 }
 
@@ -1074,12 +1073,12 @@ function buildWffAdvisoryNote(organization: OrganizationRecord): string {
     ? `margin turned negative at ${margin.toFixed(1)}% this year`
     : margin < 5
     ? `margin sits thin at ${margin >= 0 ? "+" : ""}${margin.toFixed(1)}%`
-    : `margin is positive but reserves stay thin`;
+    : `margin is positive while liquidity still needs review`;
   const runwayClause = runwayMonths < 6
-    ? "and reserves cover less than six months of expenses"
+    ? "and the liquid-reserve proxy covers less than six months of expenses"
     : runwayMonths < 12
-    ? "and reserves cover less than a year of expenses"
-    : "and no formal reserve policy is on file";
+    ? "and the liquid-reserve proxy covers less than a year of expenses"
+    : "and reported runway exceeds a year";
   return (
     `${revenue} operation, ${marginClause} ${runwayClause}. ` +
     `Fairlight's Financial Infrastructure engagement installs a reserve policy, tightens the expense structure, and builds multi-year cash forecasting before the slip compounds.`
@@ -1124,7 +1123,7 @@ export function getInboxCopy(organization: OrganizationRecord) {
     revenueLabel: organization.revenueDisplay,
     operatingMarginLabel: `${organization.operatingMargin >= 0 ? "+" : ""}${organization.operatingMargin.toFixed(1)}%`,
     shockWindowLabel: formatShockWindow(organization),
-    concentrationLabel: formatLargestSource(organization),
+    concentrationLabel: formatLargestCategory(organization),
     stabilityIndex,
     northstarScore,
     trendLabel: formatTrendDirection(organization.trendDirection) ?? "Recent direction: unclear",
@@ -1157,18 +1156,18 @@ export function getDecisionLabCopy(organization: OrganizationRecord) {
         : "Compared with similar organizations, this case looks weaker on operating strength and cash buffer.",
     stressRead:
       organization.stress.severity25 === "Unavailable"
-        ? "We cannot fully test a downturn because the funding-source data is too thin."
-        : `If the biggest funding source drops by 25%, pressure would show up within ${inboxCopy.shockWindowLabel.toLowerCase()}.`,
+        ? "We cannot fully test a downturn because the revenue-category data is too thin."
+        : `If the largest reported revenue category drops by 25%, pressure would show up within ${inboxCopy.shockWindowLabel.toLowerCase()}.`,
     scenarios: organization.scenarioCards.map(mapScenarioCard),
     analogsHeadline:
       organization.analogs.length > 0 ? "Real organizations that improved from similar pressure." : "",
     factCards: [
       { label: "Northstar score", value: `${inboxCopy.northstarScore}`, detail: "Main summary score" },
-      { label: "Stability index", value: `${inboxCopy.stabilityIndex}`, detail: "Blend of cash, margins, and funding mix" },
+      { label: "Stability index", value: `${inboxCopy.stabilityIndex}`, detail: "Blend of cash, margins, and revenue mix" },
       { label: "Next-year risk", value: `${organization.distress.probability.toFixed(1)}%`, detail: "Chance of financial stress next year" },
       { label: "Portfolio baseline", value: `${organization.distress.baseline.toFixed(1)}%`, detail: "Typical risk in this portfolio" },
       { label: "Cash buffer", value: inboxCopy.shockWindowLabel, detail: "Time before pressure builds" },
-      { label: "Biggest source", value: inboxCopy.concentrationLabel, detail: "How much income depends on one source" },
+      { label: "Largest category", value: inboxCopy.concentrationLabel, detail: "Share of income in the largest reported category" },
       { label: "Fiscal year", value: `FY${organization.fiscalYear}`, detail: "Latest filing used" },
       { label: "Recent direction", value: formatTrendDirection(organization.trendDirection) ?? "Not enough data", detail: "Simple read on recent movement" },
     ],
@@ -1180,7 +1179,7 @@ export function getDecisionLabCopy(organization: OrganizationRecord) {
         return "Confidence is low. Use direct diligence before making a call.";
       }
       if (caveat.toLowerCase().includes("stress posture")) {
-        return "Funding-source data is too thin to fully test a downturn.";
+        return "Revenue-category data is too thin to fully test a downturn.";
       }
       return caveat;
     }),

@@ -1,5 +1,5 @@
 import { CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { OrganizationCard } from "./OrganizationCard";
 import type { OrganizationRecord } from "../types";
@@ -83,6 +83,9 @@ export function PortfolioInbox({
   const [allCasesChip, setAllCasesChip] = useState<AllCasesChip>("all");
   const [openToolbarKey, setOpenToolbarKey] = useState<ToolbarKey>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const laneTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const laneTabsId = useId();
+  const lanePanelId = `${laneTabsId}-panel`;
 
   const tabFilteredOrganizations = useMemo(() => {
     if (bucketTab === "uab") {
@@ -160,6 +163,33 @@ export function PortfolioInbox({
     }
   }, [allCasesChip, availableAllCasesOptions]);
 
+  function handleLaneKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) {
+    let nextIndex: number;
+
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        nextIndex = (currentIndex + 1) % TAB_CONFIGS.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        nextIndex = (currentIndex - 1 + TAB_CONFIGS.length) % TAB_CONFIGS.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = TAB_CONFIGS.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setBucketTab(TAB_CONFIGS[nextIndex].id);
+    laneTabRefs.current[nextIndex]?.focus();
+  }
+
   return (
     <section className="w-full rounded-[2.8rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-2 shadow-[0_34px_94px_-56px_rgba(15,23,42,0.28)]">
       <div className="rounded-[calc(2.8rem-0.5rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(251,248,242,0.86))] px-5 pb-5 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:px-6">
@@ -184,16 +214,30 @@ export function PortfolioInbox({
             </div>
           </div>
 
-          <nav className="grid overflow-hidden rounded-[1.45rem] border border-black/8 bg-[rgba(245,239,231,0.92)] md:grid-cols-3">
-            {TAB_CONFIGS.map((tab) => {
+          <div
+            role="tablist"
+            aria-label="Portfolio case lanes"
+            className="grid overflow-hidden rounded-[1.45rem] border border-black/8 bg-[rgba(245,239,231,0.92)] md:grid-cols-3"
+          >
+            {TAB_CONFIGS.map((tab, index) => {
               const count = tab.id === "uab" ? uabCount : tab.id === "rcr" ? rcrCount : activeReviewCount;
               const active = bucketTab === tab.id;
 
               return (
                 <button
                   key={tab.id}
+                  ref={(node) => {
+                    laneTabRefs.current[index] = node;
+                  }}
+                  id={`${laneTabsId}-${tab.id}`}
                   type="button"
+                  role="tab"
+                  aria-controls={lanePanelId}
+                  aria-current={active ? "true" : undefined}
+                  aria-selected={active}
+                  tabIndex={active ? 0 : -1}
                   onClick={() => setBucketTab(tab.id)}
+                  onKeyDown={(event) => handleLaneKeyDown(event, index)}
                   className={`cursor-pointer border-r border-black/8 px-4 py-3 text-left last:border-r-0 ${
                     active
                       ? "bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-white"
@@ -230,7 +274,7 @@ export function PortfolioInbox({
                 </button>
               );
             })}
-          </nav>
+          </div>
 
           <div
             ref={toolbarRef}
@@ -312,7 +356,12 @@ export function PortfolioInbox({
           ) : null}
         </div>
 
-        <div className="mt-5 pr-1">
+        <div
+          id={lanePanelId}
+          role="tabpanel"
+          aria-labelledby={`${laneTabsId}-${bucketTab}`}
+          className="mt-5 pr-1"
+        >
           {displayedOrganizations.length ? (
             <div className="grid gap-4">
               {displayedOrganizations.map((organization) => (
@@ -353,12 +402,72 @@ function DropdownPill({
   options: Array<{ value: string; label: string }>;
   value: string;
 }) {
+  const listboxId = useId();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.label === value || option.value === value),
+  );
+
+  useEffect(() => {
+    if (open) {
+      optionRefs.current[selectedIndex]?.focus();
+    }
+  }, [open, selectedIndex]);
+
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    if (!open) {
+      onToggle();
+    }
+  }
+
+  function handleListboxKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const currentIndex = optionRefs.current.findIndex((option) => option === document.activeElement);
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowDown") {
+      nextIndex = (Math.max(currentIndex, 0) + 1) % options.length;
+    } else if (event.key === "ArrowUp") {
+      nextIndex = (currentIndex <= 0 ? options.length : currentIndex) - 1;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = options.length - 1;
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      onToggle();
+      triggerRef.current?.focus();
+      return;
+    } else if (event.key === "Tab") {
+      onToggle();
+      return;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      optionRefs.current[nextIndex]?.focus();
+    }
+  }
+
+  function handleSelect(optionValue: string) {
+    onSelect(optionValue);
+    triggerRef.current?.focus();
+  }
+
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-label={`${buttonLabel}: ${value}`}
+        aria-controls={listboxId}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         onClick={onToggle}
+        onKeyDown={handleTriggerKeyDown}
         className="flex w-full items-center justify-between gap-3 rounded-[1.7rem] border border-black/6 bg-white/90 px-4 py-3 text-left shadow-[0_18px_44px_-32px_rgba(15,23,42,0.18)] transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-black/10 hover:shadow-[0_20px_48px_-34px_rgba(15,23,42,0.2)]"
       >
         <div>
@@ -375,14 +484,23 @@ function DropdownPill({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 w-full min-w-[14rem] rounded-[1.8rem] border border-black/6 bg-[rgba(255,253,248,0.98)] p-3 shadow-[0_28px_72px_-40px_rgba(15,23,42,0.26)]">
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label={`${buttonLabel} options`}
+          onKeyDown={handleListboxKeyDown}
+          className="absolute left-0 top-[calc(100%+0.75rem)] z-20 w-full min-w-[14rem] rounded-[1.8rem] border border-black/6 bg-[rgba(255,253,248,0.98)] p-3 shadow-[0_28px_72px_-40px_rgba(15,23,42,0.26)]"
+        >
           <div className="grid gap-2">
-            {options.map((option) => (
+            {options.map((option, index) => (
               <DropdownOption
                 key={option.value}
+                buttonRef={(node) => {
+                  optionRefs.current[index] = node;
+                }}
                 label={option.label}
                 selected={option.label === value || option.value === value}
-                onClick={() => onSelect(option.value)}
+                onClick={() => handleSelect(option.value)}
               />
             ))}
           </div>
@@ -393,17 +511,22 @@ function DropdownPill({
 }
 
 function DropdownOption({
+  buttonRef,
   label,
   onClick,
   selected,
 }: {
+  buttonRef: (node: HTMLButtonElement | null) => void;
   label: string;
   onClick: () => void;
   selected: boolean;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
+      role="option"
+      aria-selected={selected}
       onClick={onClick}
       className={`flex items-center justify-between gap-3 rounded-[1.25rem] border px-3 py-3 text-left transition-[background-color,border-color,color] duration-150 ease-out ${
         selected

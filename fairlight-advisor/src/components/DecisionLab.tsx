@@ -2,7 +2,7 @@ import { ArrowArcLeft, ChartLineUp, Compass, Path } from "@phosphor-icons/react"
 import { area as d3Area, curveCatmullRom, curveMonotoneX, line as d3Line, max as d3Max, min as d3Min, scaleLinear } from "d3";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-import { formatOrganizationName } from "../lib/advisorLanguage";
+import { formatOrganizationName, getYieldOpportunityEstimate } from "../lib/advisorLanguage";
 import { buildDecisionLabModel, type DecisionLabModel } from "../lib/decisionLabModel";
 import { compactCurrency } from "../lib/decisionLabText";
 import type { CrisisReplayTrajectoryPoint, OrganizationRecord } from "../types";
@@ -176,7 +176,7 @@ export function DecisionLab({
     if (activeMode === "replay") {
       return `Replay · FY${selectedInterventionYear} · ${pathMetricLabel(pathMetric)}`;
     }
-    return `Snapshot · FY${organization.latestFilingYear} · ${latestRevenueMix ? dominantRevenueLabel(latestRevenueMix) : "Largest source unavailable"}`;
+    return `Snapshot · FY${organization.latestFilingYear} · ${latestRevenueMix ? dominantRevenueLabel(latestRevenueMix) : "Largest category unavailable"}`;
   }, [
     activeMode,
     flightView.orgMatchedStartYear,
@@ -191,9 +191,9 @@ export function DecisionLab({
     <section className="relative rounded-[2.2rem] border border-black/6 bg-[rgba(255,253,248,0.72)] p-1.5 shadow-[0_32px_96px_-56px_rgba(15,23,42,0.3)]">
       <h2 className="sr-only">Decision Lab</h2>
       <div className="rounded-[calc(2.2rem-0.375rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,245,239,0.94))] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)] sm:px-3">
-        <div className="grid gap-3 min-[1080px]:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="grid gap-3">
-            <section className="flex h-full flex-col rounded-[1.55rem] border border-black/6 bg-white/88 p-4 shadow-[0_20px_52px_-38px_rgba(15,23,42,0.2)]">
+        <div className="grid gap-3 min-[1080px]:grid-cols-[280px_minmax(0,1fr)] min-[1080px]:items-start">
+          <aside className="grid self-start gap-3">
+            <section className="flex flex-col rounded-[1.55rem] border border-black/6 bg-white/88 p-4 shadow-[0_20px_52px_-38px_rgba(15,23,42,0.2)]">
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
@@ -252,8 +252,6 @@ export function DecisionLab({
               <RecoveryFlightConsole
                 organization={organization}
                 signal={flightSignal}
-                setLens={setFlightLens}
-                setActiveRouteId={setActiveRouteId}
                 progress={flightProgress}
                 setProgress={setFlightProgress}
                 view={flightView}
@@ -292,7 +290,7 @@ function ConsoleSwitch({
   const allItems: Array<{ mode: DecisionLabMode; label: string; title: string; icon: ReactNode }> = [
     { mode: "snapshot", label: "Full context mode", title: "Case Snapshot", icon: <Compass size={18} /> },
     { mode: "flight", label: "Live strategy mode", title: "Recovery Flight", icon: <ChartLineUp size={18} /> },
-    { mode: "replay", label: "Validation mode", title: "Crisis Replay", icon: <Path size={18} /> },
+    { mode: "replay", label: "Scenario planning", title: "Crisis Replay", icon: <Path size={18} /> },
   ];
   const items = allItems.filter((item) => availableModes.includes(item.mode));
 
@@ -524,16 +522,12 @@ function SnapshotConsole({
 function RecoveryFlightConsole({
   organization,
   signal,
-  setLens,
-  setActiveRouteId,
   progress,
   setProgress,
   view,
 }: {
   organization: OrganizationRecord;
   signal: FlightSignal;
-  setLens: (lens: FlightLens) => void;
-  setActiveRouteId: (routeId: string | null) => void;
   progress: number;
   setProgress: (value: number) => void;
   view: FlightView;
@@ -569,7 +563,7 @@ function RecoveryFlightConsole({
           routeName={view.selectedRoute.orgName}
           recoveryWindow={view.selectedRoute.recoveryWindow}
           matchedStart={`FY${view.orgMatchedStartYear} · ${formatSignal(view.orgComparisonSeries[0] ?? 0, signal)}`}
-          peerStart={`FY${view.selectedRoute.windowYears[0] ?? view.selectedRoute.recoveryWindow.slice(0, 4)} · ${formatSignal(view.selectedRoute.preValue, signal)}`}
+          peerStart={`FY${view.selectedRoute.windowYears[0] ?? organization.firstFilingYear} · ${formatSignal(view.selectedRoute.preValue, signal)}`}
           selectedRouteYear={view.selectedRouteYear}
           orgMatchedYear={view.orgMatchedYear}
           orgValue={formatSignal(view.orgValueAtSelection, signal)}
@@ -601,9 +595,9 @@ function FlightGlossaryCard({
       ? [
           "Revenue Diversification Index (RDI)",
           [
-            "A 0 to 1 score for how spread out revenue is across sources.",
-            "0 = all revenue from a single source (very risky).",
-            "0.45+ = diversified enough to absorb a single-funder cut.",
+            "A 0 to 1 score for how spread out revenue is across reported Form 990 categories.",
+            "0 = all reported revenue in one category (very concentrated).",
+            "0.45+ = revenue categories are diversified enough to absorb a category-level shock.",
             "Math: Herfindahl-style concentration index, applied to a nonprofit's revenue lines.",
           ],
         ]
@@ -630,8 +624,8 @@ function FlightGlossaryCard({
           `Safety line at RDI ${safetyThreshold.toFixed(2)}`,
           [
             "Threshold for reasonably diversified revenue at this size.",
-            "Below the line: materially exposed to a single-funder shock.",
-            "Above the line: no single source dominates.",
+            "Below the line: materially exposed to a concentrated revenue-category shock.",
+            "Above the line: no reported revenue category dominates.",
             "Cutoff reflects practitioner judgment, not a universal industry standard.",
           ],
         ]
@@ -701,7 +695,6 @@ function ClosestMatchDetailCard({
   const engagementPlaybook = bucketLabel.playbook;
 
   const signalLabel = flightSignalTitle(signal);
-  const unit = signalUnitLabel(signal);
   const peerName = route.orgName;
   const startValue = formatSignal(route.preValue, signal);
   const endValue = formatSignal(route.postValue, signal);
@@ -785,7 +778,7 @@ function ClosestMatchDetailCard({
         </div>
         <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Change</p>
-          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{`+${totalChange} ${unit}`}</p>
+          <p className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950">{`+${totalChange}`}</p>
         </div>
         <div className="rounded-[1rem] border border-black/7 bg-white/82 px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Time to safety</p>
@@ -835,12 +828,6 @@ function flightBucketLabel(actionLabel: OrganizationRecord["actionLabel"]): { en
         playbook: "financial reconciliation, restricted-asset review, and re-scoring",
       };
   }
-}
-
-function signalUnitLabel(signal: FlightSignal): string {
-  if (signal === "margin") return "pts";
-  if (signal === "runway") return "months";
-  return "RDI";
 }
 
 function sizeBucketLabel(sizeBucket: string): string {
@@ -916,6 +903,13 @@ function CrisisReplayConsole({
           driversExplanation={pathView.driversExplanation}
         />
 
+        <section className="rounded-[1.15rem] border border-amber-900/12 bg-[rgba(248,241,223,0.78)] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#775b2c]">Scenario assumption</p>
+          <p className="mt-1.5 text-[12.5px] leading-[1.4] text-slate-700">
+            This is an illustrative planning scenario, not a causal forecast. It blends matched-peer trajectories with transparent intervention assumptions, so exact deltas should be read directionally.
+          </p>
+        </section>
+
         <PathReplayChart view={pathView} metric={metric} />
 
         <div className="grid gap-3 min-[1120px]:grid-cols-[0.92fr_1.08fr] min-[1120px]:items-start">
@@ -950,8 +944,8 @@ function CrisisReplayConsole({
             ]}
           />
           <StatePanel
-            eyebrow={`With Northstar FY${pathView.observedYear}`}
-            title="Improved path"
+            eyebrow={`Illustrative scenario FY${pathView.observedYear}`}
+            title="Scenario path"
             stats={[
               { label: "Risk", value: `${pathView.projected.risk.toFixed(1)}%` },
               { label: "Revenue mix", value: pathView.projected.diversity.toFixed(2) },
@@ -964,22 +958,22 @@ function CrisisReplayConsole({
 
         <div className="grid gap-2.5 sm:grid-cols-2 min-[1120px]:grid-cols-4">
           <SnapshotMetricCard
-            label="Risk delta"
+            label="Illustrative risk change"
             value={`${pathView.deltaRisk >= 0 ? "-" : "+"}${Math.abs(pathView.deltaRisk).toFixed(1)} pts`}
             compact
           />
           <SnapshotMetricCard
-            label="Margin delta"
+            label="Illustrative margin change"
             value={`${pathView.deltaMargin >= 0 ? "+" : ""}${pathView.deltaMargin.toFixed(1)}%`}
             compact
           />
           <SnapshotMetricCard
-            label="Cushion delta"
+            label="Illustrative cushion change"
             value={formatDeltaDuration(pathView.deltaCushion)}
             compact
           />
           <SnapshotMetricCard
-            label="Revenue mix delta"
+            label="Illustrative mix change"
             value={`${pathView.deltaDiversity >= 0 ? "+" : ""}${pathView.deltaDiversity.toFixed(2)}`}
             compact
           />
@@ -1199,7 +1193,12 @@ function SnapshotFocusCard({
   const shock50 = cappedRunwayMonths(organization.stress.burnMonths50 ?? shock25);
   const infrastructureGap = model.scoreDrivers.find((driver) => driver.label === "Financial Foundation")?.value ?? 0;
   const completeness = buildCompletenessChecklist(organization);
-  const yieldOpportunity = compactCurrency(computeUnrealizedAnnualReturns(organization));
+  const yieldEstimate = getYieldOpportunityEstimate(organization);
+  const yieldOpportunity =
+    yieldEstimate.annualAmount === null ? "Needs diligence" : compactCurrency(yieldEstimate.annualAmount);
+  const yieldOpportunityLabel = yieldEstimate.isUpperBound
+    ? "Upper-bound annual yield opportunity"
+    : "Estimated annual yield opportunity";
   const assetBandFit =
     organization.netAssetsEoy !== null && organization.netAssetsEoy >= 1_000_000 && organization.netAssetsEoy <= 20_000_000
       ? "In sweet spot"
@@ -1212,7 +1211,7 @@ function SnapshotFocusCard({
           rows={[
             { label: "Current yield", value: `${organization.investmentYield.toFixed(2)}%` },
             { label: "5% benchmark", value: "5.00%" },
-            { label: "Unrealized annual returns", value: yieldOpportunity },
+            { label: yieldOpportunityLabel, value: yieldOpportunity },
             { label: "Investing history", value: `${organization.consecutiveYearsWithInvestmentIncome} yrs` },
           ]}
         />
@@ -1221,8 +1220,8 @@ function SnapshotFocusCard({
       return (
         <MetricList
           rows={[
-            { label: "Largest source", value: formatLargestSourceName(organization.stress.largestSource) },
-            { label: "Largest source %", value: `${organization.stress.largestSourcePct.toFixed(1)}%` },
+            { label: "Largest category", value: formatLargestSourceName(organization.stress.largestSource) },
+            { label: "Category share", value: `${organization.stress.largestSourcePct.toFixed(1)}%` },
             { label: "Runway at -25%", value: formatRunwayForCard(shock25) },
             { label: "Runway at -50%", value: formatRunwayForCard(shock50) },
           ]}
@@ -1426,27 +1425,28 @@ function QuickRevenueMixEvidence({
 function StressScenarioCard({ organization }: { organization: OrganizationRecord }) {
   const hasStress = organization.stress.burnMonths25 !== null && organization.stress.burnMonths50 !== null;
   const [shockPct, setShockPct] = useState(hasStress ? 25 : 0);
-  const currentRunway = cappedRunwayMonths(organization.operatingRunwayMonths);
-  const shock25 = cappedRunwayMonths(organization.stress.burnMonths25 ?? currentRunway);
+  const currentLiquidityRunway = cappedRunwayMonths(organization.operatingRunwayMonths);
+  const currentModeledRunway = currentDeficitRunwayMonths(organization);
+  const shock25 = cappedRunwayMonths(organization.stress.burnMonths25 ?? currentModeledRunway);
   const shock50 = cappedRunwayMonths(organization.stress.burnMonths50 ?? shock25);
   const shock75 = Math.max(0, shock50 - Math.max(0, shock25 - shock50));
-  const projectedRunway = interpolateShockRunway(shockPct, currentRunway, shock25, shock50, shock75);
+  const projectedRunway = interpolateShockRunway(shockPct, currentModeledRunway, shock25, shock50, shock75);
   const redZone = projectedRunway < 3;
 
   return (
     <div className="grid gap-3">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <div className="rounded-[1.05rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Largest revenue source</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Largest reported category</p>
           <p className="mt-1 text-[1rem] font-semibold leading-[1.15] tracking-[-0.04em] text-slate-950">
             {formatLargestSourceLabel(organization)}
           </p>
         </div>
         <div className={`rounded-[1.05rem] border px-3 py-3 ${redZone ? "border-[#b35b49]/24 bg-[rgba(254,239,235,0.96)]" : "border-[#1f5446]/16 bg-[rgba(231,241,236,0.95)]"}`}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Runway after {shockPct}% shock</p>
-          <p className="mt-1 text-[1.15rem] font-semibold tracking-[-0.05em] text-slate-950">{formatRunwayForCard(projectedRunway)}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">Deficit-burn runway after {shockPct}% shock</p>
+          <p className="mt-1 text-[1.15rem] font-semibold tracking-[-0.05em] text-slate-950">{formatStressRunway(projectedRunway)}</p>
           <p className={`mt-1 text-[12px] font-medium ${redZone ? "text-[#b35b49]" : "text-slate-700"}`}>
-            {redZone ? "Below 3-month red zone" : "Still above the red zone"}
+            {redZone ? "Below 3-month red zone" : projectedRunway >= 120 ? "No operating deficit in this scenario" : "Still above the red zone"}
           </p>
         </div>
       </div>
@@ -1463,10 +1463,13 @@ function StressScenarioCard({ organization }: { organization: OrganizationRecord
             ariaLabel="Adjust stress shock percentage"
           />
           <div className="grid gap-2 sm:grid-cols-3">
-            <SnapshotMetricCard label="Current runway" value={formatRunwayForCard(currentRunway)} compact />
-            <SnapshotMetricCard label="Runway at 25%" value={formatRunwayForCard(shock25)} compact />
-            <SnapshotMetricCard label="Runway at 50%" value={formatRunwayForCard(shock50)} compact />
+            <SnapshotMetricCard label="Current liquidity runway" value={formatRunwayForCard(currentLiquidityRunway)} compact />
+            <SnapshotMetricCard label="Deficit runway at 25%" value={formatStressRunway(shock25)} compact />
+            <SnapshotMetricCard label="Deficit runway at 50%" value={formatStressRunway(shock50)} compact />
           </div>
+          <p className="text-[11px] leading-[1.35] text-slate-500">
+            Liquidity runway is cash divided by expenses. Shock runway estimates how long liquid reserves cover a modeled operating deficit; “No modeled burn” means the scenario still runs a surplus.
+          </p>
         </>
       ) : (
         <div className="rounded-[1.05rem] border border-black/7 bg-[rgba(249,245,238,0.92)] px-3 py-3 text-[12px] text-slate-600">
@@ -1487,29 +1490,40 @@ function buildSnapshotDefinition(organization: OrganizationRecord, model: Decisi
 
   switch (organization.actionLabel) {
     case "Underinvested Asset Base": {
-      const unrealizedReturns = compactCurrency(computeUnrealizedAnnualReturns(organization));
+      const yieldEstimate = getYieldOpportunityEstimate(organization);
+      const estimatedOpportunity =
+        yieldEstimate.annualAmount === null ? "Needs diligence" : compactCurrency(yieldEstimate.annualAmount);
+      const opportunityLabel = yieldEstimate.isUpperBound
+        ? "Upper-bound yield opportunity"
+        : "Estimated yield opportunity";
+      const opportunityPitch =
+        yieldEstimate.basis === "liquid-reserves"
+          ? `Using the latest liquid-reserve proxy, the estimated opportunity is ${estimatedOpportunity}/year against a 5% benchmark, before liquidity and restriction diligence.`
+          : yieldEstimate.basis === "net-assets"
+            ? `A net-assets upper bound suggests up to ${estimatedOpportunity}/year against a 5% benchmark; actual investable funds require diligence.`
+            : "Fairlight must verify liquid and investable assets before sizing a portfolio opportunity.";
       return {
         eyebrow: "Highest upside",
         title: "Unlock underused assets",
-        pitch: `${formatOrganizationName(organization.orgName)} has ${netAssets} invested at ${organization.investmentYield.toFixed(2)}% yield. At the 5% benchmark, that's ${unrealizedReturns}/year they're leaving on the table.`,
+        pitch: `${formatOrganizationName(organization.orgName)} reports ${netAssets} in net assets and a ${organization.investmentYield.toFixed(2)}% investment yield. ${opportunityPitch}`,
         metrics: [
           { label: "Net assets", value: netAssets },
           { label: "Total revenue", value: totalRevenue },
           { label: "Current investment yield", value: `${organization.investmentYield.toFixed(2)}%` },
           { label: "Investment track record", value: `${organization.consecutiveYearsWithInvestmentIncome} years investing` },
-          { label: "Unrealized annual returns", value: unrealizedReturns, emphasis: "hero" },
+          { label: opportunityLabel, value: estimatedOpportunity, emphasis: "hero" },
         ],
       };
     }
     case "Revenue Concentration Risk":
       return {
         eyebrow: "Fragility check",
-        title: "Reduce single-source dependence",
-        pitch: `${formatOrganizationName(organization.orgName)} earns ${organization.stress.largestSourcePct.toFixed(1)}% of revenue from ${formatLargestSourceName(organization.stress.largestSource)}. If that source cuts 25%, they have ${formatRunwayForPitch(shock25)} of cash.`,
+        title: "Broaden the revenue mix",
+        pitch: `${formatOrganizationName(organization.orgName)} reports ${organization.stress.largestSourcePct.toFixed(1)}% of revenue in ${formatLargestSourceName(organization.stress.largestSource)}. In the illustrated scenario, a 25% decline in that category leaves ${formatRunwayForPitch(shock25)} of cash.`,
         metrics: [
           { label: "Net assets", value: netAssets },
           { label: "Total revenue", value: totalRevenue },
-          { label: "Largest source", value: `${formatLargestSourceName(organization.stress.largestSource)} · ${organization.stress.largestSourcePct.toFixed(1)}%` },
+          { label: "Largest category", value: `${formatLargestSourceName(organization.stress.largestSource)} · ${organization.stress.largestSourcePct.toFixed(1)}%` },
           { label: "Current cash runway", value: formatRunwayForCard(currentRunway) },
           { label: "Post-shock runway at -25%", value: formatRunwayForCard(shock25), emphasis: "hero" },
         ],
@@ -1727,70 +1741,6 @@ function RangeRail({
         ))}
       </div>
     </div>
-  );
-}
-
-function RouteDeckCard({
-  label,
-  title,
-  orgName,
-  story,
-  window,
-  startGap,
-  timeToSafety,
-  endRead,
-  safetyYear,
-  active,
-  onClick,
-}: {
-  label: string;
-  title: string;
-  orgName: string;
-  story: string;
-  window: string;
-  startGap: string;
-  timeToSafety: string;
-  endRead: string;
-  safetyYear: number | null;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-[1.4rem] border px-4 py-4.5 text-left ${
-        active
-          ? "border-transparent bg-[linear-gradient(180deg,rgba(22,57,49,0.98),rgba(16,38,33,0.98))] text-[rgba(239,247,242,0.98)]"
-          : "border-black/7 bg-[rgba(249,245,238,0.92)] text-slate-950 hover:bg-white/82"
-      }`}
-    >
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${active ? "text-[rgba(239,247,242,0.8)]" : "text-slate-600"}`}>{label}</p>
-      <strong className="mt-2 block break-words text-[1.15rem] leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">{title}</strong>
-      <p className={`mt-2 break-words text-[14px] leading-[1.25] ${active ? "text-[rgba(239,247,242,0.88)]" : "text-slate-700"}`}>{orgName}</p>
-      <p className={`mt-2 break-words text-[13px] leading-[1.35] ${active ? "text-[rgba(239,247,242,0.8)]" : "text-slate-600"}`}>{story}</p>
-      <div className={`mt-3 grid gap-2 border-t pt-3 text-[13px] ${active ? "border-white/12 text-[rgba(239,247,242,0.88)]" : "border-black/7 text-slate-700"}`}>
-        <div className="flex items-center justify-between gap-3">
-          <span>Start gap</span>
-          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{startGap}</strong>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>Time to safety</span>
-          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{timeToSafety}</strong>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>End read</span>
-          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>{endRead}</strong>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>Safety reached</span>
-          <strong className={active ? "text-[rgba(248,252,250,0.98)]" : "text-slate-950"}>
-            {safetyYear ? `FY${safetyYear}` : "Not reached"}
-          </strong>
-        </div>
-      </div>
-      <p className={`mt-3 break-words text-[13px] leading-[1.3] ${active ? "text-[rgba(239,247,242,0.84)]" : "text-slate-600"}`}>{window}</p>
-    </button>
   );
 }
 
@@ -2162,7 +2112,7 @@ function PathReplayChart({ view, metric }: { view: PathView; metric: PathMetric 
         </span>
         <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
           <span className="h-1.5 w-4 rounded-full bg-[rgba(90,139,115,0.98)]" />
-          Improved path
+          Illustrative scenario
         </span>
       </div>
 
@@ -2437,7 +2387,7 @@ function StackedMixPreview({
         {concentrationSeries?.length ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-black/7 bg-white/84 px-2.5 py-1 text-[11px] text-slate-600">
             <span className="h-1.5 w-4 rounded-full bg-[rgba(31,84,70,0.84)]" />
-            Largest source %
+            Largest category %
           </span>
         ) : null}
       </div>
@@ -2492,7 +2442,7 @@ function buildMixDetail({
     guideTitle: "How to read this chart",
     guideBullets: [
       "Each bar shows the share of total revenue coming from this stream in that filing year.",
-      "Higher bars mean the organization is leaning harder on that source in that year.",
+      "Higher bars mean the organization is leaning harder on that reported category in that year.",
       "Read this against the other revenue streams to see whether the overall mix is broadening or concentrating.",
     ],
     content: <MixDetailChart labels={labels} values={values} color={color} />,
@@ -2898,7 +2848,7 @@ function getPrimaryFlightSignal(organization: OrganizationRecord): FlightSignal 
 
 function buildSignalSeries(organization: OrganizationRecord, signal: FlightSignal): number[] {
   if (signal === "margin") {
-    return organization.historicalFinancials.map((point) => point.operatingMargin * 100);
+    return organization.historicalFinancials.map((point) => point.operatingMargin);
   }
   if (signal === "runway") {
     return organization.historicalFinancials.map((point) => computeReserveCushion(point.expenses, point.liquidReserves));
@@ -2908,7 +2858,7 @@ function buildSignalSeries(organization: OrganizationRecord, signal: FlightSigna
 
 function getCurrentSignalValue(organization: OrganizationRecord, signal: FlightSignal): number {
   if (signal === "margin") {
-    return organization.operatingMargin * 100;
+    return organization.operatingMargin;
   }
   if (signal === "runway") {
     return organization.operatingRunwayMonths;
@@ -2917,7 +2867,7 @@ function getCurrentSignalValue(organization: OrganizationRecord, signal: FlightS
 }
 
 function parseRecoveryWindowYears(window: string) {
-  const [start, end] = window.split("-").map((part) => Number.parseInt(part, 10));
+  const [start, end] = parseRecoveryWindowBounds(window);
   if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
     return Math.max(1, end - start);
   }
@@ -2925,7 +2875,7 @@ function parseRecoveryWindowYears(window: string) {
 }
 
 function buildWindowYears(window: string) {
-  const [start, end] = window.split("-").map((part) => Number.parseInt(part, 10));
+  const [start, end] = parseRecoveryWindowBounds(window);
   if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
     return Array.from({ length: end - start + 1 }, (_, index) => start + index);
   }
@@ -2936,6 +2886,11 @@ function buildFallbackWindowYears(organization: OrganizationRecord, durationYear
   const end = organization.latestFilingYear;
   const start = end - Math.max(1, durationYears);
   return Array.from({ length: Math.max(2, end - start + 1) }, (_, index) => start + index);
+}
+
+function parseRecoveryWindowBounds(window: string): [number, number] {
+  const years = window.match(/\d{4}/g)?.map(Number) ?? [];
+  return [years[0] ?? Number.NaN, years[1] ?? Number.NaN];
 }
 
 function findComparableStartIndex(series: number[], target: number) {
@@ -3009,7 +2964,7 @@ export function buildPathView(organization: OrganizationRecord, interventionYear
     const fallback: PathState = {
       risk: clamp(organization.distress.probability, 1, 99),
       diversity: clamp(organization.revenueDiversificationIndex, 0, 1),
-      margin: organization.operatingMargin * 100,
+      margin: organization.operatingMargin,
       cushion: organization.operatingRunwayMonths,
     };
     return {
@@ -3319,7 +3274,7 @@ function derivePathStateAtYear(
 ): PathState {
   const replayPoint = curatedTrajectory.find((point) => point.fiscalYear === year);
   if (replayPoint) {
-    const normalizedMargin = Math.abs(replayPoint.operatingMargin) <= 5 ? replayPoint.operatingMargin * 100 : replayPoint.operatingMargin;
+    const normalizedMargin = replayPoint.operatingMargin * 100;
     const diversity = clamp(1 - replayPoint.largestSourcePct / 100, 0, 1);
     return {
       risk: clamp(replayPoint.distressProbability ?? estimateRisk(organization.distress.baseline, normalizedMargin, replayPoint.cashRunwayMonths, diversity), 2, 95),
@@ -3331,7 +3286,7 @@ function derivePathStateAtYear(
 
   const financialPoint = organization.historicalFinancials.find((point) => point.fiscalYear === year) ?? organization.historicalFinancials.at(-1);
   const compositionPoint = organization.revenueCompositionHistory.find((point) => point.fiscalYear === year) ?? organization.revenueCompositionHistory.at(-1);
-  const margin = (financialPoint?.operatingMargin ?? organization.operatingMargin) * 100;
+  const margin = financialPoint?.operatingMargin ?? organization.operatingMargin;
   const cushion = financialPoint
     ? computeReserveCushion(financialPoint.expenses, financialPoint.liquidReserves)
     : organization.operatingRunwayMonths;
@@ -3419,10 +3374,16 @@ function cappedRunwayMonths(value: number | null | undefined) {
   return clamp(value ?? 0, 0, 120);
 }
 
-function computeUnrealizedAnnualReturns(organization: OrganizationRecord) {
-  const netAssets = organization.netAssetsEoy ?? 0;
-  const yieldGap = Math.max(5 - organization.investmentYield, 0) / 100;
-  return Math.max(0, netAssets * yieldGap);
+function currentDeficitRunwayMonths(organization: OrganizationRecord) {
+  const latest = organization.historicalFinancials.at(-1);
+  if (!latest || latest.expenses <= 0) {
+    return cappedRunwayMonths(organization.operatingRunwayMonths);
+  }
+  const deficit = latest.expenses - latest.revenue;
+  if (deficit <= 0) {
+    return 120;
+  }
+  return cappedRunwayMonths(latest.liquidReserves / (deficit / 12));
 }
 
 function buildCompletenessChecklist(organization: OrganizationRecord) {
@@ -3525,9 +3486,9 @@ function buildWarningSignals(organization: OrganizationRecord, baseline: PathSta
   // 1. Concentration — strongest signal for nearly every Crisis Replay case
   const concentration = organization.stress.largestSourcePct;
   if (concentration >= 90) {
-    signals.push(`Revenue concentration at ${concentration.toFixed(0)}% on a single source.`);
+    signals.push(`Largest reported revenue category represents ${concentration.toFixed(0)}% of revenue.`);
   } else if (concentration >= 70) {
-    signals.push(`Heavy revenue reliance on one source (${concentration.toFixed(0)}%).`);
+    signals.push(`Heavy reliance on the largest reported revenue category (${concentration.toFixed(0)}%).`);
   }
 
   // 2. Low revenue diversification relative to peer benchmark
@@ -3600,64 +3561,6 @@ function buildWarningSignals(organization: OrganizationRecord, baseline: PathSta
 function parseNumber(value: string): number | null {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-const SHAP_FEATURE_LABELS: Record<string, string> = {
-  // raw panel columns
-  investment_income: "investment income",
-  other_revenue: "other revenue",
-  contributions_grants: "contributions and grants",
-  program_service_revenue: "program service revenue",
-  pct_contributions: "share of contributions",
-  pct_program_revenue: "share of program revenue",
-  pct_investment_income: "share of investment income",
-  pct_other_revenue: "share of other revenue",
-  total_revenue: "total revenue",
-  total_expenses: "total expenses",
-  net_assets_eoy: "net assets",
-  net_assets_yoy_delta: "year-over-year change in net assets",
-  savings_temporary_investments: "short-term savings",
-  cash_non_interest_bearing: "non-interest cash",
-  // derived features
-  cash_to_expenses: "cash-to-expenses ratio",
-  shock_absorption_months: "shock-absorption runway",
-  shock_absorption_months_lagged_1y: "prior-year shock-absorption runway",
-  operating_margin: "operating margin",
-  operating_margin_lagged_1y: "prior-year operating margin",
-  margin_change_yoy: "year-over-year margin change",
-  margin_yoy_delta: "year-over-year margin drop",
-  margin_3yr_trend: "three-year margin trend",
-  revenue_to_expenses: "revenue-to-expense coverage",
-  revenue_growth_yoy: "year-over-year revenue growth",
-  expense_growth_yoy: "year-over-year expense growth",
-  revenue_yoy_growth: "year-over-year revenue growth",
-  net_assets_to_expenses: "reserves relative to expenses",
-  revenue_diversification_index: "revenue diversification",
-  concentration_yoy_delta: "change in revenue concentration",
-  concentration_x_thin_runway: "concentration combined with thin runway",
-  concentration_x_govt_funded: "concentrated government funding",
-  margin_x_runway: "combined margin and runway",
-  negative_margin_years_x_concentration: "deficit years with concentration",
-  small_and_thin: "small and under-reserved profile",
-  large_and_negative_margin: "large-org negative-margin profile",
-  years_of_consecutive_deficits: "consecutive deficit years",
-  is_government_funded: "government funding dependence",
-  sector_budget_shock: "sector-wide budget shock exposure",
-  covid_era: "COVID-era disruption",
-  state_fiscal_stress: "state fiscal stress",
-  fiscal_year_bucket: "era-specific baseline risk",
-  state: "geographic pattern",
-  ntee_major_category: "sector-specific base rate",
-  size_bucket: "size-bucket base rate",
-};
-
-function humanizeShapExplanation(raw: string | null): string | null {
-  if (!raw) return null;
-  // Match tokens followed by a signed SHAP value in parens: "foo_bar (+0.12)"
-  return raw.replace(/([A-Za-z_][A-Za-z0-9_]*)\s*\(([+-]?\d[\d.]*)\)/g, (_match, name, value) => {
-    const label = SHAP_FEATURE_LABELS[name] ?? name.replace(/_/g, " ");
-    return `${label} (${value})`;
-  });
 }
 
 function buildReplayNarrative(
@@ -3735,7 +3638,7 @@ function formatLargestSourceName(value: string) {
     program_revenue: "Program service revenue",
     investment_income: "Investment income",
     other_revenue: "Other revenue",
-    "largest revenue source": "largest revenue source",
+    "largest revenue source": "largest reported revenue category",
   };
   return translations[value] ?? value;
 }
@@ -3751,6 +3654,10 @@ function formatRunwayForPitch(value: number) {
 
 function formatRunwayForCard(value: number) {
   return value >= 12 ? `${(value / 12).toFixed(1)} yrs` : `${value.toFixed(1)} mo`;
+}
+
+function formatStressRunway(value: number) {
+  return value >= 120 ? "No modeled burn" : formatRunwayForCard(value);
 }
 
 function buildReplayChartScale(metric: PathMetric, values: number[]) {
@@ -3938,8 +3845,8 @@ function replayPlanDefinition(scenario: { id: string; title: string }) {
       label,
       targetLabel: "Reserve cushion",
       immediateEffect: "This plan first rebuilds reserve cushion so the organization has more runway to absorb shocks.",
-      spillovers: "As runway improves, Northstar expects distress risk to come down first, with smaller lift to operating margin and revenue mix.",
-      quickRead: "Reserve cushion moves first, then risk comes down and margins stabilize.",
+      spillovers: "The scenario models lower distress risk first, with smaller directional lift to operating margin and revenue mix.",
+      quickRead: "Reserve cushion moves first; the scenario then models lower risk and steadier margins.",
       bullets: [
         "Targets reserve cushion first",
         "Extends runway before chasing growth",
@@ -3952,12 +3859,12 @@ function replayPlanDefinition(scenario: { id: string; title: string }) {
     return {
       label,
       targetLabel: "Revenue mix",
-      immediateEffect: "This plan first broadens revenue mix so the organization is less exposed to a single funding source.",
-      spillovers: "As concentration risk falls, Northstar expects margin stability and reserve cushion to improve behind it.",
-      quickRead: "Revenue mix moves first, then the organization becomes less fragile and more stable.",
+      immediateEffect: "This plan first broadens revenue mix so the organization is less exposed to one reported category.",
+      spillovers: "The scenario models stronger margin stability and reserve cushion as concentration risk falls.",
+      quickRead: "Revenue mix moves first; the scenario then models lower fragility and greater stability.",
       bullets: [
         "Targets revenue mix first",
-        "Reduces single-source dependency",
+        "Reduces reported-category concentration",
         "Secondary effect: lower risk, stronger margin, better cushion",
       ],
     };
@@ -3967,8 +3874,8 @@ function replayPlanDefinition(scenario: { id: string; title: string }) {
     label,
     targetLabel: "Operating margin",
     immediateEffect: "This plan first repairs operating margin, typically through stronger portfolio yield and capital efficiency.",
-    spillovers: "As margin improves, Northstar expects distress risk to fall and reserve cushion to build modestly behind it.",
-    quickRead: "Operating margin moves first, then risk falls and reserve cushion starts rebuilding.",
+    spillovers: "The scenario models lower distress risk and a modest reserve-cushion gain as margin improves.",
+    quickRead: "Operating margin moves first; the scenario then models lower risk and a modest cushion gain.",
     bullets: [
       "Targets operating margin first",
       "Uses yield discipline to improve financial performance",
@@ -3995,19 +3902,6 @@ function routeDeckTitle(deckType: FlightDeckType) {
     return "Fastest safety";
   }
   return "Best finish";
-}
-
-function buildRouteStory(route: FlightRouteView, signal: FlightSignal) {
-  const years = Math.max(1, route.durationYears);
-  const safetyMoment = route.safetyYear ? ` Clear by FY${route.safetyYear}.` : " Safety line not cleared.";
-
-  if (signal === "concentration") {
-    return `Broadened revenue mix from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
-  }
-  if (signal === "runway") {
-    return `Built reserve cushion from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
-  }
-  return `Repaired operating margin from ${formatSignal(route.preValue, signal)} to ${formatSignal(route.postValue, signal)} over ${years} yr${years === 1 ? "" : "s"}.${safetyMoment}`;
 }
 
 function getCuratedReplayTrajectory(organization: OrganizationRecord) {
@@ -4057,7 +3951,7 @@ function analogSignal(metricName: string): FlightSignal | null {
 }
 
 function viewWindowLabel(window: string) {
-  const [start, end] = window.split("-").map((part) => Number.parseInt(part, 10));
+  const [start, end] = parseRecoveryWindowBounds(window);
   if (Number.isFinite(start) && Number.isFinite(end)) {
     return `FY${start}-${end}`;
   }

@@ -29,7 +29,7 @@ export function RevenueCompositionPanel({
       guideBullets: [
         "Each bar shows the share of total revenue coming from this stream in that filing year.",
         "The labeled points show how the stream started, where it sat mid-history, and where it ended most recently.",
-        "A stream becoming dominant means the organization is leaning harder on that source over time.",
+        "A reported category becoming dominant means the organization is leaning harder on that category over time.",
       ],
       content: (
         <ExpandedMixChart

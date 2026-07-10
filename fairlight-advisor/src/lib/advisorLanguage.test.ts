@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import dataset from "../data/fairlight-advisor.json";
 import type { OrganizationRecord } from "../types";
-import { getInboxCopy, primeNorthstarScores, resetNorthstarScoreCache } from "./advisorLanguage";
+import {
+  getDecisionLabCopy,
+  getInboxCopy,
+  primeNorthstarScores,
+  resetNorthstarScoreCache,
+} from "./advisorLanguage";
 
 function makeOrganization(overrides: Partial<OrganizationRecord>): OrganizationRecord {
   const base = structuredClone(dataset.organizations[0]) as OrganizationRecord;
@@ -34,7 +39,7 @@ describe("Northstar Score v2", () => {
     resetNorthstarScoreCache();
   });
 
-  it("orders typical cases Diversify > Strengthen in otherwise comparable fundamentals", () => {
+  it("orders typical cases Strengthen > Diversify in otherwise comparable fundamentals", () => {
     const shared = {
       distressProbability: 28,
       confidenceTier: "High" as const,
@@ -48,10 +53,9 @@ describe("Northstar Score v2", () => {
     const diversify = getInboxCopy(makeOrganization({ ...shared, actionLabel: "Revenue Concentration Risk" })).northstarScore;
     const strengthen = getInboxCopy(makeOrganization({ ...shared, actionLabel: "Weak Financial Foundation" })).northstarScore;
 
-    // Diversify gets a larger fit bonus (+8 vs +5 for same-size Strengthen), plus
-    // the Diversify structural blend weights diversification need more heavily —
-    // so Diversify should beat Strengthen in comparable fundamentals.
-    expect(diversify).toBeGreaterThan(strengthen);
+    // The current Financial Foundation model gives a comparable Strengthen case
+    // a stronger bucket-fit and repair profile than the Diversify structural blend.
+    expect(strengthen).toBeGreaterThan(diversify);
   });
 
   it("rewards stronger diversification need inside diversify cases", () => {
@@ -236,5 +240,101 @@ describe("Northstar Score v2", () => {
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(100);
     }
+  });
+});
+
+describe("advisor copy evidence boundaries", () => {
+  it("describes Form 990 concentration as an aggregate revenue category", () => {
+    const organization = makeOrganization({
+      actionLabel: "Revenue Concentration Risk",
+      revenueAmount: 8_000_000,
+    });
+    organization.stress = {
+      ...organization.stress,
+      largestSource: "Contributions",
+      largestSourcePct: 72,
+      burnMonths25: 5,
+    };
+
+    const note = getInboxCopy(organization).whyNow;
+
+    expect(note).toContain("largest reported revenue category, contributions");
+    expect(note).toContain("25% decline in that category");
+    expect(note).not.toMatch(/donor|funder|grant source|single revenue source|funding cut/i);
+  });
+
+  it("keeps downstream concentration language at the revenue-category level", () => {
+    const organization = makeOrganization({
+      actionLabel: "Revenue Concentration Risk",
+    });
+    organization.stress = {
+      ...organization.stress,
+      largestSource: "Contributions",
+      largestSourcePct: 72,
+      severity25: "Moderate",
+    };
+    organization.recommendation = {
+      ...organization.recommendation,
+      caveats: ["Stress posture needs review"],
+    };
+
+    const copy = getDecisionLabCopy(organization);
+    const categoryFact = copy.factCards.find((fact) => fact.label === "Largest category");
+
+    expect(copy.titleLine).toContain("reported revenue category");
+    expect(copy.surfacedReason).toContain("reported revenue category");
+    expect(categoryFact?.detail).toContain("largest reported category");
+    expect(copy.caveatNotes).toContain("Revenue-category data is too thin to fully test a downturn.");
+    expect(JSON.stringify(copy)).not.toMatch(/one source of money|biggest source|funding-source/i);
+  });
+
+  it("uses the latest liquid-reserve proxy to estimate yield opportunity", () => {
+    const organization = makeOrganization({
+      actionLabel: "Underinvested Asset Base",
+      netAssetsEoy: 10_000_000,
+      investmentYield: 1,
+      historicalFinancials: [
+        {
+          fiscalYear: 2023,
+          revenue: 4_000_000,
+          expenses: 3_900_000,
+          netAssets: 9_000_000,
+          liquidReserves: 1_000_000,
+          operatingMargin: 2.5,
+        },
+        {
+          fiscalYear: 2024,
+          revenue: 4_200_000,
+          expenses: 4_000_000,
+          netAssets: 10_000_000,
+          liquidReserves: 2_000_000,
+          operatingMargin: 4.8,
+        },
+      ],
+    });
+
+    const note = getInboxCopy(organization).whyNow;
+
+    expect(note).toContain("Reports $10.0M in net assets");
+    expect(note).toContain("latest liquid-reserve proxy");
+    expect(note).toContain("estimated annual yield opportunity of $80K");
+    expect(note).not.toContain("$400K");
+    expect(note).not.toMatch(/net assets? (?:are|as) reserves|idle balance sheet/i);
+  });
+
+  it("labels a net-assets-based yield opportunity as an upper bound", () => {
+    const organization = makeOrganization({
+      actionLabel: "Underinvested Asset Base",
+      netAssetsEoy: 10_000_000,
+      investmentYield: 1,
+      historicalFinancials: [],
+    });
+
+    const note = getInboxCopy(organization).whyNow;
+
+    expect(note).toContain("upper-bound estimate based on net assets");
+    expect(note).toContain("up to $400K/year");
+    expect(note).toContain("actual investable funds require diligence");
+    expect(note).not.toMatch(/holds .* in reserves|idle balance sheet/i);
   });
 });

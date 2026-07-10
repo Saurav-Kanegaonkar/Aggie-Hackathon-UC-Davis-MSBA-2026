@@ -14,4 +14,13 @@ describe("buildDecisionLabModel", () => {
     expect(model.statusTone).toMatch(/Strong|Mixed|Fragile/);
     expect(model.scoreDrivers.length).toBe(5);
   });
+
+  it("converts decimal benchmark gaps into percentage points for peer comparison", () => {
+    const organization = dataset.organizations[0] as OrganizationRecord;
+    const model = buildDecisionLabModel(organization);
+
+    expect(organization.operatingMargin).toBe(25.1);
+    expect(organization.benchmark.operatingMarginGap).toBe("+0.08");
+    expect(model.peerPosition[0].benchmark).toBeCloseTo(17.1, 5);
+  });
 });

@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "@phosphor-icons/react";
 
 import { SoftActionButton } from "./SoftActionButton";
-import { getInboxCopy } from "../lib/advisorLanguage";
+import { getInboxCopy, getYieldOpportunityEstimate } from "../lib/advisorLanguage";
 import { compactCurrency } from "../lib/decisionLabText";
 import type { OrganizationRecord } from "../types";
 
@@ -82,12 +82,12 @@ export function OrganizationCard({
 
           <div className="flex shrink-0 items-center pt-0.5">
             <SoftActionButton
-              aria-label={isNdd ? `Review ${organization.orgName}` : `Open X-Ray for ${organization.orgName}`}
+              aria-label={isNdd ? `Review ${organization.orgName}` : `Open case for ${organization.orgName}`}
               className="cursor-pointer whitespace-nowrap"
               motionMode="still"
               onClick={() => onSelect(organization)}
             >
-              {isNdd ? "Review" : "Open X-Ray"}
+              {isNdd ? "Review" : "Open case"}
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/16 text-current">
                 <ArrowUpRight size={14} weight="bold" />
               </span>
@@ -274,7 +274,7 @@ function UabMetrics({
 }) {
   const yieldPct = organization.investmentYield;
   const netAssets = organization.netAssetsEoy;
-  const unrealized = netAssets !== null && netAssets > 0 && yieldPct < 5 ? (0.05 - yieldPct / 100) * netAssets : 0;
+  const yieldOpportunity = getYieldOpportunityEstimate(organization);
   const yieldTone: MetricTone = yieldPct < 2 ? "red" : yieldPct < 4 ? "yellow" : "green";
   const track = organization.consecutiveYearsWithInvestmentIncome;
 
@@ -292,9 +292,21 @@ function UabMetrics({
         subtext={track > 0 ? "consecutive" : undefined}
       />
       <HeroMetricBox
-        label="Unrealized Returns"
-        value={unrealized > 0 ? compactCurrency(unrealized) : "At benchmark"}
-        caption="vs 5% benchmark yield"
+        label={yieldOpportunity.isUpperBound ? "Upper-Bound Yield Opportunity" : "Estimated Yield Opportunity"}
+        value={
+          yieldOpportunity.annualAmount === null
+            ? "—"
+            : yieldOpportunity.annualAmount > 0
+              ? compactCurrency(yieldOpportunity.annualAmount)
+              : "At benchmark"
+        }
+        caption={
+          yieldOpportunity.basis === "liquid-reserves"
+            ? "liquid-reserve proxy vs 5%"
+            : yieldOpportunity.basis === "net-assets"
+              ? "net assets basis; verify liquidity"
+              : "basis unavailable"
+        }
       />
       <MetricBox
         label="Northstar Score"
@@ -315,7 +327,7 @@ function RcrMetrics({
   inboxCopy: ReturnType<typeof getInboxCopy>;
 }) {
   const netAssets = organization.netAssetsEoy;
-  const { pct: largestPct, name: largestName } = getLargestRevenueSource(organization);
+  const { pct: largestPct, name: largestName } = getLargestRevenueCategory(organization);
   const margin = organization.operatingMargin;
   const largestTone: MetricTone = largestPct > 70 ? "red" : largestPct > 50 ? "yellow" : "neutral";
   const marginTone: MetricTone =
@@ -329,11 +341,11 @@ function RcrMetrics({
         value={organization.revenueAmount !== null ? compactCurrency(organization.revenueAmount) : "—"}
       />
       <MetricBox
-        label="Revenue Mix"
+        label="Largest Revenue Category"
         value={`${largestPct.toFixed(0)}%`}
         tone={largestTone}
         subtext={largestName}
-        description="How spread out revenue is across sources. Higher means less dependence on a single stream."
+        description="Share of revenue in the largest reported Form 990 category. This is an aggregate category, not an individual source."
       />
       <MetricBox
         label="Operating Margin"
@@ -424,19 +436,11 @@ function NddMetrics({
   );
 }
 
-function formatRunway(months: number): string {
-  if (months > 120) return "10+ yrs";
-  if (months >= 24) return `${Math.round(months / 12)} yrs`;
-  if (months >= 12) return "1 yr";
-  if (months < 1) return "<1 mo";
-  return `${Math.round(months)} mo`;
-}
-
 function RevenueCagrHero({ organization }: { organization: OrganizationRecord }) {
   const history = organization.historicalFinancials;
   const sorted = [...history].sort((left, right) => left.fiscalYear - right.fiscalYear);
   const first = sorted.find((point) => point.revenue > 0);
-  const last = sorted.findLast((point) => point.revenue > 0);
+  const last = [...sorted].reverse().find((point) => point.revenue > 0);
 
   if (!first || !last || first === last) {
     return <HeroMetricBox label="Revenue Trend" value="—" caption="insufficient history" />;
@@ -455,16 +459,19 @@ function RevenueCagrHero({ organization }: { organization: OrganizationRecord })
   );
 }
 
-function getLargestRevenueSource(organization: OrganizationRecord): { pct: number; name: string } {
+function getLargestRevenueCategory(organization: OrganizationRecord): { pct: number; name: string } {
   const latest = organization.revenueCompositionHistory.at(-1);
   if (!latest) return { pct: 0, name: "unknown" };
 
-  const sources = [
+  const categories = [
     { pct: latest.contributionsPct, name: "Contributions" },
     { pct: latest.programPct, name: "Program Revenue" },
     { pct: latest.investmentPct, name: "Investment Income" },
     { pct: latest.otherPct, name: "Other" },
   ];
 
-  return sources.reduce((maximum, source) => (source.pct > maximum.pct ? source : maximum), sources[0]);
+  return categories.reduce(
+    (maximum, category) => (category.pct > maximum.pct ? category : maximum),
+    categories[0],
+  );
 }

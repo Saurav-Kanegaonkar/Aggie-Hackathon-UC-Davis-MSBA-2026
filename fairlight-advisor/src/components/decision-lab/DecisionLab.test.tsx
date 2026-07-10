@@ -12,6 +12,26 @@ import { RecoveryAnalogsPanel } from "./RecoveryAnalogsPanel";
 import { RevenueCompositionPanel } from "./RevenueCompositionPanel";
 import { ScoreDriversPanel } from "./ScoreDriversPanel";
 
+const organizations = dataset.organizations as OrganizationRecord[];
+
+function getOrganization(
+  predicate: (organization: OrganizationRecord) => boolean,
+  description: string,
+): OrganizationRecord {
+  const organization = organizations.find(predicate);
+  if (!organization) {
+    throw new Error(`Expected ${description} in the shipped dataset`);
+  }
+  return organization;
+}
+
+function getOrganizationByAction(actionLabel: OrganizationRecord["actionLabel"]): OrganizationRecord {
+  return getOrganization(
+    (organization) => organization.actionLabel === actionLabel,
+    `a ${actionLabel} case`,
+  );
+}
+
 describe("Decision Lab visual panels", () => {
   it("renders real chart headings and axes labels", () => {
     const model = buildDecisionLabModel(dataset.organizations[0] as OrganizationRecord);
@@ -71,18 +91,39 @@ describe("Decision Lab visual panels", () => {
     }
   });
 
-  it("defaults to Case Snapshot mode and hides other mode panels until selected", () => {
-    const organization = dataset.organizations[0] as OrganizationRecord;
+  it("shows Decision Lab tabs only when they are available for the case bucket", () => {
+    const optimizeOrganization = getOrganizationByAction("Underinvested Asset Base");
+    const diversifyOrganization = getOrganizationByAction("Revenue Concentration Risk");
+    const strengthenOrganization = getOrganizationByAction("Weak Financial Foundation");
+    const diligenceOrganization = getOrganizationByAction("Needs Data Diligence");
 
-    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+    const { rerender } = render(
+      <DecisionLab organization={optimizeOrganization} onReturnToPortfolio={() => {}} />,
+    );
 
-    expect(screen.getByRole("button", { name: /case snapshot/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /recovery flight/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /crisis replay/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /case snapshot/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /recovery flight/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /crisis replay/i })).not.toBeInTheDocument();
     expect(screen.getByText(/score breakdown/i)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /recovery flight console/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /crisis replay console/i })).not.toBeInTheDocument();
+
+    rerender(<DecisionLab organization={diversifyOrganization} onReturnToPortfolio={() => {}} />);
+    expect(screen.getByRole("button", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /recovery flight/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /crisis replay/i })).not.toBeInTheDocument();
+
+    rerender(<DecisionLab organization={strengthenOrganization} onReturnToPortfolio={() => {}} />);
+    expect(screen.getByRole("button", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /recovery flight/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /crisis replay/i })).toBeInTheDocument();
+
+    rerender(<DecisionLab organization={diligenceOrganization} onReturnToPortfolio={() => {}} />);
+    expect(screen.getByRole("heading", { name: /case snapshot/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /case snapshot/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /recovery flight/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /crisis replay/i })).not.toBeInTheDocument();
   });
 
   it("uses readable axis typography in the expanded financial chart", async () => {
@@ -128,6 +169,16 @@ describe("Decision Lab visual panels", () => {
     expect(summaryShell).toBeDefined();
     expect(within(summaryShell as HTMLElement).getAllByText(organization.actionLabel).length).toBeGreaterThan(0);
     expect(within(summaryShell as HTMLElement).getAllByText(organization.whySurfaced).length).toBeGreaterThan(0);
+  });
+
+  it("sizes the snapshot yield opportunity from the liquid-reserve proxy instead of all net assets", () => {
+    const organization = dataset.organizations[0] as OrganizationRecord;
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    expect(screen.getAllByText(/estimated (annual )?yield opportunity/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$702K").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/leaving on the table/i)).not.toBeInTheDocument();
   });
 
   it("stacks long sidebar action labels so they do not overlap the metric row", () => {
@@ -178,10 +229,10 @@ describe("Decision Lab visual panels", () => {
 
     render(<RecoveryAnalogsPanel organization={organization} />);
 
-    expect(screen.getAllByText(/recovered from funding concentration/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/became less dependent on a single source of money over time/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/mix score/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/highly dependent on one source/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/recovered from operating losses/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/moved from losing money on operations to running a healthier surplus/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/operations were under pressure/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/operations improved materially/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("-0.01")).not.toBeInTheDocument();
   });
 
@@ -278,15 +329,13 @@ describe("Decision Lab visual panels", () => {
 
   it("uses finance-standard replay plan labels instead of placeholder strategy names", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Weak Financial Foundation");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
     await user.click(screen.getByRole("button", { name: /crisis replay/i }));
 
-    expect(screen.getByRole("button", { name: /financial resilience x-ray/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /portfolio optimization/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reserve policy design/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /revenue diversification advisory/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^shock$/i })).not.toBeInTheDocument();
@@ -296,15 +345,13 @@ describe("Decision Lab visual panels", () => {
 
   it("lets long replay plan labels wrap instead of forcing them onto one line", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Weak Financial Foundation");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
     await user.click(screen.getByRole("button", { name: /crisis replay/i }));
 
-    const replayPlanButton = screen.getByRole("button", { name: /financial resilience x-ray/i });
+    const replayPlanButton = screen.getByRole("button", { name: /revenue diversification advisory/i });
 
     expect(replayPlanButton.className.includes("whitespace-nowrap")).toBe(false);
     expect(replayPlanButton.className.includes("text-left")).toBe(true);
@@ -312,9 +359,7 @@ describe("Decision Lab visual panels", () => {
 
   it("renders Crisis Replay as a multi-year trajectory around the intervention year instead of a 3-point split", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Weak Financial Foundation");
     const setup = findBestReplaySetup(organization);
     const expectedStartYear = Math.max(organization.firstFilingYear, setup.interventionYear - 2);
     const expectedEndYear = Math.min(organization.latestFilingYear, setup.interventionYear + 2);
@@ -332,22 +377,27 @@ describe("Decision Lab visual panels", () => {
 
   it("formats long reserve-cushion targets in years in Recovery Flight", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganization(
+      (candidate) =>
+        candidate.actionLabel === "Weak Financial Foundation" &&
+        candidate.analogs.some((analog) => analog.metricName.includes("runway")),
+      "a Weak Financial Foundation case with runway analogs",
+    );
+    const longTarget = organization.analogs.find((analog) => Math.abs(analog.postValue) >= 12);
+    if (!longTarget) {
+      throw new Error("Expected a multi-year reserve-cushion target in the shipped dataset");
+    }
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
     await user.click(screen.getByRole("button", { name: /recovery flight/i }));
 
-    expect(screen.getAllByText(/5\.8 yrs/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(`${(longTarget.postValue / 12).toFixed(1)} yrs`).length).toBeGreaterThan(0);
   });
 
   it("snaps the recovery flight slider to the three route states", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
@@ -358,10 +408,8 @@ describe("Decision Lab visual panels", () => {
     expect(slider).toHaveAttribute("step", "50");
   });
 
-  it("avoids selecting a flat closest-twin recovery route when a more informative concentration path exists", () => {
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.actionLabel === "Underinvested Asset Base",
-    ) as OrganizationRecord;
+  it("selects an informative concentration route for a diversification case", () => {
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
 
     const flightView = buildFlightView(organization, "concentration", "closest", 50, null);
 
@@ -371,16 +419,15 @@ describe("Decision Lab visual panels", () => {
 
   it("turns Recovery Flight into a compare surface with route evidence instead of vague peer-move copy", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
     await user.click(screen.getByRole("button", { name: /recovery flight/i }));
 
-    expect(screen.getAllByText(/start gap/i).length).toBeGreaterThanOrEqual(3);
-    expect(screen.getAllByText(/time to safety/i).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText(/matched start/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/peer start/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/time to safety/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/safety line/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/you @ fy/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/peer @ fy/i).length).toBeGreaterThan(0);
@@ -392,9 +439,7 @@ describe("Decision Lab visual panels", () => {
 
   it("removes the extra y-axis signal title from the Recovery Flight chart", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
@@ -410,25 +455,26 @@ describe("Decision Lab visual panels", () => {
 
   it("drives Recovery Flight from the selected route window instead of the org's full filing history", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
+    const flightView = buildFlightView(organization, "concentration", "closest", 55, null);
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
     await user.click(screen.getByRole("button", { name: /recovery flight/i }));
 
-    expect(screen.getAllByText(/fy2017-2020/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(new RegExp(flightView.selectedRoute.recoveryWindow, "i")).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText(/match start/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/finish/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/^FY2014$/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(new RegExp(`^FY${organization.firstFilingYear}$`, "i")),
+    ).not.toBeInTheDocument();
   });
 
   it("shows comparative route metrics that explain how the selected peer recovered", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Revenue Concentration Risk");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
@@ -454,7 +500,7 @@ describe("Decision Lab visual panels", () => {
     ) as OrganizationRecord;
 
     const { rerender } = render(<DecisionLab organization={uabOrganization} onReturnToPortfolio={() => {}} />);
-    expect(screen.getByText(/yield opportunity/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/yield opportunity/i).length).toBeGreaterThan(0);
 
     rerender(<DecisionLab organization={rcrOrganization} onReturnToPortfolio={() => {}} />);
     expect(screen.getByText(/concentration profile/i)).toBeInTheDocument();
@@ -483,9 +529,7 @@ describe("Decision Lab visual panels", () => {
   });
 
   it("selects a replay setup whose projected path improves all tracked metrics", () => {
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Weak Financial Foundation");
 
     const setup = findBestReplaySetup(organization);
     const view = buildPathView(organization, setup.interventionYear, setup.scenarioId);
@@ -587,6 +631,31 @@ describe("Decision Lab visual panels", () => {
     expect(view.narrative).not.toMatch(/31\.8/i);
   });
 
+  it("keeps historical fallback replay margins in percentage points", () => {
+    const base = getOrganizationByAction("Weak Financial Foundation");
+    const withoutCuratedReplay = { ...base, crisisReplay: undefined } as OrganizationRecord;
+    const setup = findBestReplaySetup(withoutCuratedReplay);
+    const view = buildPathView(withoutCuratedReplay, setup.interventionYear, setup.scenarioId);
+    const observedFinancial =
+      withoutCuratedReplay.historicalFinancials.find((point) => point.fiscalYear === view.observedYear) ??
+      withoutCuratedReplay.historicalFinancials.at(-1);
+
+    expect(view.actual.margin).toBeCloseTo(observedFinancial?.operatingMargin ?? base.operatingMargin, 5);
+
+    const withoutHistory = {
+      ...withoutCuratedReplay,
+      historicalFinancials: [],
+      revenueCompositionHistory: [],
+    } as OrganizationRecord;
+    const emptyView = buildPathView(
+      withoutHistory,
+      withoutHistory.latestFilingYear,
+      withoutHistory.scenarioCards[0].id,
+    );
+
+    expect(emptyView.actual.margin).toBe(withoutHistory.operatingMargin);
+  });
+
   it("keeps the recommendation control near the case context instead of pinning it to the rail bottom", () => {
     const organization = dataset.organizations[0] as OrganizationRecord;
     const { container } = render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
@@ -615,9 +684,7 @@ describe("Decision Lab visual panels", () => {
 
   it("locks Crisis Replay to the best intervention year instead of exposing a year scrubber", async () => {
     const user = userEvent.setup();
-    const organization = dataset.organizations.find(
-      (candidate) => candidate.id === "800143565-2024",
-    ) as OrganizationRecord;
+    const organization = getOrganizationByAction("Weak Financial Foundation");
 
     render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
 
@@ -628,10 +695,48 @@ describe("Decision Lab visual panels", () => {
     expect(screen.queryByLabelText(/replay intervention year/i)).not.toBeInTheDocument();
   });
 
+  it("keeps Recovery Flight margins in percentage points and parses FY-prefixed peer windows", () => {
+    const organization = getOrganization(
+      (candidate) =>
+        candidate.actionLabel === "Weak Financial Foundation" &&
+        candidate.analogs.some((analog) => analog.metricName.includes("margin")),
+      "a Weak Financial Foundation case with margin analogs",
+    );
+
+    const view = buildFlightView(organization, "margin", "closest", 50, null);
+
+    expect(Math.max(...view.orgComparisonSeries.map((value) => Math.abs(value)))).toBeLessThan(100);
+    expect(view.chartYears.every((year) => year >= 2000 && year <= 2100)).toBe(true);
+    expect(view.selectedRoute.windowYears).toEqual(view.chartYears);
+  });
+
+  it("labels Crisis Replay as an illustrative scenario rather than causal validation", async () => {
+    const user = userEvent.setup();
+    const organization = getOrganizationByAction("Weak Financial Foundation");
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+    await user.click(screen.getByRole("button", { name: /crisis replay/i }));
+
+    expect(screen.getByText(/not a causal forecast/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/illustrative scenario/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^improved path$/i)).not.toBeInTheDocument();
+  });
+
+  it("distinguishes current liquidity runway from no-deficit stress scenarios", () => {
+    const organization = getOrganizationByAction("Underinvested Asset Base");
+
+    render(<DecisionLab organization={organization} onReturnToPortfolio={() => {}} />);
+
+    expect(screen.getByText(/current liquidity runway/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/no modeled burn/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/liquidity runway is cash divided by expenses/i)).toBeInTheDocument();
+  });
+
   it("shows an explicit fallback when peer margin history is unavailable", () => {
-    const sparsePeerOrganization = dataset.organizations.find(
-      (organization) => organization.id === "946171311-2024",
-    ) as OrganizationRecord;
+    const sparsePeerOrganization = getOrganization(
+      (organization) => organization.peerOperatingMarginHistory.length === 0,
+      "a case without peer operating-margin history",
+    );
     const model = buildDecisionLabModel(sparsePeerOrganization);
 
     render(<OperatingQualityPanel model={model} />);
@@ -643,9 +748,11 @@ describe("Decision Lab visual panels", () => {
   });
 
   it("does not emit duplicate react key warnings for short-history charts", () => {
-    const shortHistoryOrganization = dataset.organizations.find(
-      (organization) => organization.id === "993105642-2024",
-    ) as OrganizationRecord;
+    const shortHistoryOrganization = organizations.reduce((shortest, organization) =>
+      organization.historicalFinancials.length < shortest.historicalFinancials.length
+        ? organization
+        : shortest,
+    );
     const model = buildDecisionLabModel(shortHistoryOrganization);
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 

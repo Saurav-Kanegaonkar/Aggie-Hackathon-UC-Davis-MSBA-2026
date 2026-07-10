@@ -12,7 +12,7 @@ function parseGap(value: string): number {
 }
 
 function benchmarkOperatingMargin(organization: OrganizationRecord): number {
-  return organization.operatingMargin - parseGap(organization.benchmark.operatingMarginGap);
+  return organization.operatingMargin - parseGap(organization.benchmark.operatingMarginGap) * 100;
 }
 
 function statusTone(score: number, risk: number): "Strong" | "Mixed" | "Fragile" {

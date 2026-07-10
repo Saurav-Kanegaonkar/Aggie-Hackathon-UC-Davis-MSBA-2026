@@ -86,7 +86,8 @@ export function PriorityPipeline({ data }: { data: PipelineDataset }) {
                 Organizations ready to move.
               </h2>
               <p className="text-[18px] leading-[1.78] text-slate-600">
-                These nonprofits are financially healthy enough to fund — but they depend on too few revenue sources.
+                These nonprofits are financially healthy enough to fund, but their reported revenue mix is concentrated
+                in too few categories.
                 That's the gap Fairlight can directly address. Strong trajectory, fixable problem, right size for a meaningful relationship.
               </p>
           </div>
