@@ -1,4 +1,4 @@
-# Driver Mentality: Designing an In-Car Voice Assistant Around Human Attention
+# Driver Mentality
 
 ## Problem Framing
 
